@@ -20,6 +20,23 @@
         @endif
     </head>
     <body class="bg-[#FDFDFC] dark:bg-[#0a0a0a] text-[#1b1b18] flex p-6 lg:p-8 items-center lg:justify-center min-h-screen flex-col">
+        @if (session('status'))
+            <div class="w-full max-w-4xl mb-4 rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+                {{ session('status') }}
+            </div>
+        @endif
+        @error('verification')
+            <div class="w-full max-w-4xl mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                {{ $message }}
+            </div>
+        @enderror
+        @auth
+            @if (! auth()->user()->hasVerifiedEmail())
+                <div class="w-full max-w-4xl mb-4 rounded-md bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-800">
+                    Menunggu verifikasi dari Google. Silakan cek email dan tekan tombol <strong>Accept</strong>.
+                </div>
+            @endif
+        @endauth
         <header class="w-full lg:max-w-4xl max-w-[335px] text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
                 <nav class="flex items-center justify-end gap-4">

@@ -12,6 +12,25 @@
         <div class="min-h-screen flex items-center justify-center px-4">
             <div class="w-full max-w-md bg-white shadow rounded-lg p-6">
                 <h1 class="text-2xl font-semibold text-center mb-6">Create an account</h1>
+                @if (session('status'))
+                    <div class="mb-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
+                        {{ session('status') }}
+                    </div>
+                @endif
+                @if (session('warning'))
+                    <div class="mb-4 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
+                        {{ session('warning') }}
+                    </div>
+                @endif
+                @if (empty($notificationEmail))
+                    <div class="mb-4 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
+                        Pastikan konfigurasi email notifikasi di variabel <code>REGISTER_NOTIFICATION_EMAIL</code> pada file <code>.env</code>.
+                    </div>
+                @endif
+                @php
+                    $availableRoles = isset($roles) && is_array($roles) && count($roles) ? $roles : ['penyewa'];
+                    $defaultRole = old('role', $availableRoles[0] ?? 'penyewa');
+                @endphp
                 <form method="POST" action="{{ url('/register') }}" class="space-y-4">
                     @csrf
 
@@ -69,6 +88,25 @@
                             required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="role">Role</label>
+                        <select
+                            id="role"
+                            name="role"
+                            required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                            @foreach ($availableRoles as $role)
+                                <option value="{{ $role }}" @selected($defaultRole === $role)>
+                                    {{ ucfirst(str_replace('_', ' ', $role)) }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('role')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <button

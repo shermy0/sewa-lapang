@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended('/');
+        $user = $request->user();
+
+        if ($user instanceof MustVerifyEmailContract && ! $user->hasVerifiedEmail()) {
+            return redirect()
+                ->route('verification.notice')
+                ->with('status', __('Menunggu verifikasi dari Google.'));
+        }
+
+        return redirect()
+            ->intended('/')
+            ->with('status', __('Login berhasil.'));
     }
 
     /**
