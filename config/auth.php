@@ -112,4 +112,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Registration Settings
+    |--------------------------------------------------------------------------
+    */
+
+    'register_roles' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('REGISTER_AVAILABLE_ROLES', 'penyewa,pemilik'))
+    ))),
+
+    'registration_notification_email' => env('REGISTER_NOTIFICATION_EMAIL'),
+
 ];

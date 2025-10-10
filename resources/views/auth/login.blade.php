@@ -12,6 +12,11 @@
         <div class="min-h-screen flex items-center justify-center px-4">
             <div class="w-full max-w-md bg-white shadow rounded-lg p-6">
                 <h1 class="text-2xl font-semibold text-center mb-6">Log in to your account</h1>
+                @if (session('status'))
+                    <div class="mb-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
+                        {{ session('status') }}
+                    </div>
+                @endif
                 <form method="POST" action="{{ url('/login') }}" class="space-y-4">
                     @csrf
 
