@@ -1,8 +1,10 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\PemilikLapanganController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PemilikDashboardController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -16,6 +18,22 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
 
+
+
+// Route::middleware('auth')->get('/test-sidebar', function () {
+//     return view('dashboard');
+// })->name('test.sidebar');
+
+
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])
+        ->name('dashboard.pemilik');
+});
+
+Route::middleware(['auth'])->prefix('pemilik')->group(function () {
+    Route::get('/lapangan', [PemilikLapanganController::class, 'index'])->name('pemilik.lapangan.index');
+});
