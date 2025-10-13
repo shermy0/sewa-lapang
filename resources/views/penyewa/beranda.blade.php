@@ -64,10 +64,7 @@
             <div class="col-md-4 mb-4">
                 <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
                     <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ asset('poto/'.$item->foto) }}" 
-                            class="card-img-top" 
-                            alt="Foto Lapangan"
-                            style="height: 200px; object-fit: cover;">
+                        <img src="{{ $item->foto }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded">
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1">
