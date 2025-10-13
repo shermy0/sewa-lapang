@@ -1,0 +1,161 @@
+:root {
+  --green: #41A67E;
+  --gold: #F59E0B;
+  --blue: #3B82F6;
+  --purple: #8B5CF6;
+  --white: #ffffff;
+  --gray-bg: #F3F4F6;
+  --text: #2E3A35;
+}
+
+/* ===== Layout ===== */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, var(--green) 40%, var(--blue) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--text);
+}
+
+/* ===== Container ===== */
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+  background: var(--white);
+  padding: 2.5rem 2.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Heading ===== */
+.auth-container h1 {
+  text-align: center;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 1.8rem;
+}
+
+/* ===== Form Field Wrapper ===== */
+.auth-container form > div {
+  margin-bottom: 1rem;
+}
+
+/* ===== Label ===== */
+.auth-container label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+
+/* ===== Input & Select ===== */
+.auth-container input:not([type="checkbox"]),
+.auth-container select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.auth-container input:focus,
+.auth-container select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(65, 166, 126, 0.2);
+}
+
+/* ===== Checkbox ===== */
+.auth-container input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
+  margin-right: 6px;
+  position: relative;
+  top: 1px;
+}
+
+/* ===== Buttons ===== */
+.auth-container button {
+  width: 100%;
+  background: var(--green);
+  color: var(--white);
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.auth-container button:hover {
+  background: var(--gold);
+  transform: translateY(-2px);
+}
+
+.auth-container button:active {
+  transform: scale(0.98);
+}
+
+/* ===== Alerts ===== */
+.auth-container .alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.alert-blue {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid var(--blue);
+  color: var(--blue);
+}
+
+.alert-yellow {
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid var(--gold);
+  color: var(--gold);
+}
+
+/* ===== Links ===== */
+.auth-container p {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 1.2rem;
+}
+
+.auth-container a {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.auth-container a:hover {
+  color: var(--purple);
+}
+
+/* ===== Responsiveness ===== */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 1.5rem;
+  }
+  .auth-container h1 {
+    font-size: 1.5rem;
+  }
+}
