@@ -64,24 +64,6 @@
                 </span>
             </div>
 
-            @foreach ($ulasans as $ulasan)
-                <div class="card mb-3 p-3">
-                    <p><strong>{{ $ulasan->penyewa->nama ?? 'Anonim' }}</strong></p>
-                    <p>
-                        <span class="text-warning">
-                            @for ($i = 1; $i <= 5; $i++)
-                                @if ($i <= $ulasan->rating)
-                                    <i class="fa-solid fa-star"></i>
-                                @else
-                                    <i class="fa-regular fa-star"></i>
-                                @endif
-                            @endfor
-                        </span>
-                    </p>
-                    <p>{{ $ulasan->komentar }}</p>
-                </div>
-            @endforeach
-
             <div class="d-flex gap-2 mt-3">
                 <a href="#" class="btn btn-outline-success">Lihat Ulasan</a>
                 <a href="#" class="btn btn-success px-4">Pesan</a>
