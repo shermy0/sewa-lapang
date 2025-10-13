@@ -22,6 +22,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');
+    Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 
 });
 
