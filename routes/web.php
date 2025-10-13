@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BerandaController;
 
 Route::get('/', function () {
     return view('welcome');
