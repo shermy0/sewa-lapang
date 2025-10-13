@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\PemilikLapanganController;
+use App\Http\Controllers\LapanganController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('dashboard.pemilik');
 });
 
-Route::middleware(['auth'])->prefix('pemilik')->group(function () {
-    Route::get('/lapangan', [PemilikLapanganController::class, 'index'])->name('pemilik.lapangan.index');
-});
+
+Route::resource('lapangan', LapanganController::class);
+
+
