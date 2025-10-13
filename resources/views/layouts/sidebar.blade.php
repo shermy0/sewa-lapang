@@ -22,7 +22,7 @@
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
             ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'route' => route('profile.index')],
         ];
     } else {
         $menuItems = [
@@ -31,7 +31,7 @@
             ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days'],
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-wallet'],
             ['label' => 'Riwayat Sewa', 'icon' => 'fa-solid fa-clock-rotate-left'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear', 'route' => route('profile.index')],
         ];
     }
 @endphp
@@ -47,13 +47,21 @@
     </button>
   </div>
 
-  <div class="user-info">
-    <img src="{{ Auth::user()->profile_photo ?? asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
-    <div class="user-meta">
-      <h6 class="mb-0">{{ Auth::user()->name }}</h6>
-      <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>
-    </div>
+<div class="user-info">
+  @php
+      $user = Auth::user();
+      $avatarUrl = $user->foto_profil 
+          ? asset('storage/' . $user->foto_profil)
+          :'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
+  @endphp
+
+  <img src="{{ $avatarUrl }}" alt="Profile" class="profile-photo">
+  <div class="user-meta">
+    <h6 class="mb-0">{{ $user->name }}</h6>
+    <small class="text-muted text-capitalize">{{ $user->role }}</small>
   </div>
+</div>
+
 
   <nav class="menu-list">
     @foreach ($menuItems as $item)
