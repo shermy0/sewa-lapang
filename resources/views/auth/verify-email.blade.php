@@ -19,6 +19,18 @@
                     </div>
                 @endif
 
+                @if (session('fallbackVerificationUrl'))
+                    <div class="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700 space-y-2">
+                        <p class="font-medium">Tautan verifikasi cadangan siap digunakan.</p>
+                        <a
+                            href="{{ session('fallbackVerificationUrl') }}"
+                            class="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-sm"
+                        >
+                            Verifikasi Sekarang
+                        </a>
+                    </div>
+                @endif
+
                 @if (session('status'))
                     <div class="rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
                         {{ session('status') }}
