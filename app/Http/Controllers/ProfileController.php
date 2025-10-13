@@ -29,7 +29,6 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
             'no_hp' => 'nullable|string|max:20',
             'password' => 'nullable|min:6|confirmed',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -37,7 +36,6 @@ class ProfileController extends Controller
 
         // Update data dasar
         $user->name = $validated['nama'];
-        $user->email = $validated['email'];
         $user->no_hp = $validated['no_hp'] ?? $user->no_hp;
 
         // Update foto
@@ -71,5 +69,30 @@ class ProfileController extends Controller
 
         return response()->json(['success' => true]);
     }
+public function updatePassword(Request $request)
+{
+    $user = Auth::user();
+
+    $request->validate([
+        'current_password' => 'required',
+        'password' => 'required|min:6|confirmed',
+    ]);
+
+    // ✅ Cek password lama
+    if (!Hash::check($request->current_password, $user->password)) {
+        return back()
+            ->withErrors(['current_password' => 'Password lama salah!'])
+            ->with('activeTab', 'password'); // Tambahkan ini
+    }
+
+    // 🔒 Update password baru
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    return back()
+        ->with('success', 'Password berhasil diperbarui!')
+        ->with('activeTab', 'password'); // Tambahkan ini juga
+}
+
 
 }
