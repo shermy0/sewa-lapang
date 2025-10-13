@@ -63,3 +63,7 @@ Route::middleware('auth')->get('/test-sidebar', function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+
+Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
+Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
