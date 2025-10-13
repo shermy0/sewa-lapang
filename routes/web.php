@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use App\Http\Controllers\PemesananController;
+use App\Http\Controllers\PembayaranController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
@@ -21,6 +23,17 @@ Route::middleware('guest')->group(function () {
 
 
 Route::middleware('auth')->group(function () {
+    
+    Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
+    Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
+     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
+     Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
+Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
+
+    Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
+Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+
+    
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->route('verification.success');
