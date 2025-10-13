@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('lapangan', function (Blueprint $table) {
@@ -17,16 +14,15 @@ return new class extends Migration
             $table->string('nama_lapangan');
             $table->text('deskripsi')->nullable();
             $table->string('lokasi');
+            $table->string('kategori');
             $table->decimal('harga_per_jam', 10, 2);
+            $table->float('rating')->default(0);
             $table->string('foto')->nullable();
+            $table->string('status')->default('standard');
             $table->timestamps();
         });
     }
 
-
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('lapangan');

@@ -18,12 +18,17 @@
 
         if ($user && $user->role === 'pemilik') {
             $menuItems = [
-                ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie', 'route' => route('dashboard.pemilik')],
+                [
+                    'label' => 'Dashboard',
+                    'icon' => 'fa-solid fa-chart-pie',
+                    'route' => route('dashboard.pemilik'),
+                ],
                 [
                     'label' => 'Data Lapangan',
                     'icon' => 'fa-solid fa-futbol',
-                    'route' => route('pemilik.lapangan.index'),
+                    'route' => route('lapangan.index'),
                 ],
+
                 ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
                 ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
                 ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
@@ -63,16 +68,14 @@
         </div>
 
         <nav class="menu-list">
-  @foreach ($menuItems as $item)
-    <a 
-      href="{{ $item['route'] ?? '#' }}" 
-      class="menu-link {{ request()->url() == ($item['route'] ?? '') ? 'active' : '' }}"
-    >
-      <i class="{{ $item['icon'] }}"></i>
-      <span class="menu-text">{{ $item['label'] }}</span>
-    </a>
-  @endforeach
-</nav>
+            @foreach ($menuItems as $item)
+                <a href="{{ $item['route'] ?? '#' }}"
+                    class="menu-link {{ request()->url() == ($item['route'] ?? '') ? 'active' : '' }}">
+                    <i class="{{ $item['icon'] }}"></i>
+                    <span class="menu-text">{{ $item['label'] }}</span>
+                </a>
+            @endforeach
+        </nav>
 
 
         <div class="logout-area">
