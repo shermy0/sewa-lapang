@@ -7,10 +7,12 @@ use App\Mail\NewUserRegistered;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -66,11 +68,21 @@ class RegisteredUserController extends Controller
         } catch (Throwable $e) {
             report($e);
 
+            $fallbackVerificationUrl = URL::temporarySignedRoute(
+                'verification.verify',
+                Carbon::now()->addMinutes((int) config('auth.verification.expire', 60)),
+                [
+                    'id' => $user->getKey(),
+                    'hash' => sha1($user->getEmailForVerification()),
+                ]
+            );
+
             return redirect()
                 ->route('verification.notice')
                 ->withErrors([
                     'verification' => __('Email verifikasi gagal dikirim. Silakan coba kirim ulang.'),
-                ]);
+                ])
+                ->with('fallbackVerificationUrl', $fallbackVerificationUrl);
         }
 
         return redirect()
@@ -92,10 +104,20 @@ class RegisteredUserController extends Controller
         }
 
         if (! is_array($roles) || empty($roles)) {
-            $roles = ['admin', 'pemilik', 'penyewa'];
+            $roles = ['pemilik', 'penyewa'];
         }
 
-        return array_values(array_filter($roles, fn ($role) => is_string($role) && $role !== ''));
+        $filteredRoles = array_filter($roles, function ($role) {
+            if (! is_string($role)) {
+                return false;
+            }
+
+            $normalized = trim($role);
+
+            return $normalized !== '' && strcasecmp($normalized, 'admin') !== 0;
+        });
+
+        return array_values($filteredRoles);
     }
 
     /**
