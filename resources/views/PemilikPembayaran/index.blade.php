@@ -13,7 +13,7 @@
             <p class="text-muted mb-0">Kelola dan pantau seluruh transaksi penyewa lapangan</p>
         </div>
         <div class="col-lg-4 text-end">
-            <a href="" class="btn btn-outline-success">
+            <a href="{{ route('pemilik.pembayaran.index') }}" class="btn btn-outline-success">
                 <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
             </a>
         </div>
@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    {{-- Filter dan Export --}}
+    {{-- Filter --}}
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-end">
@@ -68,22 +68,18 @@
                         <option value="gagal" {{ $status == 'gagal' ? 'selected' : '' }}>Gagal</option>
                     </select>
                 </div>
-
                 <div class="col-md-3">
                     <label>Cari (ID/Metode):</label>
                     <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Cari pembayaran...">
                 </div>
-
                 <div class="col-md-2">
                     <label>Dari:</label>
                     <input type="date" name="tanggal_mulai" value="{{ $tanggal_mulai }}" class="form-control">
                 </div>
-
                 <div class="col-md-2">
                     <label>Sampai:</label>
                     <input type="date" name="tanggal_selesai" value="{{ $tanggal_selesai }}" class="form-control">
                 </div>
-
                 <div class="col-md-2 d-flex gap-2">
                     <button class="btn btn-success w-100"><i class="fa-solid fa-filter"></i></button>
                     <a href="#" class="btn btn-outline-primary w-100"><i class="fa-solid fa-file-export"></i></a>
@@ -117,22 +113,22 @@
                         @forelse ($pembayaran as $item)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $item['pemesanan_id'] }}</td>
-                                <td>{{ $item['metode'] }}</td>
-                                <td>Rp {{ number_format($item['jumlah'], 0, ',', '.') }}</td>
+                                <td>{{ $item->pemesanan_id }}</td>
+                                <td>{{ $item->metode }}</td>
+                                <td>Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                                 <td>
-                                    @if ($item['status'] == 'berhasil')
+                                    @if ($item->status == 'berhasil')
                                         <span class="badge bg-success">Berhasil</span>
-                                    @elseif ($item['status'] == 'pending')
+                                    @elseif ($item->status == 'pending')
                                         <span class="badge bg-warning text-dark">Pending</span>
                                     @else
                                         <span class="badge bg-danger">Gagal</span>
                                     @endif
                                 </td>
-                                <td>{{ $item['order_id'] }}</td>
-                                <td>{{ \Carbon\Carbon::parse($item['tanggal_pembayaran'])->translatedFormat('d F Y') }}</td>
+                                <td>{{ $item->order_id }}</td>
+                                <td>{{ \Carbon\Carbon::parse($item->tanggal_pembayaran)->translatedFormat('d F Y') }}</td>
                                 <td>
-                                    <a href="{{ $item['payment_url'] }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <a href="{{ $item->payment_url }}" target="_blank" class="btn btn-sm btn-outline-success">
                                         <i class="fa-solid fa-eye"></i>
                                     </a>
                                     <button class="btn btn-sm btn-outline-danger">
