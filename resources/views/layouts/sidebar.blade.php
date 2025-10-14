@@ -16,59 +16,22 @@
 
     if ($user && $user->role === 'pemilik') {
         $menuItems = [
-            [
-                'label' => 'Dashboard',
-                'icon' => 'fa-solid fa-chart-pie',
-                'route' => '#',
-            ],
-            [
-                'label' => 'Data Lapangan',
-                'icon' => 'fa-solid fa-futbol',
-                'route' => '#',
-            ],
-            [
-                'label' => 'Pemesanan',
-                'icon' => 'fa-solid fa-calendar-check',
-                'route' => '#',
-            ],
-            [
-                'label' => 'Pembayaran',
-                'icon' => 'fa-solid fa-money-bill-wave',
-                'route' => '#',
-            ],
-            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'route' => '#'],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'route' => '#'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'route' => '#'],
+            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie'],
+            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol'],
+            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
+            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
+            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
+            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear'],
         ];
     } else {
         $menuItems = [
-            [
-                'label' => 'Beranda',
-                'icon' => 'fa-solid fa-house',
-                'route' => route('penyewa.beranda'),
-            ],
-            [
-                'label' => 'Cari Lapangan',
-                'icon' => 'fa-solid fa-magnifying-glass',
-                'route' => route('penyewa.beranda'),
-            ],
-            ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days', 'route' => '#'],
-            [
-                'label' => 'Pembayaran',
-                'icon' => 'fa-solid fa-wallet',
-                'route' => route('pembayaran.index'),
-            ],
-            [
-                'label' => 'Favorit',
-                'icon' => 'fa-solid fa-heart',
-                'route' => route('favorit.index'),
-            ],
-            [
-                'label' => 'Riwayat Sewa',
-                'icon' => 'fa-solid fa-clock-rotate-left',
-                'route' => route('riwayat-sewa.index'),
-            ],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear', 'route' => '#'],
+            ['label' => 'Beranda', 'icon' => 'fa-solid fa-house'],
+            ['label' => 'Cari Lapangan', 'icon' => 'fa-solid fa-magnifying-glass'],
+            ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days'],
+            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-wallet'],
+            ['label' => 'Riwayat Sewa', 'icon' => 'fa-solid fa-clock-rotate-left'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear'],
         ];
     }
 @endphp
@@ -76,8 +39,8 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="brand">
-    <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo SewaLap" class="brand-logo">
-    <span class="brand-text">SewaLap</span>
+      <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo SewaLap" class="brand-logo">
+      <span class="brand-text">SewaLap</span>
     </div>
     <button class="toggle-sidebar" id="toggleSidebar">
       <i class="fa-solid fa-bars"></i>
@@ -85,7 +48,7 @@
   </div>
 
   <div class="user-info">
-    <img src="{{ Auth::user()->profile_photo ?? asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
+    <img src="{{ Auth::user()->foto_profil ? asset('storage/' . Auth::user()->foto_profil) : asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
     <div class="user-meta">
       <h6 class="mb-0">{{ Auth::user()->name }}</h6>
       <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>
@@ -94,7 +57,7 @@
 
   <nav class="menu-list">
     @foreach ($menuItems as $item)
-      <a href="{{ $item['route'] ?? '#' }}" class="menu-link {{ request()->url() === ($item['route'] ?? '') ? 'active' : '' }}">
+      <a href="#" class="menu-link">
         <i class="{{ $item['icon'] }}"></i>
         <span class="menu-text">{{ $item['label'] }}</span>
       </a>
@@ -102,10 +65,13 @@
   </nav>
 
   <div class="logout-area">
-    <button type="button" class="logout-btn">
-      <i class="fa-solid fa-right-from-bracket"></i>
-      <span class="logout-text">Keluar</span>
-    </button>
+    <form action="{{ route('logout') }}" method="POST">
+      @csrf
+      <button type="submit" class="logout-btn">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span class="logout-text">Keluar</span>
+      </button>
+    </form>
   </div>
 </aside>
 
@@ -123,5 +89,6 @@
     mainContent.classList.toggle('expanded');
   });
 </script>
+
 </body>
 </html>
