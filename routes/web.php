@@ -3,6 +3,7 @@
 use App\Http\Controllers\LapanganController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PemilikDashboardController;
+use App\Http\Controllers\PemilikPemesananController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
@@ -32,9 +33,14 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])
         ->name('dashboard.pemilik');
+
+    Route::get('/dashboard/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])
+        ->name('pemilik.pemesanan.index');
+
+    Route::patch('/dashboard/pemilik/pemesanan/{pemesanan}', [PemilikPemesananController::class, 'updateStatus'])
+        ->name('pemilik.pemesanan.update');
 });
 
 
 Route::resource('lapangan', LapanganController::class);
-
 

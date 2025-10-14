@@ -59,4 +59,20 @@ class Lapangan extends Model
     {
         return $this->belongsTo(User::class, 'pemilik_id');
     }
+
+    /**
+     * Semua jadwal yang dimiliki lapangan.
+     */
+    public function jadwal()
+    {
+        return $this->hasMany(JadwalLapangan::class);
+    }
+
+    /**
+     * Semua pemesanan yang terkait ke lapangan ini.
+     */
+    public function pemesanan()
+    {
+        return $this->hasMany(Pemesanan::class);
+    }
 }

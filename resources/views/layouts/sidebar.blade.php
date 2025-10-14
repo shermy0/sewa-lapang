@@ -29,7 +29,11 @@
                     'route' => route('lapangan.index'),
                 ],
 
-                ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
+                [
+                    'label' => 'Pemesanan',
+                    'icon' => 'fa-solid fa-calendar-check',
+                    'route' => route('pemilik.pemesanan.index'),
+                ],
                 ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
                 ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
                 ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users'],

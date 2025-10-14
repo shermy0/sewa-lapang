@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'no_hp',
+        'foto_profil',
     ];
 
     /**
@@ -44,5 +47,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Lapangan yang dimiliki user (untuk pemilik).
+     */
+    public function lapangan()
+    {
+        return $this->hasMany(Lapangan::class, 'pemilik_id');
+    }
+
+    /**
+     * Pemesanan yang dibuat user sebagai penyewa.
+     */
+    public function pemesanan()
+    {
+        return $this->hasMany(Pemesanan::class, 'penyewa_id');
     }
 }
