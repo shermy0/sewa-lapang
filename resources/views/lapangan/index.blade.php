@@ -97,7 +97,7 @@
             <div class="col-lg-6 col-xl-4">
                 <div class="card border-0 shadow-sm h-100 overflow-hidden hover-lift">
                     {{-- Image Section with Carousel --}}
-                    <div class="position-relative" style="height: 280px; overflow: hidden;">
+                    <div class="position-relative" style="height: 220px; overflow: hidden;"> {{-- Diperkecil dari 280px --}}
                         @if (!empty($item->foto) && is_array(json_decode($item->foto, true)) && count(json_decode($item->foto, true)) > 0)
                             @php $fotoArray = json_decode($item->foto, true); @endphp
                             
@@ -224,7 +224,7 @@
                         <form action="{{ route('lapangan.update', $item->id) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
-                            <div class="modal-body p-4">
+                            <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;"> {{-- Ditambahkan scroll --}}
                                 <div class="row g-4">
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
@@ -332,7 +332,7 @@
                                                 <small class="text-muted d-block mb-2">Foto saat ini:</small>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     @foreach (json_decode($item->foto, true) as $photo)
-                                                        <div class="position-relative" style="width: 120px; height: 100px;">
+                                                        <div class="position-relative" style="width: 100px; height: 80px;"> {{-- Diperkecil --}}
                                                             <img src="{{ asset('storage/' . $photo) }}" 
                                                                  class="w-100 h-100 rounded border"
                                                                  style="object-fit: cover;"
@@ -381,7 +381,7 @@
                 </div>
                 <form action="{{ route('lapangan.store') }}" method="POST" enctype="multipart/form-data" id="formTambah">
                     @csrf
-                    <div class="modal-body p-4">
+                    <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-dark">
@@ -589,8 +589,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.classList.add('img-thumbnail');
-                    img.style.width = '140px';
-                    img.style.height = '110px';
+                    img.style.width = '100px'; // Diperkecil
+                    img.style.height = '80px';  // Diperkecil
                     img.style.objectFit = 'cover';
 
                     // Tombol hapus di tiap gambar
@@ -599,6 +599,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     removeBtn.type = 'button';
                     removeBtn.classList.add('btn', 'btn-sm', 'btn-danger', 'position-absolute', 'top-0', 'end-0');
                     removeBtn.style.transform = 'translate(25%, -25%)';
+                    removeBtn.style.fontSize = '12px';
+                    removeBtn.style.width = '20px';
+                    removeBtn.style.height = '20px';
+                    removeBtn.style.padding = '0';
+                    removeBtn.style.display = 'flex';
+                    removeBtn.style.alignItems = 'center';
+                    removeBtn.style.justifyContent = 'center';
                     removeBtn.onclick = function () {
                         selectedFiles.splice(index, 1); // Hapus dari array
                         renderPreview(); // Render ulang
@@ -655,6 +662,35 @@ document.addEventListener('DOMContentLoaded', function () {
     .card:hover .carousel-control-prev,
     .card:hover .carousel-control-next {
         opacity: 1;
+    }
+    
+    /* Styling khusus untuk modal yang scrollable */
+    #tambahLapanganModal .modal-body,
+    [id^="editLapanganModal"] .modal-body {
+        scrollbar-width: thin;
+        scrollbar-color: #c1c1c1 #f1f1f1;
+    }
+    
+    #tambahLapanganModal .modal-body::-webkit-scrollbar,
+    [id^="editLapanganModal"] .modal-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    #tambahLapanganModal .modal-body::-webkit-scrollbar-track,
+    [id^="editLapanganModal"] .modal-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    #tambahLapanganModal .modal-body::-webkit-scrollbar-thumb,
+    [id^="editLapanganModal"] .modal-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+    }
+    
+    #tambahLapanganModal .modal-body::-webkit-scrollbar-thumb:hover,
+    [id^="editLapanganModal"] .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
     }
 </style>
 @endsection
