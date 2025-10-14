@@ -16,22 +16,59 @@
 
     if ($user && $user->role === 'pemilik') {
         $menuItems = [
-            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie'],
-            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol'],
-            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
-            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear'],
+            [
+                'label' => 'Dashboard',
+                'icon' => 'fa-solid fa-chart-pie',
+                'route' => '#',
+            ],
+            [
+                'label' => 'Data Lapangan',
+                'icon' => 'fa-solid fa-futbol',
+                'route' => '#',
+            ],
+            [
+                'label' => 'Pemesanan',
+                'icon' => 'fa-solid fa-calendar-check',
+                'route' => '#',
+            ],
+            [
+                'label' => 'Pembayaran',
+                'icon' => 'fa-solid fa-money-bill-wave',
+                'route' => '#',
+            ],
+            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'route' => '#'],
+            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'route' => '#'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'route' => '#'],
         ];
     } else {
         $menuItems = [
-            ['label' => 'Beranda', 'icon' => 'fa-solid fa-house'],
-            ['label' => 'Cari Lapangan', 'icon' => 'fa-solid fa-magnifying-glass'],
-            ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days'],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-wallet'],
-            ['label' => 'Riwayat Sewa', 'icon' => 'fa-solid fa-clock-rotate-left'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear'],
+            [
+                'label' => 'Beranda',
+                'icon' => 'fa-solid fa-house',
+                'route' => route('penyewa.beranda'),
+            ],
+            [
+                'label' => 'Cari Lapangan',
+                'icon' => 'fa-solid fa-magnifying-glass',
+                'route' => route('penyewa.beranda'),
+            ],
+            ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days', 'route' => '#'],
+            [
+                'label' => 'Pembayaran',
+                'icon' => 'fa-solid fa-wallet',
+                'route' => route('pembayaran.index'),
+            ],
+            [
+                'label' => 'Favorit',
+                'icon' => 'fa-solid fa-heart',
+                'route' => route('favorit.index'),
+            ],
+            [
+                'label' => 'Riwayat Sewa',
+                'icon' => 'fa-solid fa-clock-rotate-left',
+                'route' => route('riwayat-sewa.index'),
+            ],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear', 'route' => '#'],
         ];
     }
 @endphp
@@ -57,7 +94,7 @@
 
   <nav class="menu-list">
     @foreach ($menuItems as $item)
-      <a href="#" class="menu-link">
+      <a href="{{ $item['route'] ?? '#' }}" class="menu-link {{ request()->url() === ($item['route'] ?? '') ? 'active' : '' }}">
         <i class="{{ $item['icon'] }}"></i>
         <span class="menu-text">{{ $item['label'] }}</span>
       </a>
