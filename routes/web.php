@@ -6,6 +6,7 @@ use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\TiketController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -43,6 +44,11 @@ Route::get('laporan/export-pdf', [LaporanController::class, 'exportPdf'])->name(
 
 // Route resource
 Route::resource('laporan', LaporanController::class);
+
+
+Route::get('/scan.tiket', [TiketController::class, 'index'])->name('scan.tiket');
+Route::post('/scan.tiket', [TiketController::class, 'scan'])->name('scan.tiket.proses');
+
 
 
 
