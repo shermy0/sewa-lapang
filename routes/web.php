@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Penyewa\DashboardController as PenyewaDashboardController;
+use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BerandaController;
-use App\Http\Controllers\FavoritLapanganController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -67,16 +67,19 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 
-Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
-Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
+Route::middleware(['auth', 'role:penyewa'])
+    ->prefix('penyewa')
+    ->name('penyewa.')
+    ->group(function () {
+        Route::get('/', fn () => redirect()->route('penyewa.beranda'))->name('home');
+        Route::get('beranda', [PenyewaDashboardController::class, 'beranda'])->name('beranda');
+        Route::get('lapangan/{lapangan}', [PenyewaDashboardController::class, 'detail'])->name('detail');
+        Route::get('pemesanan', [PenyewaDashboardController::class, 'pemesanan'])->name('pemesanan');
+        Route::get('pembayaran', [PenyewaDashboardController::class, 'pembayaran'])->name('pembayaran');
+        Route::get('riwayat', [PenyewaDashboardController::class, 'riwayat'])->name('riwayat');
+        Route::get('akun', [PenyewaDashboardController::class, 'akun'])->name('akun');
 
-Route::middleware('auth')->group(function () {
-    Route::view('/pembayaran', 'pembayaran.index')->name('pembayaran.index');
-    Route::view('/riwayat-sewa', 'riwayat.index')->name('riwayat-sewa.index');
-    Route::view('/favorit', 'penyewa.favorit')->name('favorit.index');
-});
-
-Route::middleware('auth')->group(function () {
-    Route::post('/favorit/{lapangan}', [FavoritLapanganController::class, 'store'])->name('favorit.store');
-    Route::delete('/favorit/{lapangan}', [FavoritLapanganController::class, 'destroy'])->name('favorit.destroy');
-});
+        Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
+        Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
+        Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+    });
