@@ -1,12 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TiketController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\PemilikDashboardController;
+use App\Http\Controllers\PemilikPembayaranController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\TiketController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -49,6 +50,5 @@ Route::resource('laporan', LaporanController::class);
 Route::get('/scan.tiket', [TiketController::class, 'index'])->name('scan.tiket');
 Route::post('/scan.tiket', [TiketController::class, 'scan'])->name('scan.tiket.proses');
 
-
-
-
+Route::get('/pemilik/pembayaran', [PemilikPembayaranController::class, 'index'])
+    ->name('pemilik.pembayaran.index');

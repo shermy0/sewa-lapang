@@ -30,7 +30,12 @@
                 ],
 
                 ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
-                ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
+               [
+    'label' => 'Pembayaran',
+    'icon' => 'fa-solid fa-money-bill-wave',
+    'route' => route('pemilik.pembayaran.index'),
+],
+
                 [
                     'label' => 'Scan Tiket',
                     'icon' => 'fa-solid fa-qrcode',
