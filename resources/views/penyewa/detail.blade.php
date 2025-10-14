@@ -79,7 +79,9 @@
 
             <div class="d-flex gap-2 mt-3">
                 <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">Lihat Ulasan</a>
-                <a href="#" class="btn btn-success px-4">Pesan</a>
+                <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-success px-4">
+                    Pesan
+                </a>
             </div>
         </div>
     </div>

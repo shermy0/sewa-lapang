@@ -3,23 +3,17 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use App\Http\Controllers\PemesananController;
+use App\Http\Controllers\PembayaranController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
-// Halaman utama
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Routes untuk guest (belum login)
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
@@ -28,19 +22,40 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
 
-// Routes untuk user yang sudah login
-Route::middleware('auth')->group(function () {
 
-    // Verifikasi Email
+Route::middleware('auth')->group(function () {
+    
+    Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
+    Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
+    Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
+    Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
+    Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
+   
+    // BERANDA PENYEWA
+    Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
+    Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
+   
+    // ULASAN PENYEWA
+    Route::post('/simpan/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
+    Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
+    Route::put('/{id}/update', [UlasanController::class, 'update'])->name('ulasan.update');
+    Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
+
+    Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
+    Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+
+    
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->route('verification.success');
         }
+
         return view('auth.verify-email');
     })->name('verification.notice');
 
     Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $request) {
         $request->fulfill();
+
         return redirect()->route('verification.success');
     })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
@@ -53,6 +68,7 @@ Route::middleware('auth')->group(function () {
             $request->user()->sendEmailVerificationNotification();
         } catch (\Throwable $e) {
             report($e);
+
             return back()->withErrors([
                 'verification' => __('Email verifikasi gagal dikirim. Silakan coba lagi nanti.'),
             ]);
@@ -64,53 +80,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/verifikasi-berhasil', function () {
         return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
     })->name('verification.success');
-
-    // Logout
-    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-
-    // Dashboard / Test Sidebar
-    Route::get('/test-sidebar', function () {
-        return view('dashboard');
-    })->name('test.sidebar');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Penyewa
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('penyewa')->name('penyewa.')->group(function () {
-        Route::get('/beranda', [BerandaController::class, 'index'])->name('beranda');
-        Route::get('/pemesanan', [BerandaController::class, 'pemesanan'])->name('pemesanan');
-        Route::get('/pembayaran', [BerandaController::class, 'pembayaran'])->name('pembayaran');
-        Route::get('/riwayat', [BerandaController::class, 'riwayat'])->name('riwayat');
-        Route::get('/akun', [BerandaController::class, 'akun'])->name('akun');
-        Route::get('/detail/{id}', [BerandaController::class, 'detail'])->name('detail');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Ulasan Penyewa
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('ulasan')->group(function () {
-        Route::post('/simpan/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
-        Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
-        Route::put('/{id}/update', [UlasanController::class, 'update'])->name('ulasan.update');
-        Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Pemilik (opsional, jika ada role pemilik)
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('pemilik')->name('pemilik.')->group(function () {
-        Route::get('/dashboard', [BerandaController::class, 'dashboardPemilik'])->name('dashboard');
-        Route::get('/lapangan', [BerandaController::class, 'lapangan'])->name('lapangan');
-        Route::get('/pemesanan', [BerandaController::class, 'pemesananPemilik'])->name('pemesanan');
-        Route::get('/pembayaran', [BerandaController::class, 'pembayaranPemilik'])->name('pembayaran');
-        Route::get('/laporan', [BerandaController::class, 'laporan'])->name('laporan');
-        Route::get('/pengguna', [BerandaController::class, 'pengguna'])->name('pengguna');
-        Route::get('/akun', [BerandaController::class, 'akunPemilik'])->name('akun');
-    });
 });
+
+Route::middleware('auth')->get('/test-sidebar', function () {
+    return view('dashboard');
+})->name('test.sidebar');
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
