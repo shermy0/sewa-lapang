@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('pemilik_id')->constrained('users')->onDelete('cascade');
             $table->string('nama_lapangan');
+            $table->enum('kategori', ['Badminton', 'Futsal', 'Padel', 'Basket', 'Voli', 'Sepak Bola', 'Lainnya'])->default('Lainnya');
             $table->text('deskripsi')->nullable();
             $table->string('lokasi');
             $table->decimal('harga_per_jam', 10, 2);
@@ -22,7 +23,6 @@ return new class extends Migration
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.
