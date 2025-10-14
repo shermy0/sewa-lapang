@@ -6,6 +6,7 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\FavoritLapanganController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -68,3 +69,14 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
 Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
 Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
+
+Route::middleware('auth')->group(function () {
+    Route::view('/pembayaran', 'pembayaran.index')->name('pembayaran.index');
+    Route::view('/riwayat-sewa', 'riwayat.index')->name('riwayat-sewa.index');
+    Route::view('/favorit', 'penyewa.favorit')->name('favorit.index');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/favorit/{lapangan}', [FavoritLapanganController::class, 'store'])->name('favorit.store');
+    Route::delete('/favorit/{lapangan}', [FavoritLapanganController::class, 'destroy'])->name('favorit.destroy');
+});
