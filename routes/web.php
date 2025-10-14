@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\LapanganController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -20,9 +21,9 @@ Route::middleware('guest')->group(function () {
 
 
 
-// Route::middleware('auth')->get('/test-sidebar', function () {
-//     return view('dashboard');
-// })->name('test.sidebar');
+ Route::middleware('auth')->get('/test-sidebar', function () {
+     return view('pemilik.dashboard');
+ })->name('test.sidebar');
 
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -36,5 +37,12 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::resource('lapangan', LapanganController::class);
+// Route export dulu
+Route::get('laporan/export-excel', [LaporanController::class, 'exportExcel'])->name('laporan.excel');
+Route::get('laporan/export-pdf', [LaporanController::class, 'exportPdf'])->name('laporan.pdf');
+
+// Route resource
+Route::resource('laporan', LaporanController::class);
+
 
 

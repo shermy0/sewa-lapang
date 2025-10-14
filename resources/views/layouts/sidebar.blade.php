@@ -31,7 +31,12 @@
 
                 ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
                 ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
-                ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
+                [
+                    'label' => 'Laporan',
+                    'icon' => 'fa-solid fa-file-invoice',
+                    'route' => route('laporan.index'),
+                ],
+
                 ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users'],
                 ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear'],
             ];
