@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Penyewa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lapangan;
+use App\Models\Pemesanan;
 use App\Models\Ulasan;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
@@ -76,46 +78,85 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $ulasans = (Schema::hasTable('ulasan') && Schema::hasTable('pemesanan') && Schema::hasTable('users'))
-            ? Ulasan::query()
-                ->select([
-                    'ulasan.id',
-                    'ulasan.rating',
-                    'ulasan.komentar',
-                    'ulasan.created_at',
-                    'users.id as user_id',
-                    'users.name as username',
-                    'users.foto_profil as user_foto',
-                ])
-                ->join('pemesanan', 'pemesanan.id', '=', 'ulasan.pemesanan_id')
-                ->join('users', 'users.id', '=', 'pemesanan.penyewa_id')
-                ->where('pemesanan.lapangan_id', $lapangan->getKey())
-                ->latest('ulasan.created_at')
-                ->get()
-            : collect();
+        $penyewa = Auth::user();
+        $ulasans = collect();
+        $avgRating = 0;
+        $totalUlasan = 0;
+        $existingUlasan = null;
+        $canReview = false;
 
-        $ratingStat = $ulasans->isEmpty()
-            ? (object) ['avg_rating' => 0, 'total' => 0]
-            : (object) [
-                'avg_rating' => (float) $ulasans->avg('rating'),
-                'total' => $ulasans->count(),
-            ];
+        if (Schema::hasTable('ulasan') && Schema::hasTable('pemesanan') && Schema::hasTable('users')) {
+            $ulasans = Ulasan::query()
+                ->with('penyewa')
+                ->whereHas('pemesanan', function ($query) use ($lapangan) {
+                    $query->where('lapangan_id', $lapangan->getKey());
+                })
+                ->latest()
+                ->get();
+
+            $avgRating = (float) $ulasans->avg('rating');
+            $totalUlasan = $ulasans->count();
+
+            if ($penyewa && $penyewa->role === 'penyewa') {
+                $ulasans = $ulasans->map(function ($ulasan) use ($penyewa) {
+                    $ulasan->is_mine = $penyewa->getKey() === $ulasan->penyewa_id;
+                    return $ulasan;
+                });
+
+                if (Schema::hasTable('pemesanan')) {
+                    $completedBookingExists = Pemesanan::query()
+                        ->where('penyewa_id', $penyewa->getKey())
+                        ->where('lapangan_id', $lapangan->getKey())
+                        ->where('status', 'selesai')
+                        ->exists();
+
+                    $existingUlasan = Ulasan::query()
+                        ->where('penyewa_id', $penyewa->getKey())
+                        ->whereHas('pemesanan', function ($query) use ($lapangan) {
+                            $query->where('lapangan_id', $lapangan->getKey());
+                        })
+                        ->latest()
+                        ->first();
+
+                    $canReview = $completedBookingExists || (bool) $existingUlasan;
+                }
+            }
+        }
 
         return view('penyewa.detail', [
             'lapangan' => $lapangan,
             'lainnya' => $lainnya,
             'ulasans' => $ulasans,
-            'avgRating' => $ratingStat->avg_rating,
-            'totalUlasan' => $ratingStat->total,
+            'avgRating' => $avgRating,
+            'totalUlasan' => $totalUlasan,
+            'existingUlasan' => $existingUlasan,
+            'canReview' => $canReview,
         ]);
     }
 
     /**
      * Halaman pemesanan penyewa.
      */
-    public function pemesanan(): View
+    public function pemesanan(Request $request): View
     {
-        return view('penyewa.pemesanan');
+        $penyewa = $request->user();
+
+        if (! Schema::hasTable('pemesanan')) {
+            return view('penyewa.pemesanan', [
+                'pemesanan' => collect(),
+            ]);
+        }
+
+        $pemesanan = Pemesanan::query()
+            ->with(['lapangan', 'ulasan'])
+            ->where('penyewa_id', $penyewa->getKey())
+            ->latest('tanggal')
+            ->latest('jam_mulai')
+            ->get();
+
+        return view('penyewa.pemesanan', [
+            'pemesanan' => $pemesanan,
+        ]);
     }
 
     /**

@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Penyewa\DashboardController as PenyewaDashboardController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
+use App\Http\Controllers\Penyewa\PemesananController as PenyewaPemesananController;
+use App\Http\Controllers\Penyewa\UlasanController as PenyewaUlasanController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -78,8 +80,11 @@ Route::middleware(['auth', 'role:penyewa'])
         Route::get('pembayaran', [PenyewaDashboardController::class, 'pembayaran'])->name('pembayaran');
         Route::get('riwayat', [PenyewaDashboardController::class, 'riwayat'])->name('riwayat');
         Route::get('akun', [PenyewaDashboardController::class, 'akun'])->name('akun');
-
+       
         Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
         Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
         Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+
+        Route::post('lapangan/{lapangan}/ulasan', [PenyewaUlasanController::class, 'store'])->name('ulasan.store');
+        Route::delete('ulasan/{ulasan}', [PenyewaUlasanController::class, 'destroy'])->name('ulasan.destroy');
     });

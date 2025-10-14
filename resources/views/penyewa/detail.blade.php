@@ -11,11 +11,22 @@
         $avgRating = $avgRating ?? 0;
         $totalUlasan = $totalUlasan ?? 0;
         $ulasans = $ulasans ?? collect();
+        $existingUlasan = $existingUlasan ?? null;
+        $canReview = $canReview ?? false;
         $favoritTableExists = \Illuminate\Support\Facades\Schema::hasTable('favorit_lapangan');
         $isFavorit = $isFavorit ?? ($favoritTableExists && Auth::check() && Auth::user()->role === 'penyewa'
             ? Auth::user()->favoritLapangan()->where('lapangan_id', $lapangan->id)->exists()
             : false);
     @endphp
+
+    @foreach (['success', 'error'] as $flash)
+        @if (session($flash))
+            <div class="alert alert-{{ $flash === 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
+                {{ session($flash) }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+    @endforeach
 
     <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
 
@@ -94,7 +105,7 @@
 
             <div class="d-flex gap-2 mt-3">
                 <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">Lihat Ulasan</a>
-                <a href="#" class="btn btn-success px-4">Pesan</a>
+                <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#pemesananModal">Pesan</a>
 
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
                     @if ($isFavorit)
@@ -147,67 +158,114 @@
     </div>
 </div>
 
+
+
+<!-- Modal Lihat Ulasan -->
+<div class="modal fade" id="ulasanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ulasan {{ $lapangan->nama_lapangan }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if($ulasans->isEmpty())
+                    <p class="text-muted mb-0">Belum ada ulasan untuk lapangan ini.</p>
+                @else
+                    <div class="list-group">
+                        @foreach($ulasans as $ulasan)
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ $ulasan->penyewa->name ?? 'Penyewa' }}</h6>
+                                        <div class="text-warning mb-1">
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                @if($i <= $ulasan->rating)
+                                                    <i class="fa-solid fa-star"></i>
+                                                @else
+                                                    <i class="fa-regular fa-star"></i>
+                                                @endif
+                                            @endfor
+                                        </div>
+                                        <p class="mb-1">{{ $ulasan->komentar ?? 'Tidak ada komentar.' }}</p>
+                                        <small class="text-muted">Diberikan pada {{ optional($ulasan->created_at)->format('d M Y') }}</small>
+                                    </div>
+                                    @if(!empty($ulasan->is_mine))
+                                        <span class="badge bg-success">Ulasan Kamu</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            <div class="modal-footer justify-content-between">
+                <div class="text-muted small">
+                    @if($canReview)
+                        Kamu dapat menulis atau mengubah ulasanmu.
+                    @else
+                        Selesaikan pemesanan untuk menulis ulasan.
+                    @endif
+                </div>
+                @if($canReview)
+                    <div class="d-flex gap-2">
+                        @if($existingUlasan)
+                            <form action="{{ route('penyewa.ulasan.destroy', $existingUlasan) }}" method="POST" onsubmit="return confirm('Hapus ulasan kamu?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-outline-danger">Hapus Ulasan</button>
+                            </form>
+                        @endif
+                        <button type="button" class="btn btn-success" data-bs-target="#ulasanFormModal" data-bs-toggle="modal" data-bs-dismiss="modal">
+                            {{ $existingUlasan ? 'Edit Ulasan' : 'Tulis Ulasan' }}
+                        </button>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form Ulasan -->
+@if($canReview)
+<div class="modal fade" id="ulasanFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('penyewa.ulasan.store', $lapangan) }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title">{{ $existingUlasan ? 'Perbarui' : 'Tulis' }} Ulasan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="rating" class="form-label">Rating</label>
+                    <select name="rating" id="rating" class="form-select" required>
+                        <option value="" disabled {{ old('rating', optional($existingUlasan)->rating) ? '' : 'selected' }}>Pilih rating</option>
+                        @for ($i = 1; $i <= 5; $i++)
+                            <option value="{{ $i }}" {{ (int) old('rating', optional($existingUlasan)->rating) === $i ? 'selected' : '' }}>
+                                {{ $i }} - {{ ['Sangat Buruk','Buruk','Cukup','Bagus','Sangat Bagus'][$i-1] }}
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="komentar" class="form-label">Komentar</label>
+                    <textarea name="komentar" id="komentar" class="form-control" rows="4" placeholder="Bagikan pengalamanmu">{{ old('komentar', optional($existingUlasan)->komentar) }}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-success">{{ $existingUlasan ? 'Simpan Perubahan' : 'Kirim Ulasan' }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     setTimeout(() => {
-        document.getElementById('alert-error')?.style.display = 'none';
-        document.getElementById('alert-success')?.style.display = 'none';
-    }, 3000);
+        document.querySelectorAll('.alert').forEach(alert => alert.classList.add('d-none'));
+    }, 4000);
 </script>
-
-<!-- Script tambah ulasan -->
-<script>
-    const stars = document.querySelectorAll('.star-rating i');
-    const ratingInput = document.getElementById('ratingInput');
-
-    stars.forEach(star => {
-        star.addEventListener('mouseenter', () => highlightStars(star.getAttribute('data-value')));
-        star.addEventListener('mouseleave', () => highlightStars(ratingInput.value));
-        star.addEventListener('click', () => {
-            ratingInput.value = star.getAttribute('data-value');
-            highlightStars(star.getAttribute('data-value'));
-        });
-    });
-
-    function highlightStars(rating) {
-        stars.forEach(star => {
-            if (star.getAttribute('data-value') <= rating) {
-                star.classList.remove('fa-regular');
-                star.classList.add('fa-solid');
-            } else {
-                star.classList.remove('fa-solid');
-                star.classList.add('fa-regular');
-            }
-        });
-    }
-</script>
-
-<!-- Script edit ulasan -->
-@foreach($ulasans as $ulasan)
-<script>
-    const stars{{ $ulasan->id }} = document.querySelectorAll('#starRating{{ $ulasan->id }} i');
-    const rating{{ $ulasan->id }} = document.getElementById('ratingInput{{ $ulasan->id }}');
-
-    function highlight{{ $ulasan->id }}(rating) {
-        stars{{ $ulasan->id }}.forEach(star => {
-            if (star.getAttribute('data-value') <= rating) {
-                star.classList.replace('fa-regular', 'fa-solid');
-            } else {
-                star.classList.replace('fa-solid', 'fa-regular');
-            }
-        });
-    }
-
-    highlight{{ $ulasan->id }}(rating{{ $ulasan->id }}.value);
-
-    stars{{ $ulasan->id }}.forEach(star => {
-        star.addEventListener('mouseenter', () => highlight{{ $ulasan->id }}(star.getAttribute('data-value')));
-        star.addEventListener('mouseleave', () => highlight{{ $ulasan->id }}(rating{{ $ulasan->id }}.value));
-        star.addEventListener('click', () => {
-            rating{{ $ulasan->id }}.value = star.getAttribute('data-value');
-            highlight{{ $ulasan->id }}(rating{{ $ulasan->id }}.value);
-        });
-    });
-</script>
-@endforeach
 @endsection
