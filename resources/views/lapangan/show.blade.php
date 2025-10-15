@@ -52,15 +52,24 @@
                     </p>
 
                     <p class="text-muted mb-2">
+                        <i class="fa-solid fa-ticket text-info me-2"></i>
+                        <strong>Tiket Tersedia:</strong> {{ $lapangan->tiket_tersedia }}
+                    </p>
+
+                    <p class="text-muted mb-2">
+                        <i class="fa-solid fa-clock text-secondary me-2"></i>
+                        <strong>Durasi Sewa:</strong> {{ $lapangan->durasi_sewa }} jam
+                    </p>
+
+                    <p class="text-muted mb-2">
                         <i class="fa-solid fa-money-bill-wave text-success me-2"></i>
                         <strong>Harga Sewa:</strong> Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }} / jam
                     </p>
-
                     <p class="text-muted mb-2">
                         <i class="fa-solid fa-star text-warning me-2"></i>
                         <strong>Rating:</strong>
                         @for ($i = 1; $i <= 5; $i++)
-                            <i class="fa-solid fa-star {{ $i <= $lapangan->rating ? 'text-warning' : 'text-secondary' }}"></i>
+                            <i class="fa-solid fa-star {{ $i <= round($lapangan->rating) ? 'text-warning' : 'text-secondary' }}"></i>
                         @endfor
                         <span class="ms-1">({{ number_format($lapangan->rating, 1) }})</span>
                     </p>
@@ -77,11 +86,50 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 📅 Jadwal Lapangan -->
+            <hr class="my-4">
+            <h4 class="fw-bold text-dark mb-3"><i class="fa-solid fa-calendar-days me-2"></i> Jadwal Lapangan</h4>
+
+            @if($lapangan->jadwal->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Jam Mulai</th>
+                                <th>Jam Selesai</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($lapangan->jadwal as $index => $jadwal)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+                                    <td>
+                                        @if($jadwal->tersedia)
+                                            <span class="badge bg-success">Tersedia</span>
+                                        @else
+                                            <span class="badge bg-danger">Penuh</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-muted">Belum ada jadwal tersedia untuk lapangan ini.</p>
+            @endif
         </div>
     </div>
 </div>
 
-<!-- 🔍 Modal Zoom Foto -->
+<!-- Modal Foto -->
 <div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-transparent border-0">
@@ -90,7 +138,6 @@
     </div>
 </div>
 
-<!-- 🧠 Script Foto Interaktif -->
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -99,20 +146,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = new bootstrap.Modal(document.getElementById('fotoModal'));
     const thumbnails = document.querySelectorAll('.pilih-foto');
 
-    // Klik thumbnail ganti foto utama
     thumbnails.forEach(img => {
-        img.addEventListener('click', () => {
-            fotoUtama.src = img.src;
-        });
-
-        // Klik dua kali untuk zoom
+        img.addEventListener('click', () => fotoUtama.src = img.src);
         img.addEventListener('dblclick', () => {
             fotoZoom.src = img.src;
             modal.show();
         });
     });
 
-    // Klik gambar utama untuk zoom
     fotoUtama?.addEventListener('click', () => {
         fotoZoom.src = fotoUtama.src;
         modal.show();
@@ -121,4 +162,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 @endsection
 @endsection
-
