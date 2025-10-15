@@ -109,6 +109,16 @@ class LapanganController extends Controller
     }
 
     /**
+     * Tampilkan detail lapangan.
+     */
+    public function show($id)
+    {
+        $lapangan = Lapangan::with('jadwal')->findOrFail($id);
+
+        return view('lapangan.show', compact('lapangan'));
+    }
+
+    /**
      * Update data lapangan.
      */
     public function update(Request $request, $id)
