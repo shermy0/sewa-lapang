@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
+use App\Http\Controllers\PemilikDashboardController;
+use App\Http\Controllers\ScanTiketController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -94,3 +96,9 @@ Route::middleware('auth')->get('/test-sidebar', function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
+    Route::get('/pemilik/scan', [ScanTiketController::class, 'scan'])->name('pemilik.scan');
+});
