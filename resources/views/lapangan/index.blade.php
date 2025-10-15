@@ -93,6 +93,25 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    @if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-exclamation-triangle me-2"></i>
+        <strong>Terjadi kesalahan:</strong>
+        <ul class="mb-0 mt-1">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if (session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-exclamation-triangle me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
     {{-- Grid Layout Cards --}}
     <div class="row g-4">
@@ -251,21 +270,6 @@
                                 </small>
                             </div>
                         </div>
-
-                        {{-- Fasilitas --}}
-                        @if($item->fasilitas)
-                        <div class="mb-3">
-                            <small class="text-muted d-block mb-1">Fasilitas:</small>
-                            <div class="d-flex flex-wrap gap-1">
-                                @foreach(array_slice(explode(',', $item->fasilitas), 0, 3) as $fasilitas)
-                                    <span class="badge bg-light text-dark border small">{{ trim($fasilitas) }}</span>
-                                @endforeach
-                                @if(count(explode(',', $item->fasilitas)) > 3)
-                                    <span class="badge bg-light text-dark border small">+{{ count(explode(',', $item->fasilitas)) - 3 }} lagi</span>
-                                @endif
-                            </div>
-                        </div>
-                        @endif
 
                         {{-- Tombol Aksi --}}
                         <div class="d-flex gap-2">
@@ -434,20 +438,7 @@
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
-                                    <div class="col-12">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-list-check me-1 text-info"></i> Fasilitas
-                                        </label>
-                                        <input type="text" name="fasilitas" class="form-control form-control-lg" 
-                                            value="{{ $item->fasilitas }}" 
-                                            placeholder="Contoh: AC, Lighting, Ruang Ganti, Toilet, Parkir">
-                                        <div class="form-text">
-                                            <i class="fa-solid fa-circle-info me-1"></i> Pisahkan dengan koma untuk fasilitas yang tersedia
-                                        </div>
-                                        @error('fasilitas')
-                                            <small class="text-danger">{{ $message }}</small>
-                                        @enderror
-                                    </div>
+            
                                     <div class="col-12">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
@@ -651,7 +642,6 @@
             <p class="text-muted">Tambahkan lapangan pertama Anda dengan mengklik tombol di atas</p>
         </div>
     @endif
-
     {{-- Modal Tambah Lapangan --}}
     <div class="modal fade" id="tambahLapanganModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -788,20 +778,7 @@
                                     <small class="text-danger">{{ $message }}</small>
                                 @enderror
                             </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold text-dark">
-                                    <i class="fa-solid fa-list-check me-1 text-info"></i> Fasilitas
-                                </label>
-                                <input type="text" name="fasilitas" class="form-control form-control-lg" 
-                                    value="{{ old('fasilitas') }}" 
-                                    placeholder="Contoh: AC, Lighting, Ruang Ganti, Toilet, Parkir">
-                                <div class="form-text">
-                                    <i class="fa-solid fa-circle-info me-1"></i> Pisahkan dengan koma untuk fasilitas yang tersedia
-                                </div>
-                                @error('fasilitas')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
-                            </div>
+                           
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-dark">
                                     <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
