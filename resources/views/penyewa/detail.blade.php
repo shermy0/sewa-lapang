@@ -16,6 +16,14 @@
         <div id="alert-success" class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    <div class="detail-lapangan container py-4">
+    @php
+    $favoritTableExists = \Illuminate\Support\Facades\Schema::hasTable('favorit_lapangan');
+        $isFavorit = $isFavorit ?? ($favoritTableExists && Auth::check() && Auth::user()->role === 'penyewa'
+            ? Auth::user()->favoritLapangan()->where('lapangan_id', $lapangan->id)->exists()
+            : false);
+    @endphp
+
     <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
 
     <div class="row g-4 align-items-start">
@@ -77,11 +85,33 @@
                 @endif
             </div>
 
-            <div class="d-flex gap-2 mt-3">
-                <a href="#" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">Lihat Ulasan</a>
-                <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-success px-4">
+            <div class="d-flex gap-2 mt-3 align-items-center">
+                <a href="#" class="btn btn-outline-success d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#ulasanModal">
+                    Lihat Ulasan
+                </a>
+
+                <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-success px-4 d-flex align-items-center justify-content-center">
                     Pesan
                 </a>
+
+                @if (Auth::check() && Auth::user()->role === 'penyewa')
+                    @if ($isFavorit)
+                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger d-flex align-items-center justify-content-center">
+                                <i class="fa-solid fa-heart-crack me-1"></i>
+                            </button>
+                        </form>
+                    @else
+                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger d-flex align-items-center justify-content-center">
+                                <i class="fa-solid fa-heart me-1"></i>
+                            </button>
+                        </form>
+                    @endif
+                @endif
             </div>
         </div>
     </div>

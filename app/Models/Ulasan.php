@@ -9,25 +9,21 @@ class Ulasan extends Model
 {
     use HasFactory;
 
-    protected $table = 'ulasan'; // nama tabel
-    protected $fillable = ['pemesanan_id', 'rating', 'komentar'];
+    protected $table = 'ulasan';
+    protected $guarded = [];
 
-    // Relasi ke pemesanan
-    public function pemesanan()
+    public function lapangan()
     {
-        return $this->belongsTo(Pemesanan::class);
+        return $this->belongsTo(Lapangan::class, 'lapangan_id');
     }
 
-    // Relasi ke user melalui pemesanan
     public function user()
     {
-        return $this->hasOneThrough(
-            User::class,
-            Pemesanan::class,
-            'id',
-            'id', 
-            'pemesanan_id', 
-            'penyewa_id' 
-        );
+        return $this->belongsTo(User::class, 'penyewa_id');
+    }
+
+    public function pemesanan()
+    {
+        return $this->belongsTo(\App\Models\Pemesanan::class, 'pemesanan_id');
     }
 }

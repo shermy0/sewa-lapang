@@ -5,8 +5,12 @@ namespace App\Models;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Lapangan;
+use App\Models\Favorit;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -48,5 +52,22 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Lapangan yang difavoritkan oleh penyewa.
+     */
+    public function favoritLapangan(): BelongsToMany
+    {
+        return $this->belongsToMany(Lapangan::class, 'favorit_lapangan', 'penyewa_id', 'lapangan_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Koleksi favorit sebagai model pivot.
+     */
+    public function favorit(): HasMany
+    {
+        return $this->hasMany(Favorit::class, 'penyewa_id');
     }
 }
