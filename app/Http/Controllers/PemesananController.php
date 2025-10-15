@@ -9,7 +9,6 @@ use App\Models\JadwalLapangan;
 use App\Models\Pembayaran;
 use Illuminate\Support\Facades\Auth;
 use Midtrans\Snap;
-use Milon\Barcode\DNS1D;
 
 class PemesananController extends Controller
 {
@@ -38,14 +37,62 @@ class PemesananController extends Controller
         return view('penyewa.riwayat', compact('belumDibayar', 'sudahDibayar'));
     }
 
-    public function getSnapToken(Request $request)
-    {
-        $lapangan = Lapangan::findOrFail($request->lapangan_id);
+public function getSnapToken(Request $request)
+{
+    $lapangan = Lapangan::findOrFail($request->lapangan_id);
+    $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
 
-        // Buat order dummy
+    // cek pemesanan menunggu sebelumnya
+    $pemesanan = Pemesanan::firstOrCreate(
+        [
+            'penyewa_id' => Auth::id(),
+            'lapangan_id' => $lapangan->id,
+            'jadwal_id' => $jadwal->id,
+            'status' => 'menunggu'
+        ],
+        [] // jika tidak ada, otomatis dibuat
+    );
+
+    $snapToken = Snap::getSnapToken([
+        'transaction_details' => [
+            'order_id' => 'ORDER-' . $pemesanan->id,
+            'gross_amount' => $lapangan->harga_per_jam,
+        ],
+        'customer_details' => [
+            'first_name' => Auth::user()->name,
+            'email' => Auth::user()->email,
+        ],
+    ]);
+
+    // update atau buat pembayaran pending baru
+    Pembayaran::updateOrCreate(
+        ['pemesanan_id' => $pemesanan->id],
+        [
+            'metode' => 'midtrans',
+            'jumlah' => $lapangan->harga_per_jam,
+            'status' => 'pending',
+            'order_id' => 'ORDER-' . $pemesanan->id,
+            'snap_token' => $snapToken,
+        ]
+    );
+
+    return response()->json([
+        'snap_token' => $snapToken,
+        'pemesanan_id' => $pemesanan->id
+    ]);
+}
+
+public function getSnapTokenAgain(Pemesanan $pemesanan)
+{
+    try {
+        $lapangan = $pemesanan->lapangan;
+
+        // buat order_id unik tiap generate token
+        $uniqueOrderId = 'ORDER-' . $pemesanan->id . '-' . time();
+
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
-                'order_id' => time(),
+                'order_id' => $uniqueOrderId,
                 'gross_amount' => $lapangan->harga_per_jam,
             ],
             'customer_details' => [
@@ -54,59 +101,37 @@ class PemesananController extends Controller
             ],
         ]);
 
-        return response()->json([
-            'snap_token' => $snapToken
-        ]);
-    }
-
-    public function getSnapTokenAgain(Pemesanan $pemesanan)
-    {
-        try {
-            $lapangan = $pemesanan->lapangan;
-
-            // buat order_id unik tiap generate token
-            $uniqueOrderId = 'ORDER-' . $pemesanan->id . '-' . time();
-
-            $snapToken = Snap::getSnapToken([
-                'transaction_details' => [
-                    'order_id' => $uniqueOrderId,
-                    'gross_amount' => $lapangan->harga_per_jam,
-                ],
-                'customer_details' => [
-                    'first_name' => Auth::user()->name,
-                    'email' => Auth::user()->email,
-                ],
-            ]);
-
-            // pastikan pembayaran ada
-            $pembayaran = $pemesanan->pembayaran;
-            if(!$pembayaran){
-                $pembayaran = Pembayaran::create([
-                    'pemesanan_id' => $pemesanan->id,
-                    'metode' => 'midtrans',
-                    'jumlah' => $lapangan->harga_per_jam,
-                    'status' => 'pending',
-                    'order_id' => $uniqueOrderId,
-                    'snap_token' => $snapToken,
-                ]);
-            } else {
-                $pembayaran->update([
-                    'snap_token' => $snapToken,
-                    'status' => 'pending',
-                    'order_id' => $uniqueOrderId,
-                ]);
-            }
-
-            return response()->json([
+        // pastikan pembayaran ada
+        $pembayaran = $pemesanan->pembayaran;
+        if(!$pembayaran){
+            $pembayaran = Pembayaran::create([
+                'pemesanan_id' => $pemesanan->id,
+                'metode' => 'midtrans',
+                'jumlah' => $lapangan->harga_per_jam,
+                'status' => 'pending',
+                'order_id' => $uniqueOrderId,
                 'snap_token' => $snapToken,
-                'pemesanan_id' => $pemesanan->id
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
+        } else {
+            $pembayaran->update([
+                'snap_token' => $snapToken,
+                'status' => 'pending',
+                'order_id' => $uniqueOrderId,
+            ]);
         }
+
+        return response()->json([
+            'snap_token' => $snapToken,
+            'pemesanan_id' => $pemesanan->id
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
+
+
 
     // Simpan pemesanan awal (status menunggu)
     public function store(Request $request)
@@ -155,7 +180,7 @@ class PemesananController extends Controller
 
         $pemesanan->update([
             'status' => 'dibayar',
-            'kode_tiket' => 'TICKET-' . strtoupper(uniqid()), // ← ini yang bikin kode tiket unik
+            'kode_tiket' => $this->generateShortTicketCode(),
         ]);
 
         $pembayaran = $pemesanan->pembayaran;
@@ -165,4 +190,11 @@ class PemesananController extends Controller
 
         return response()->json(['success' => true]);
     }
+    private function generateShortTicketCode()
+{
+    $prefix = 'LPN'; // bisa diganti misal "LPN" untuk lapangan
+    $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
+    return $prefix . $random; // contoh hasil: TK7F3C9A
+}
+
 }

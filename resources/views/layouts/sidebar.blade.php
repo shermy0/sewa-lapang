@@ -16,7 +16,11 @@
 
     if ($user && $user->role === 'pemilik') {
         $menuItems = [
-            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie', 'url' => '#'],
+            [
+                'label' => 'Dashboard',
+                'icon' => 'fa-solid fa-chart-pie',
+                'route' => route('dashboard.pemilik'),
+            ],
             ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
             ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
@@ -35,7 +39,7 @@
             [
                 'label' => 'Favorit',
                 'icon' => 'fa-solid fa-heart',
-                'route' => 'penyewa.favorit.index',
+                'route' => 'favorit.index'
             ],
             [
                 'label' => 'Pemesanan Saya',

@@ -9,28 +9,20 @@ class Pemesanan extends Model
 {
     use HasFactory;
 
-    protected $table = 'pemesanan';
-
+    protected $table = 'pemesanan'; // <-- pastikan ini sesuai migration
     protected $fillable = [
-        'lapangan_id',
         'penyewa_id',
-        'tanggal',
-        'jam_mulai',
-        'jam_selesai',
+        'lapangan_id',
+        'jadwal_id',
         'status',
-        'total_harga'
+        'kode_tiket', // jangan lupa tambahkan
     ];
 
-    public function user()
+    public function penyewa()
     {
         return $this->belongsTo(User::class, 'penyewa_id');
     }
 
-    public function ulasan()
-    {
-        return $this->hasOne(Ulasan::class);
-    }
-    
     public function lapangan()
     {
         return $this->belongsTo(Lapangan::class, 'lapangan_id');
@@ -41,13 +33,15 @@ class Pemesanan extends Model
         return $this->belongsTo(JadwalLapangan::class, 'jadwal_id');
     }
 
-    public function pembayaran()
-    {
-        return $this->hasOne(Pembayaran::class, 'pemesanan_id');
+    // public function pembayaran()
+    // {
+    //     return $this->hasOne(Pembayaran::class, 'pemesanan_id');
+    // }
+    public function pembayaran() {
+        return $this->hasOne(Pembayaran::class);
     }
-
-    public function penyewa()
+        public function ulasan()
     {
-        return $this->belongsTo(User::class, 'penyewa_id');
+        return $this->hasOne(Ulasan::class);
     }
 }

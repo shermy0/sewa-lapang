@@ -44,7 +44,7 @@
                                 <a href="{{ route('penyewa.detail', $lapangan->id) }}" class="btn btn-success flex-grow-1">
                                     Detail
                                 </a>
-                                <form action="{{ route('penyewa.favorit.destroy', $lapangan) }}" method="POST" class="d-inline">
+                                <form action="{{ route('favorit.destroy', $lapangan) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-outline-danger flex-grow-1"
