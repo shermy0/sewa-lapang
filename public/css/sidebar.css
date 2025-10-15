@@ -31,7 +31,6 @@ body {
   z-index: 1000;
 }
 
-/* Header */
 .sidebar-header {
   display: flex;
   align-items: center;
@@ -54,6 +53,7 @@ body {
   object-fit: contain;
   transition: all 0.3s ease;
 }
+
 .sidebar.collapsed .brand-logo,
 .sidebar.collapsed .brand-text {
   display: none;
@@ -150,6 +150,15 @@ body {
   transform: scale(1.1);
 }
 
+.menu-link.active {
+  background-color: var(--primary-green);
+  color: var(--white);
+}
+
+.menu-link.active i {
+  transform: scale(1.1);
+}
+
 /* Logout */
 .logout-area {
   margin-top: auto;
@@ -175,12 +184,11 @@ body {
   color: var(--white);
 }
 
-/* ===== COLLAPSED STATE ===== */
+/* COLLAPSED STATE */
 .sidebar.collapsed {
   width: 80px;
 }
 
-/* Hilangkan teks tapi jaga struktur layout */
 .sidebar.collapsed .brand-text,
 .sidebar.collapsed .user-meta,
 .sidebar.collapsed .menu-text,

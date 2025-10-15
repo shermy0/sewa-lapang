@@ -13,16 +13,26 @@ use Midtrans\Snap;
 class PemesananController extends Controller
 {
     public function create($lapangan_id)
-    {
-        $lapangan = Lapangan::findOrFail($lapangan_id);
-        $jadwalTersedia = JadwalLapangan::where('lapangan_id', $lapangan_id)
-            ->where('tersedia', true)
-            ->orderBy('tanggal')
-            ->orderBy('jam_mulai')
-            ->get();
+{
+    $lapangan = Lapangan::findOrFail($lapangan_id);
+    $userId = Auth::id();
 
-        return view('pemesanan.create', compact('lapangan', 'jadwalTersedia'));
-    }
+    $jadwalTersedia = JadwalLapangan::where('lapangan_id', $lapangan_id)
+        ->where('tersedia', true)
+        ->orderBy('tanggal')
+        ->orderBy('jam_mulai')
+        ->get();
+
+    // 🔹 Cek apakah user sudah punya pemesanan menunggu di lapangan ini
+    $pemesananPending = Pemesanan::where('penyewa_id', $userId)
+        ->where('lapangan_id', $lapangan_id)
+        ->where('status', 'menunggu')
+        ->with('pembayaran')
+        ->first();
+
+    return view('pemesanan.create', compact('lapangan', 'jadwalTersedia', 'pemesananPending'));
+}
+
 
     public function riwayat()
     {
@@ -81,6 +91,30 @@ public function getSnapToken(Request $request)
         'pemesanan_id' => $pemesanan->id
     ]);
 }
+
+public function batalkan($id)
+{
+    $pemesanan = Pemesanan::findOrFail($id);
+
+    if ($pemesanan->penyewa_id != Auth::id()) {
+        abort(403, 'Tidak boleh membatalkan pemesanan orang lain.');
+    }
+
+    $pemesanan->update(['status' => 'batal']);
+
+    // Jadwal kembali tersedia
+    if ($pemesanan->jadwal) {
+        $pemesanan->jadwal->update(['tersedia' => true]);
+    }
+
+    // Hapus atau update pembayaran (optional)
+    if ($pemesanan->pembayaran) {
+        $pemesanan->pembayaran->update(['status' => 'batal']);
+    }
+
+    return redirect()->back()->with('success', 'Pemesanan berhasil dibatalkan.');
+}
+
 
 public function getSnapTokenAgain(Pemesanan $pemesanan)
 {
