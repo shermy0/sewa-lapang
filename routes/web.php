@@ -44,11 +44,10 @@ Route::middleware(['auth'])->group(function () {
     
     // Jadwal Lapangan
     Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
-    Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
+    Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
     
     // API Tiket (optional)
     Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
     Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
 });
-
 
