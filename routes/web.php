@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
+use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -40,6 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
     Route::put('/{id}/update', [UlasanController::class, 'update'])->name('ulasan.update');
     Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
+
+    // FAVORIT PENYEWA
+    Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
+    Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
+    Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
 
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);

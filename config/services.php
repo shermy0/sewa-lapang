@@ -4,41 +4,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Third Party Services
+    | MIDTRANS CONFIGURATION
     |--------------------------------------------------------------------------
     |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | Konfigurasi untuk menghubungkan aplikasi Laravel kamu dengan Midtrans.
+    | Pastikan server key & client key sudah diisi di file .env.
     |
     */
 
-    'postmark' => [
-        'token' => env('POSTMARK_TOKEN'),
-    ],
+    'server_key'     => env('MIDTRANS_SERVER_KEY'),
+    'client_key'     => env('MIDTRANS_CLIENT_KEY'),
+    'is_production'  => env('MIDTRANS_IS_PRODUCTION', false),
+    'is_sanitized'   => true,
+    'is_3ds'         => true,
 
-    'resend' => [
-        'key' => env('RESEND_KEY'),
-    ],
+    // Optional: URL base API Midtrans (otomatis sesuai environment)
+    'base_url'       => env('MIDTRANS_IS_PRODUCTION', false)
+                        ? 'https://api.midtrans.com/v2/'
+                        : 'https://api.sandbox.midtrans.com/v2/',
 
-    'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
-        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-    ],
+    // Optional: Timeout (detik)
+    'timeout'        => 30,
 
-    'slack' => [
-        'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
-        ],
-    ],
+    // Optional: Logging untuk debug
+    'log_enabled'    => true,
+    'log_file'       => storage_path('logs/midtrans.log'),
 
-    'midtrans' => [
-        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
-        'merchant_id' => env('MIDTRANS_MERCHANT_ID'),
-        'client_key' => env('MIDTRANS_CLIENT_KEY'),
-        'server_key' => env('MIDTRANS_SERVER_KEY'),
-    ],    
 ];

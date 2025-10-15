@@ -16,21 +16,47 @@
 
     if ($user && $user->role === 'pemilik') {
         $menuItems = [
-            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie', 'route' => 'pemilik.dashboard', 'active_routes' => ['pemilik.dashboard']],
-            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'route' => 'pemilik.lapangan', 'active_routes' => ['pemilik.lapangan']],
-            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'route' => 'pemilik.pemesanan', 'active_routes' => ['pemilik.pemesanan']],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'route' => 'pemilik.pembayaran', 'active_routes' => ['pemilik.pembayaran']],
-            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'route' => 'pemilik.laporan', 'active_routes' => ['pemilik.laporan']],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'route' => 'pemilik.pengguna', 'active_routes' => ['pemilik.pengguna']],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'route' => 'pemilik.akun', 'active_routes' => ['pemilik.akun']],
+            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie', 'url' => '#'],
+            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
+            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
+            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
+            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
+            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
         ];
     } else {
         $menuItems = [
-            ['label' => 'Beranda', 'icon' => 'fa-solid fa-house', 'route' => 'penyewa.beranda', 'active_routes' => ['penyewa.beranda','penyewa.detail']],
-            ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days', 'route' => 'penyewa.pemesanan', 'active_routes' => ['penyewa.pemesanan']],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-wallet', 'route' => 'penyewa.pembayaran', 'active_routes' => ['penyewa.pembayaran']],
-            ['label' => 'Riwayat Sewa', 'icon' => 'fa-solid fa-clock-rotate-left', 'route' => 'penyewa.riwayat', 'active_routes' => ['penyewa.riwayat']],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear', 'route' => 'penyewa.akun', 'active_routes' => ['penyewa.akun']],
+            [
+                'label' => 'Beranda',
+                'icon' => 'fa-solid fa-house',
+                'route' => 'penyewa.beranda',
+                'active_routes' => ['penyewa.beranda', 'penyewa.detail'],
+            ],
+            [
+                'label' => 'Favorit',
+                'icon' => 'fa-solid fa-heart',
+                'route' => 'penyewa.favorit.index',
+            ],
+            [
+                'label' => 'Pemesanan Saya',
+                'icon' => 'fa-solid fa-calendar-days',
+                'route' => 'penyewa.pemesanan',
+            ],
+            [
+                'label' => 'Pembayaran',
+                'icon' => 'fa-solid fa-wallet',
+                'route' => 'penyewa.pembayaran',
+            ],
+            [
+                'label' => 'Riwayat Sewa',
+                'icon' => 'fa-solid fa-clock-rotate-left',
+                'route' => 'penyewa.riwayat',
+            ],
+            [
+                'label' => 'Pengaturan Akun',
+                'icon' => 'fa-solid fa-user-gear',
+                'route' => 'penyewa.akun',
+            ],
         ];
     }
 @endphp
@@ -57,17 +83,23 @@
   <nav class="menu-list">
     @foreach ($menuItems as $item)
       @php
-          // Cek route aktif menggunakan array active_routes
-          $isActive = in_array(Route::currentRouteName(), $item['active_routes'] ?? [$item['route']]);
+          $routes = $item['active_routes'] ?? (isset($item['route']) ? [$item['route']] : []);
+          $isActive = $routes ? Route::currentRouteNamed(...$routes) : false;
+          $url = '#';
+
+          if (isset($item['route']) && Route::has($item['route'])) {
+              $url = route($item['route'], $item['params'] ?? []);
+          } elseif (isset($item['url'])) {
+              $url = $item['url'];
+          }
       @endphp
-      <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}" class="menu-link {{ $isActive ? 'active' : '' }}">
+      <a href="{{ $url }}" class="menu-link {{ $isActive ? 'active' : '' }}">
         <i class="{{ $item['icon'] }}"></i>
         <span class="menu-text">{{ $item['label'] }}</span>
       </a>
     @endforeach
   </nav>
 
-  <div class="logout-area">
     <form action="{{ route('logout') }}" method="POST">
       @csrf
       <button type="submit" class="logout-btn">
