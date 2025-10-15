@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Ulasan;
+use App\Models\Pemesanan;
+use App\Models\User;
 
 class BerandaController extends Controller
 {
@@ -11,19 +14,11 @@ class BerandaController extends Controller
     {
         $keyword = $request->input('search');
         $kategori = $request->input('kategori');
-        $kategoris = [];
 
-        // Ambil semua nilai enum kategori langsung dari struktur tabel
+        // Ambil semua nilai enum kategori dari tabel lapangan
         $enumQuery = DB::select("SHOW COLUMNS FROM lapangan LIKE 'kategori'");
-
-        if (!empty($enumQuery) && isset($enumQuery[0]->Type)) {
-            // Cocokkan pola enum('...') secara fleksibel
-            if (preg_match("/^enum\((.*)\)$/i", $enumQuery[0]->Type, $matches)) {
-                // Hilangkan tanda kutip tunggal dan spasi berlebih
-                $raw = str_replace("'", "", $matches[1]);
-                $kategoris = array_map('trim', explode(',', $raw));
-            }
-        }
+        preg_match("/^enum\('(.*)'\)$/", $enumQuery[0]->Type, $matches);
+        $kategoris = explode("','", $matches[1]);
 
         // Query data lapangan
         $lapangan = DB::table('lapangan')
@@ -43,11 +38,27 @@ class BerandaController extends Controller
     {
         $lapangan = DB::table('lapangan')->where('id', $id)->first();
 
+        $ulasans = DB::table('ulasan')
+            ->join('pemesanan', 'ulasan.pemesanan_id', '=', 'pemesanan.id')
+            ->join('users', 'pemesanan.penyewa_id', '=', 'users.id')
+            ->where('pemesanan.lapangan_id', $id)
+            ->select(
+                'ulasan.*',
+                'users.name as username',
+                'users.foto_profil as user_foto',
+                'pemesanan.penyewa_id as user_id'
+            )
+            ->get();    
+
+        $avgRating = $ulasans->avg('rating');
+        $totalUlasan = $ulasans->count();
+
         $lainnya = DB::table('lapangan')
             ->where('id', '!=', $id)
-            ->limit(4)
+            ->orderBy('id', 'desc')
+            ->take(6)
             ->get();
 
-        return view('penyewa.detail', compact('lapangan', 'lainnya'));
+        return view('penyewa.detail', compact('lapangan', 'ulasans', 'lainnya', 'avgRating', 'totalUlasan'));
     }
 }
