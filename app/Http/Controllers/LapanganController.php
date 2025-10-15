@@ -196,14 +196,14 @@ class LapanganController extends Controller
             'tersedia' => 'required|boolean',
         ]);
 
-        $existingJadwal = JadwalLapangan::where('lapangan_id', $lapanganId)
+        $hasConflict = JadwalLapangan::where('lapangan_id', $lapanganId)
             ->where('tanggal', $request->tanggal)
-            ->where('jam_mulai', $request->jam_mulai)
-            ->where('jam_selesai', $request->jam_selesai)
-            ->first();
+            ->where('jam_mulai', '<', $request->jam_selesai)
+            ->where('jam_selesai', '>', $request->jam_mulai)
+            ->exists();
 
-        if ($existingJadwal) {
-            return redirect()->back()->with('error', 'Jadwal sudah ada!');
+        if ($hasConflict) {
+            return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!');
         }
 
         JadwalLapangan::create([
