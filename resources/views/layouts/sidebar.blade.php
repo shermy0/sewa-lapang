@@ -125,6 +125,7 @@
                         'label' => 'Riwayat',
                         'route' => 'penyewa.riwayat',
                         'active_routes' => ['penyewa.riwayat'],
+
                     ],
                 ]
             ],
@@ -150,13 +151,19 @@
   </div>
 
   <div class="user-info">
-    <img src="{{ Auth::user()->foto_profil ? asset('storage/' . Auth::user()->foto_profil) : asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
-    <div class="user-meta">
-      <h6 class="mb-0">{{ Auth::user()->name }}</h6>
-      <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>
-    </div>
-  </div>
+  @php
+      $user = Auth::user();
+      $avatarUrl = $user->foto_profil 
+          ? asset('storage/' . $user->foto_profil)
+          :'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
+  @endphp
 
+  <img src="{{ $avatarUrl }}" alt="Profile" class="profile-photo">
+  <div class="user-meta">
+    <h6 class="mb-0">{{ $user->name }}</h6>
+    <small class="text-muted text-capitalize">{{ $user->role }}</small>
+  </div>
+</div>
   <nav class="menu-list">
     @foreach ($menuItems as $item)
       @if (isset($item['submenu']))

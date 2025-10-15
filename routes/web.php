@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
-use App\Http\Controllers\PemilikDashboardController;
-use App\Http\Controllers\ScanTiketController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -30,13 +28,19 @@ Route::middleware('auth')->group(function () {
     
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
-     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
-     Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
-Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
-Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
+    Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
+    // Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
+    Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
-Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+    Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+
+    Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
+Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
+
+    Route::get('penyewa/tiket', [PemesananController::class, 'riwayatTiket'])->name('penyewa.tiket');
+Route::get('penyewa/pembayaran', [PemesananController::class, 'riwayatBelum'])->name('penyewa.pembayaran');
+Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->name('penyewa.riwayat');
 
     // BERANDA PENYEWA
     Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
@@ -52,6 +56,7 @@ Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'ge
     Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
     Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
     Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+
 
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
@@ -97,9 +102,3 @@ Route::middleware('auth')->get('/test-sidebar', function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
-
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
-    Route::get('/pemilik/scan', [ScanTiketController::class, 'scan'])->name('pemilik.scan');
-});

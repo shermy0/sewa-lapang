@@ -9,9 +9,19 @@ use App\Models\JadwalLapangan;
 use App\Models\Pembayaran;
 use Illuminate\Support\Facades\Auth;
 use Midtrans\Snap;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class PemesananController extends Controller
 {
+
+public function downloadTiket($id)
+{
+    $pemesanan = Pemesanan::findOrFail($id);
+    $pdf = Pdf::loadView('penyewa.tiket-pdf', compact('pemesanan'))
+              ->setPaper('a4', 'landscape');
+    return $pdf->download('Tiket_'.$pemesanan->kode_tiket.'.pdf');
+}
     public function create($lapangan_id)
 {
     $lapangan = Lapangan::findOrFail($lapangan_id);
@@ -33,19 +43,40 @@ class PemesananController extends Controller
     return view('pemesanan.create', compact('lapangan', 'jadwalTersedia', 'pemesananPending'));
 }
 
+    // ========================== HALAMAN TIKET ==========================
+    public function riwayatTiket()
+    {
+        $userId = Auth::id();
+        $sudahDibayar = Pemesanan::where('penyewa_id', $userId)
+                        ->where('status', 'dibayar')
+                        ->get();
 
-    public function riwayat()
+        return view('penyewa.tiket', compact('sudahDibayar'));
+    }
+
+    // ========================== HALAMAN MENUNGGU PEMBAYARAN ==========================
+    public function riwayatBelum()
     {
         $userId = Auth::id();
         $belumDibayar = Pemesanan::where('penyewa_id', $userId)
                         ->where('status', 'menunggu')
                         ->get();
-        $sudahDibayar = Pemesanan::where('penyewa_id', $userId)
-                        ->where('status', 'dibayar')
+
+        return view('penyewa.pembayaran', compact('belumDibayar'));
+    }
+
+    // ========================== HALAMAN RIWAYAT / DIBATALKAN ==========================
+    public function riwayatBatal()
+    {
+        $userId = Auth::id();
+        $dibatalkan = Pemesanan::where('penyewa_id', $userId)
+                        ->where('status', 'batal')
+                        ->orWhere('status', 'di-scan')
                         ->get();
 
-        return view('penyewa.riwayat', compact('belumDibayar', 'sudahDibayar'));
+        return view('penyewa.riwayat', compact('dibatalkan'));
     }
+
 
 public function getSnapToken(Request $request)
 {
@@ -208,7 +239,6 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
     }
 
     // Update status sukses
-    // Update status sukses
 public function updateSuccess(Request $request, $id)
 {
     $pemesanan = Pemesanan::findOrFail($id);
@@ -241,5 +271,7 @@ public function updateSuccess(Request $request, $id)
         $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
         return $prefix . $random; // contoh hasil: TK7F3C9A
     }
+
+    
 
 }

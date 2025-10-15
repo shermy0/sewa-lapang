@@ -149,7 +149,7 @@ document.getElementById('pay-button').onclick = function() {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ result })
-                    }).then(() => window.location.href = '/penyewa/riwayat');
+                    }).then(() => window.location.href = '/penyewa/tiket');
                 });
             },
             onPending: function(result){
@@ -158,7 +158,7 @@ document.getElementById('pay-button').onclick = function() {
                     title: 'Menunggu Pembayaran',
                     text: 'Silakan selesaikan pembayaranmu sebelum waktu habis.',
                     confirmButtonColor: '#41A67E'
-                }).then(() => window.location.href = '/penyewa/riwayat');
+                }).then(() => window.location.href = '/penyewa/pembayaran');
             },
             onError: function(result){
                 Swal.fire({
@@ -202,7 +202,7 @@ document.getElementById('resume-payment').onclick = function() {
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({ result })
-                        }).then(() => window.location.href = '/penyewa/riwayat');
+                        }).then(() => window.location.href = '/penyewa/tiket');
                     });
                 },
                 onPending: function(result){
