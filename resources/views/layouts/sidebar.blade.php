@@ -23,10 +23,13 @@
                 'active_routes' => ['dashboard.pemilik'],
             ],
             ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
-            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
+            [
+                'label' => 'Favorit',
+                'icon' => 'fa-solid fa-heart',
+                'route' => 'favorit.index',
+                'active_routes' => ['#'],
+            ],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
             [
                 'label' => 'Scan', 
                 'icon' => 'fa-solid fa-qrcode', 

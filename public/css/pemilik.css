@@ -1,0 +1,58 @@
+:root {
+    --primary-green: #41A67E;
+    --light-bg: #FAFBFB;
+    --white: #FFFFFF;
+    --border: #E5E9E8;
+    --text: #2E3A35;
+}
+
+body {
+    background-color: var(--light-bg);
+    color: var(--text);
+}
+
+.scan-container {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 30px;
+    max-width: 600px;
+    margin: 50px auto;
+    text-align: center;
+}
+
+.scan-title {
+    color: var(--primary-green);
+    font-weight: bold;
+}
+
+#reader {
+    width: 100%;
+    max-width: 400px;
+    height: 400px;
+    margin: 20px auto;
+    border-radius: 16px;
+    border: 3px solid var(--primary-green);
+    overflow: hidden;
+}
+
+.btn-scan {
+    background-color: var(--primary-green);
+    color: var(--white);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.btn-scan:hover {
+    background-color: #36956e;
+}
+
+.alert {
+    border-radius: 10px;
+    font-size: 16px;
+}

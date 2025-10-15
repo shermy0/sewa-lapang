@@ -12,6 +12,7 @@ use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\ScanTiketController;
+use App\Http\Controllers\RiwayatController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -100,5 +101,6 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
-    Route::get('/pemilik/scan', [ScanTiketController::class, 'scan'])->name('pemilik.scan');
+    Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
+    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);    
 });
