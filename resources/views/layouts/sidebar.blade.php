@@ -16,7 +16,44 @@
     @php
         $user = Auth::user();
 
-        if ($user && $user->role === 'pemilik') {
+        $profilePhoto = asset('images/profile.jpg');
+        if ($user && $user->foto_profil) {
+            $profilePhoto = filter_var($user->foto_profil, FILTER_VALIDATE_URL)
+                ? $user->foto_profil
+                : asset('storage/' . ltrim($user->foto_profil, '/'));
+        }
+
+        if ($user && $user->role === 'admin') {
+            $menuItems = [
+                [
+                    'label' => 'Dashboard',
+                    'icon' => 'fa-solid fa-chart-line',
+                    'route' => route('dashboard.admin'),
+                ],
+                [
+                    'label' => 'Kelola Pengguna',
+                    'icon' => 'fa-solid fa-users-gear',
+                    'route' => route('admin.users.index'),
+                ],
+                [
+                    'label' => 'Data Lapangan',
+                    'icon' => 'fa-solid fa-futbol',
+                    'route' => route('admin.lapangan.index'),
+                ],
+                [
+                    'label' => 'Pemesanan',
+                    'icon' => 'fa-solid fa-calendar-check',
+                    'route' => route('admin.pemesanan.index'),
+                ],
+                [
+                    'label' => 'Pembayaran',
+                    'icon' => 'fa-solid fa-money-bill-transfer',
+                    'route' => route('admin.pembayaran.index'),
+                ],
+                ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-lines'],
+                ['label' => 'Pengaturan Sistem', 'icon' => 'fa-solid fa-gear'],
+            ];
+        } elseif ($user && $user->role === 'pemilik') {
             $menuItems = [
                 [
                     'label' => 'Dashboard',
@@ -28,7 +65,6 @@
                     'icon' => 'fa-solid fa-futbol',
                     'route' => route('lapangan.index'),
                 ],
-
                 ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
                 ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
                 ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
@@ -59,11 +95,10 @@
         </div>
 
         <div class="user-info">
-            <img src="{{ Auth::user()->profile_photo ?? asset('images/profile.jpg') }}" alt="Profile"
-                class="profile-photo">
+            <img src="{{ $profilePhoto }}" alt="Profile" class="profile-photo">
             <div class="user-meta">
-                <h6 class="mb-0">{{ Auth::user()->name }}</h6>
-                <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>
+                <h6 class="mb-0">{{ $user->name ?? 'Pengguna' }}</h6>
+                <small class="text-muted text-capitalize">{{ $user->role ?? '-' }}</small>
             </div>
         </div>
 
