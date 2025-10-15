@@ -4,6 +4,8 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/pesan.css') }}">
+{{-- SweetAlert2 --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container py-5">
     <div class="text-center mb-4">
@@ -22,7 +24,14 @@
         </p>
 
         @if(session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: '{{ session("error") }}',
+                    confirmButtonColor: '#41A67E'
+                });
+            </script>
         @endif
 
         <div class="mb-3">
@@ -71,10 +80,10 @@
 
             <div class="d-flex flex-column gap-2">
                 <button id="resume-payment" class="btn btn-green">Lanjutkan Bayar</button>
-                <form action="{{ route('pemesanan.batalkan', $pemesananPending->id) }}" method="POST" onsubmit="return confirm('Yakin batalkan pemesanan ini?')">
+                <form id="cancel-form" action="{{ route('pemesanan.batalkan', $pemesananPending->id) }}" method="POST">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Batalkan</button>
+                    <button type="button" id="cancel-button" class="btn btn-danger">Batalkan</button>
                 </form>
             </div>
         </div>
@@ -103,7 +112,12 @@ jadwalSelect.addEventListener('change', () => {
 document.getElementById('pay-button').onclick = function() {
     const jadwalId = jadwalSelect.value;
     if (!jadwalId) {
-        alert('Pilih jadwal terlebih dahulu!');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Pilih Jadwal!',
+            text: 'Silakan pilih jadwal terlebih dahulu sebelum melanjutkan.',
+            confirmButtonColor: '#41A67E'
+        });
         return;
     }
 
@@ -122,22 +136,46 @@ document.getElementById('pay-button').onclick = function() {
     .then(data => {
         snap.pay(data.snap_token, {
             onSuccess: function(result){
-                fetch('/pemesanan/success/' + data.pemesanan_id, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ result })
-                }).then(() => window.location.href = '/penyewa/riwayat');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pembayaran Berhasil!',
+                    text: 'Transaksi kamu berhasil diselesaikan.',
+                    confirmButtonColor: '#41A67E'
+                }).then(() => {
+                    fetch('/pemesanan/success/' + data.pemesanan_id, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ result })
+                    }).then(() => window.location.href = '/penyewa/riwayat');
+                });
             },
             onPending: function(result){
-                alert("Menunggu pembayaran...");
-                window.location.href = '/penyewa/riwayat';
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Menunggu Pembayaran',
+                    text: 'Silakan selesaikan pembayaranmu sebelum waktu habis.',
+                    confirmButtonColor: '#41A67E'
+                }).then(() => window.location.href = '/penyewa/riwayat');
             },
             onError: function(result){
-                alert("Pembayaran gagal!");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Pembayaran Gagal!',
+                    text: 'Terjadi kesalahan saat memproses transaksi.',
+                    confirmButtonColor: '#41A67E'
+                });
             }
+        });
+    })
+    .catch(() => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: 'Tidak bisa mendapatkan token pembayaran.',
+            confirmButtonColor: '#41A67E'
         });
     });
 };
@@ -151,28 +189,69 @@ document.getElementById('resume-payment').onclick = function() {
         if (data.snap_token) {
             snap.pay(data.snap_token, {
                 onSuccess: function(result){
-                    fetch('/pemesanan/success/' + data.pemesanan_id, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ result })
-                    }).then(() => window.location.href = '/penyewa/riwayat');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pembayaran Berhasil!',
+                        text: 'Transaksi kamu berhasil diselesaikan.',
+                        confirmButtonColor: '#41A67E'
+                    }).then(() => {
+                        fetch('/pemesanan/success/' + data.pemesanan_id, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ result })
+                        }).then(() => window.location.href = '/penyewa/riwayat');
+                    });
                 },
                 onPending: function(result){
-                    alert("Menunggu pembayaran...");
-                    window.location.href = '/penyewa/riwayat';
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Menunggu Pembayaran',
+                        text: 'Silakan selesaikan pembayaranmu.',
+                        confirmButtonColor: '#41A67E'
+                    }).then(() => {
+                    window.location.href = window.location.pathname;
+                    });
                 },
                 onError: function(result){
-                    alert("Pembayaran gagal!");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Pembayaran Gagal!',
+                        text: 'Terjadi kesalahan saat memproses transaksi.',
+                        confirmButtonColor: '#41A67E'
+                    });
                 }
             });
         } else {
-            alert('Gagal mendapatkan token Midtrans.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: 'Token Midtrans tidak ditemukan.',
+                confirmButtonColor: '#41A67E'
+            });
         }
     });
 };
+
+// =================== KONFIRMASI BATALKAN PEMBAYARAN ===================
+document.getElementById('cancel-button').addEventListener('click', function() {
+    Swal.fire({
+        title: 'Yakin ingin membatalkan?',
+        text: "Pemesanan ini akan dihapus dan tidak bisa dikembalikan.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e3342f',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, batalkan',
+        cancelButtonText: 'Tidak jadi'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('cancel-form').submit();
+        }
+    });
+});
 
 // =================== COUNTDOWN PEMBAYARAN ===================
 const createdAt = new Date("{{ $pemesananPending->created_at }}");
