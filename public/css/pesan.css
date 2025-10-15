@@ -1,0 +1,73 @@
+:root {
+  --green: #41A67E;
+  --gold: #F59E0B;
+  --blue: #3B82F6;
+  --purple: #8B5CF6;
+  --white: #ffffff;
+  --gray-bg: #F3F4F6;
+  --text: #2E3A35;
+}
+
+body {
+  background-color: var(--gray-bg);
+  color: var(--text);
+  font-family: 'Poppins', sans-serif;
+}
+
+.card-booking {
+  background: var(--white);
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  padding: 2rem;
+  max-width: 600px;
+  margin: auto;
+  transition: all 0.3s ease;
+}
+
+.card-booking:hover {
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+}
+
+.btn-green {
+  background: var(--green);
+  color: var(--white);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-green:hover {
+  background: #37936F;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(65,166,126,0.3);
+}
+
+.btn-outline {
+  border: 1px solid var(--green);
+  color: var(--green);
+  transition: 0.2s;
+}
+
+.btn-outline:hover {
+  background: var(--green);
+  color: var(--white);
+}
+
+.select-jadwal {
+  border-radius: 10px;
+  border-color: #ddd;
+  padding: 0.7rem;
+}
+
+.select-jadwal:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(65,166,126,0.25);
+}
+
+.booking-summary {
+  background: var(--gray-bg);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border-left: 4px solid var(--green);
+}

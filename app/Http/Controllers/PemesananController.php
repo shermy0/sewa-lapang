@@ -174,20 +174,38 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
     }
 
     // Update status sukses
-    public function updateSuccess(Request $request, $id)
-    {
-        $pemesanan = Pemesanan::findOrFail($id);
+    // Update status sukses
+public function updateSuccess(Request $request, $id)
+{
+    $pemesanan = Pemesanan::findOrFail($id);
 
-        $pemesanan->update([
-            'status' => 'dibayar',
-            'kode_tiket' => 'TICKET-' . strtoupper(uniqid()),
-        ]);
+    // Ubah status pemesanan & buat kode tiket
+    $pemesanan->update([
+        'status' => 'dibayar',
+        'kode_tiket' => $this->generateShortTicketCode(),
+    ]);
 
-        $pembayaran = $pemesanan->pembayaran;
-        $pembayaran->update([
-            'status' => 'berhasil',
-        ]);
+    // Update status pembayaran
+    $pembayaran = $pemesanan->pembayaran;
+    $pembayaran->update([
+        'status' => 'berhasil',
+    ]);
 
-        return response()->json(['success' => true]);
+    // 🔹 Tambahan penting: tandai jadwal jadi tidak tersedia
+    $jadwal = $pemesanan->jadwal;
+    if ($jadwal) {
+        $jadwal->update(['tersedia' => false]);
     }
+
+    return response()->json(['success' => true]);
+}
+
+
+        private function generateShortTicketCode()
+    {
+        $prefix = 'LPN'; // bisa diganti misal "LPN" untuk lapangan
+        $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
+        return $prefix . $random; // contoh hasil: TK7F3C9A
+    }
+
 }

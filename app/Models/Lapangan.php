@@ -10,7 +10,6 @@ class Lapangan extends Model
     use HasFactory;
 
     protected $table = 'lapangan';
-
     protected $fillable = [
         'pemilik_id',
         'nama_lapangan',
@@ -33,5 +32,18 @@ class Lapangan extends Model
     public function pemesanan()
     {
         return $this->hasMany(Pemesanan::class, 'lapangan_id');
+    }
+    protected $guarded = [];
+
+    // Relasi ke ulasan
+    public function ulasans()
+    {
+        return $this->hasMany(Ulasan::class, 'lapangan_id', 'id');
+    }
+
+    // Relasi ke pemesanan (opsional)
+    public function pemesanans()
+    {
+        return $this->hasMany(Pemesanan::class, 'lapangan_id', 'id');
     }
 }
