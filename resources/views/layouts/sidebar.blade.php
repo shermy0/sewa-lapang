@@ -9,7 +9,64 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+
+  <style>
+    :root {
+      --green: #41A67E;
+      --gray: #555;
+      --bg-light: #f8f9fa;
+    }
+
+    .submenu {
+      display: none;
+      flex-direction: column;
+      margin-left: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .submenu.show {
+      display: flex;
+    }
+
+    .submenu a {
+      font-size: 14px;
+      color: var(--gray);
+      padding: 6px 0;
+      text-decoration: none;
+      transition: color 0.3s, font-weight 0.3s;
+    }
+
+    .submenu a.active {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .menu-link.dropdown-toggle {
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--gray);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .menu-link.dropdown-toggle.active {
+      color: var(--green);
+      background-color: var(--bg-light);
+      border-radius: 8px;
+    }
+
+    .menu-link.dropdown-toggle i.fa-chevron-down {
+      font-size: 12px;
+      transition: transform 0.3s;
+    }
+
+    .menu-link.dropdown-toggle.active i.fa-chevron-down {
+      transform: rotate(180deg);
+    }
+  </style>
 </head>
+
 <body>
 @php
     $user = Auth::user();
@@ -49,26 +106,33 @@
                 'route' => 'favorit.index',
                 'active_routes' => ['favorit.index'],
             ],
+            // Dropdown untuk pemesanan
             [
                 'label' => 'Pemesanan Saya',
                 'icon' => 'fa-solid fa-calendar-days',
-                'route' => 'penyewa.pemesanan',
-            ],
-            [
-                'label' => 'Pembayaran',
-                'icon' => 'fa-solid fa-wallet',
-                'route' => 'penyewa.pembayaran',
-            ],
-            [
-                'label' => 'Riwayat Sewa',
-                'icon' => 'fa-solid fa-clock-rotate-left',
-                'route' => 'penyewa.riwayat',
-                'active_routes' => ['penyewa.riwayat'],
+                'submenu' => [
+                    [
+                        'label' => 'Tiket Saya',
+                        'route' => 'penyewa.tiket',
+                        'active_routes' => ['penyewa.tiket'],
+                    ],
+                    [
+                        'label' => 'Menunggu Pembayaran',
+                        'route' => 'penyewa.pembayaran',
+                        'active_routes' => ['penyewa.pembayaran'],
+                    ],
+                    [
+                        'label' => 'Riwayat',
+                        'route' => 'penyewa.riwayat',
+                        'active_routes' => ['penyewa.riwayat'],
+                    ],
+                ]
             ],
             [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
                 'route' => 'penyewa.akun',
+                'active_routes' => ['penyewa.akun'],
             ],
         ];
     }
@@ -95,32 +159,61 @@
 
   <nav class="menu-list">
     @foreach ($menuItems as $item)
-      @php
+      @if (isset($item['submenu']))
+        @php
+          // Deteksi apakah salah satu submenu sedang aktif
+          $isParentActive = false;
+          foreach ($item['submenu'] as $sub) {
+              if (isset($sub['active_routes']) && Route::currentRouteNamed(...$sub['active_routes'])) {
+                  $isParentActive = true;
+                  break;
+              }
+          }
+        @endphp
+
+        {{-- Dropdown --}}
+        <div class="menu-item">
+          <div class="menu-link dropdown-toggle {{ $isParentActive ? 'active' : '' }}" data-bs-toggle="submenu">
+            <div>
+              <i class="{{ $item['icon'] }}"></i>
+              <span class="menu-text">{{ $item['label'] }}</span>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="submenu {{ $isParentActive ? 'show' : '' }}">
+            @foreach ($item['submenu'] as $sub)
+              @php
+                $isActive = isset($sub['active_routes']) && Route::currentRouteNamed(...$sub['active_routes']);
+                $url = Route::has($sub['route']) ? route($sub['route']) : '#';
+              @endphp
+              <a href="{{ $url }}" class="{{ $isActive ? 'active' : '' }}">{{ $sub['label'] }}</a>
+            @endforeach
+          </div>
+        </div>
+      @else
+        {{-- Single menu item --}}
+        @php
           $routes = $item['active_routes'] ?? (isset($item['route']) ? [$item['route']] : []);
           $isActive = $routes ? Route::currentRouteNamed(...$routes) : false;
-          $url = '#';
-
-          if (isset($item['route']) && Route::has($item['route'])) {
-              $url = route($item['route'], $item['params'] ?? []);
-          } elseif (isset($item['url'])) {
-              $url = $item['url'];
-          }
-      @endphp
-      <a href="{{ $url }}" class="menu-link {{ $isActive ? 'active' : '' }}">
-        <i class="{{ $item['icon'] }}"></i>
-        <span class="menu-text">{{ $item['label'] }}</span>
-      </a>
+          $url = isset($item['route']) && Route::has($item['route'])
+                ? route($item['route'])
+                : ($item['url'] ?? '#');
+        @endphp
+        <a href="{{ $url }}" class="menu-link {{ $isActive ? 'active' : '' }}">
+          <i class="{{ $item['icon'] }}"></i>
+          <span class="menu-text">{{ $item['label'] }}</span>
+        </a>
+      @endif
     @endforeach
   </nav>
 
-    <form action="{{ route('logout') }}" method="POST">
-      @csrf
-      <button type="submit" class="logout-btn">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        <span class="logout-text">Keluar</span>
-      </button>
-    </form>
-  </div>
+  <form action="{{ route('logout') }}" method="POST">
+    @csrf
+    <button type="submit" class="logout-btn">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      <span class="logout-text">Keluar</span>
+    </button>
+  </form>
 </aside>
 
 <main class="main-content" id="mainContent">
@@ -131,10 +224,25 @@
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
   const toggleSidebar = document.getElementById('toggleSidebar');
+  const dropdownToggles = document.querySelectorAll('[data-bs-toggle="submenu"]');
 
   toggleSidebar.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     mainContent.classList.toggle('expanded');
+  });
+
+  dropdownToggles.forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const submenu = toggle.nextElementSibling;
+      const isShown = submenu.classList.contains('show');
+      document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
+      document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
+
+      if (!isShown) {
+        submenu.classList.add('show');
+        toggle.classList.add('active');
+      }
+    });
   });
 </script>
 

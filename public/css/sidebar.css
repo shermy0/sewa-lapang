@@ -223,3 +223,81 @@ body {
 .main-content.expanded {
   margin-left: 80px;
 }
+
+.menu-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-link.dropdown-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.submenu {
+  display: none;
+  flex-direction: column;
+  padding-left: 1.8rem;
+  margin-top: 0.3rem;
+}
+
+.submenu-link {
+  color: #aaa;
+  text-decoration: none;
+  padding: 6px 0;
+  transition: color 0.3s;
+}
+
+.submenu-link.active, .submenu-link:hover {
+  color: var(--green);
+  font-weight: 500;
+}
+
+.menu-dropdown.open .submenu {
+  display: flex;
+}
+.menu-link.dropdown-toggle::after {
+  display: none !important;
+}
+.submenu a {
+  font-size: 14px;
+  color: var(--gray);
+  padding: 10px 0px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.3s, color 0.3s, font-weight 0.3s;
+}
+
+.submenu a:hover {
+  background-color: #cbcbcb; /* Warna background saat hover */
+}
+/* Sembunyikan submenu saat sidebar collapsed */
+.sidebar.collapsed .submenu {
+  display: none !important;
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  transition: none;
+}
+
+/* Hanya tampilkan icon untuk dropdown menu saat collapsed */
+.sidebar.collapsed .menu-link.dropdown-toggle > div > .menu-text {
+  display: none;
+}
+
+/* Chevron (tanda panah) juga hilang saat collapsed */
+.sidebar.collapsed .menu-link.dropdown-toggle i.fa-chevron-down {
+  display: none;
+}
+
+/* Samakan dropdown toggle dengan menu biasa */
+.menu-link.dropdown-toggle > div {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* jarak icon dan teks */
+}
+
