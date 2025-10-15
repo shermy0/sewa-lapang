@@ -16,22 +16,48 @@
 
     if ($user && $user->role === 'pemilik') {
         $menuItems = [
-            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie'],
-            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol'],
-            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check'],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave'],
-            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice'],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear'],
+            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie', 'url' => '#'],
+            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
+            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
+            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
+            ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
+            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
+            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
         ];
     } else {
         $menuItems = [
-            ['label' => 'Beranda', 'icon' => 'fa-solid fa-house'],
-            ['label' => 'Cari Lapangan', 'icon' => 'fa-solid fa-magnifying-glass'],
-            ['label' => 'Pemesanan Saya', 'icon' => 'fa-solid fa-calendar-days'],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-wallet'],
-            ['label' => 'Riwayat Sewa', 'icon' => 'fa-solid fa-clock-rotate-left'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-user-gear'],
+            [
+                'label' => 'Beranda',
+                'icon' => 'fa-solid fa-house',
+                'route' => 'penyewa.beranda',
+                'active_routes' => ['penyewa.beranda', 'penyewa.detail'],
+            ],
+            [
+                'label' => 'Favorit',
+                'icon' => 'fa-solid fa-heart',
+                'route' => 'penyewa.favorit.index',
+            ],
+            [
+                'label' => 'Pemesanan Saya',
+                'icon' => 'fa-solid fa-calendar-days',
+                'route' => 'penyewa.pemesanan',
+            ],
+            [
+                'label' => 'Pembayaran',
+                'icon' => 'fa-solid fa-wallet',
+                'route' => 'penyewa.pembayaran',
+            ],
+            [
+                'label' => 'Riwayat Sewa',
+                'icon' => 'fa-solid fa-clock-rotate-left',
+                'route' => 'penyewa.riwayat',
+                'active_routes' => ['penyewa.riwayat'],
+            ],
+            [
+                'label' => 'Pengaturan Akun',
+                'icon' => 'fa-solid fa-user-gear',
+                'route' => 'penyewa.akun',
+            ],
         ];
     }
 @endphp
@@ -39,8 +65,8 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="brand">
-    <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo SewaLap" class="brand-logo">
-    <span class="brand-text">SewaLap</span>
+      <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo SewaLap" class="brand-logo">
+      <span class="brand-text">SewaLap</span>
     </div>
     <button class="toggle-sidebar" id="toggleSidebar">
       <i class="fa-solid fa-bars"></i>
@@ -48,7 +74,7 @@
   </div>
 
   <div class="user-info">
-    <img src="{{ Auth::user()->profile_photo ?? asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
+    <img src="{{ Auth::user()->foto_profil ? asset('storage/' . Auth::user()->foto_profil) : asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
     <div class="user-meta">
       <h6 class="mb-0">{{ Auth::user()->name }}</h6>
       <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>
@@ -57,18 +83,31 @@
 
   <nav class="menu-list">
     @foreach ($menuItems as $item)
-      <a href="#" class="menu-link">
+      @php
+          $routes = $item['active_routes'] ?? (isset($item['route']) ? [$item['route']] : []);
+          $isActive = $routes ? Route::currentRouteNamed(...$routes) : false;
+          $url = '#';
+
+          if (isset($item['route']) && Route::has($item['route'])) {
+              $url = route($item['route'], $item['params'] ?? []);
+          } elseif (isset($item['url'])) {
+              $url = $item['url'];
+          }
+      @endphp
+      <a href="{{ $url }}" class="menu-link {{ $isActive ? 'active' : '' }}">
         <i class="{{ $item['icon'] }}"></i>
         <span class="menu-text">{{ $item['label'] }}</span>
       </a>
     @endforeach
   </nav>
 
-  <div class="logout-area">
-    <button type="button" class="logout-btn">
-      <i class="fa-solid fa-right-from-bracket"></i>
-      <span class="logout-text">Keluar</span>
-    </button>
+    <form action="{{ route('logout') }}" method="POST">
+      @csrf
+      <button type="submit" class="logout-btn">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span class="logout-text">Keluar</span>
+      </button>
+    </form>
   </div>
 </aside>
 
@@ -86,5 +125,6 @@
     mainContent.classList.toggle('expanded');
   });
 </script>
+
 </body>
 </html>
