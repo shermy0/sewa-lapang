@@ -25,6 +25,7 @@
             @endforeach
         </select>
     </div>
+
     <button id="pay-button" class="btn btn-success px-4">Pesan & Bayar</button>
     <a href="{{ url()->previous() }}" class="btn btn-secondary">Batal</a>
 </div>
@@ -39,36 +40,43 @@ document.getElementById('pay-button').onclick = function() {
         return;
     }
 
-    fetch('{{ route("midtrans.token") }}', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
+    // 🔹 Request Snap Token dari server
+fetch('{{ route("midtrans.token") }}', {
+    method: 'POST',
+    headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        lapangan_id: {{ $lapangan->id }},
+        jadwal_id: jadwalId
+    })
+})
+.then(res => res.json())
+.then(data => {
+    snap.pay(data.snap_token, {
+        onSuccess: function(result){
+            fetch('/pemesanan/success/' + data.pemesanan_id, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ result })
+            }).then(() => {
+                window.location.href = '/penyewa/riwayat';
+            });
         },
-        body: JSON.stringify({
-            lapangan_id: {{ $lapangan->id }},
-            jadwal_id: jadwalId
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if(data.error){
-            alert('Gagal mendapatkan token pembayaran: ' + data.error);
-            return;
+        onPending: function(result){
+            alert("Menunggu pembayaran...");
+            window.location.href = '/penyewa/riwayat';
+        },
+        onError: function(result){
+            alert("Pembayaran gagal!");
         }
-        snap.pay(data.snap_token, {
-            onSuccess: function(result){
-                alert('Pembayaran sukses (sandbox)');
-            },
-            onPending: function(result){
-                alert('Menunggu pembayaran (sandbox)');
-            },
-            onError: function(result){
-                alert('Pembayaran gagal (sandbox)');
-            }
-        });
-    })
-    .catch(err => alert('Gagal mendapatkan token pembayaran!'));
+    });
+});
+
 }
 </script>
 @endsection

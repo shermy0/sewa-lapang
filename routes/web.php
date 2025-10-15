@@ -31,7 +31,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
-   
+
+    Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
+    Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+
     // BERANDA PENYEWA
     Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
     Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
@@ -47,10 +50,6 @@ Route::middleware('auth')->group(function () {
     Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
     Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
 
-    Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
-    Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
-
-    
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->route('verification.success');
