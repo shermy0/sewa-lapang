@@ -220,8 +220,14 @@ class LapanganController extends Controller
     /**
      * Hapus jadwal lapangan.
      */
-    public function destroyJadwal($lapanganId, $jadwalId)
+    public function destroyJadwal(Request $request, $lapanganId, $jadwalId = null)
     {
+        $jadwalId = $jadwalId ?? $request->input('jadwal_id');
+
+        if (!$jadwalId) {
+            return redirect()->back()->with('error', 'ID jadwal tidak ditemukan.');
+        }
+
         $jadwal = JadwalLapangan::where('lapangan_id', $lapanganId)
             ->where('id', $jadwalId)
             ->firstOrFail();

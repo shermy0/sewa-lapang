@@ -506,9 +506,7 @@
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST">
-                            @csrf
-                            <div class="modal-body p-4">
+                        <div class="modal-body p-4">
                                 {{-- Info Tiket Tersedia --}}
                                 <div class="alert alert-info mb-4">
                                     <div class="d-flex align-items-center justify-content-between">
@@ -535,33 +533,36 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label fw-semibold text-dark">Tanggal</label>
-                                                <input type="date" name="tanggal" class="form-control" 
-                                                    min="{{ date('Y-m-d') }}" required>
+                                        <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST">
+                                            @csrf
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Tanggal</label>
+                                                    <input type="date" name="tanggal" class="form-control" 
+                                                        min="{{ date('Y-m-d') }}" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label fw-semibold text-dark">Jam Mulai</label>
+                                                    <input type="time" name="jam_mulai" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label fw-semibold text-dark">Jam Selesai</label>
+                                                    <input type="time" name="jam_selesai" class="form-control" required>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label fw-semibold text-dark">Status</label>
+                                                    <select name="tersedia" class="form-select">
+                                                        <option value="1">Tersedia</option>
+                                                        <option value="0">Tidak Tersedia</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label fw-semibold text-dark">Jam Mulai</label>
-                                                <input type="time" name="jam_mulai" class="form-control" required>
+                                            <div class="mt-3">
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Jadwal
+                                                </button>
                                             </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label fw-semibold text-dark">Jam Selesai</label>
-                                                <input type="time" name="jam_selesai" class="form-control" required>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <label class="form-label fw-semibold text-dark">Status</label>
-                                                <select name="tersedia" class="form-select">
-                                                    <option value="1">Tersedia</option>
-                                                    <option value="0">Tidak Tersedia</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="mt-3">
-                                            <button type="submit" class="btn btn-success">
-                                                <i class="fa-solid fa-plus me-1"></i> Tambah Jadwal
-                                            </button>
-                                        </div>
+                                        </form>
                                     </div>
                                 </div>
 
@@ -621,13 +622,12 @@
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-                            <div class="modal-footer border-0 bg-light p-4">
-                                <button type="button" class="btn btn-lg btn-outline-secondary px-4" data-bs-dismiss="modal">
-                                    <i class="fa-solid fa-xmark me-2"></i> Tutup
-                                </button>
-                            </div>
-                        </form>
+                        </div>
+                        <div class="modal-footer border-0 bg-light p-4">
+                            <button type="button" class="btn btn-lg btn-outline-secondary px-4" data-bs-dismiss="modal">
+                                <i class="fa-solid fa-xmark me-2"></i> Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
