@@ -18,6 +18,7 @@ class Lapangan extends Model
         'lokasi', 
         'harga_per_jam',
         'status',
+        'is_verified',
         'rating',
         'deskripsi',
         'foto'
@@ -28,6 +29,7 @@ class Lapangan extends Model
         'foto' => 'array',
         'harga_per_jam' => 'decimal:2',
         'rating' => 'float',
+        'is_verified' => 'boolean',
     ];
 
     /**
