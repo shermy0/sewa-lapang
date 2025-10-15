@@ -3,7 +3,7 @@
 @section('title', 'Tiket Saya')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/tiket.css') }}">
+<link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
 
 <div class="container py-4">
     <h2 class="fw-bold mb-4 text-success">Tiket Saya</h2>

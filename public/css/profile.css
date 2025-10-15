@@ -1,0 +1,84 @@
+
+    :root {
+        --main-green: #41A67E;
+        --accent-yellow: #F59E0B;
+        --accent-blue: #3B82F6;
+        --accent-purple: #8B5CF6;
+    }
+
+    .text-primary-custom { color: var(--main-green); }
+    .text-secondary-custom { color: #4b5563; }
+
+    .card {
+        border-radius: 18px;
+        background-color: #ffffff;
+    }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .custom-tabs {
+        border-bottom: none;
+    }
+
+    .custom-tabs .nav-link {
+        border: none;
+        color: #6b7280;
+        font-weight: 500;
+        margin: 0 8px;
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        padding: 8px 20px;
+    }
+
+    .custom-tabs .nav-link.active {
+        color: #fff;
+        background: linear-gradient(90deg, var(--main-green), var(--accent-blue));
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-save {
+        background: linear-gradient(90deg, var(--main-green), var(--accent-purple));
+        border: none;
+        color: #fff;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: 0.3s;
+    }
+
+    .btn-save:hover {
+        background: linear-gradient(90deg, var(--accent-purple), var(--main-green));
+        transform: translateY(-2px);
+    }
+
+    .btn-edit-foto {
+        background: linear-gradient(90deg, var(--accent-yellow), var(--main-green));
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .btn-edit-foto:hover {
+        background: linear-gradient(90deg, var(--main-green), var(--accent-yellow));
+        transform: translateY(-1px);
+    }
+
+    .table-header-custom {
+        background: linear-gradient(90deg, var(--main-green), var(--accent-blue));
+        color: #fff;
+    }
+
+    .form-control:focus {
+        border-color: var(--main-green);
+        box-shadow: 0 0 0 0.2rem rgba(65, 166, 126, 0.25);
+    }
+
+    .alert-success {
+        border-left: 5px solid var(--main-green);
+        background-color: rgba(65, 166, 126, 0.1);
+        color: #155d48;
+    }

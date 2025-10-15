@@ -11,59 +11,7 @@
   <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
 
   <style>
-    :root {
-      --green: #41A67E;
-      --gray: #555;
-      --bg-light: #f8f9fa;
-    }
 
-    .submenu {
-      display: none;
-      flex-direction: column;
-      margin-left: 20px;
-      transition: all 0.3s ease;
-    }
-
-    .submenu.show {
-      display: flex;
-    }
-
-    .submenu a {
-      font-size: 14px;
-      color: var(--gray);
-      padding: 6px 0;
-      text-decoration: none;
-      transition: color 0.3s, font-weight 0.3s;
-    }
-
-    .submenu a.active {
-      color: var(--green);
-      font-weight: 600;
-    }
-
-    .menu-link.dropdown-toggle {
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--gray);
-      transition: background 0.3s, color 0.3s;
-    }
-
-    .menu-link.dropdown-toggle.active {
-      color: var(--green);
-      background-color: var(--bg-light);
-      border-radius: 8px;
-    }
-
-    .menu-link.dropdown-toggle i.fa-chevron-down {
-      font-size: 12px;
-      transition: transform 0.3s;
-    }
-
-    .menu-link.dropdown-toggle.active i.fa-chevron-down {
-      transform: rotate(180deg);
-    }
   </style>
 </head>
 
@@ -132,8 +80,8 @@
             [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
-                'route' => 'penyewa.akun',
-                'active_routes' => ['penyewa.akun'],
+                'route' => 'profile.index',
+                'active_routes' => ['profile.index'],
             ],
         ];
     }

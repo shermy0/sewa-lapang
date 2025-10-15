@@ -3,7 +3,7 @@
 @section('title', 'Beranda Penyewa')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
+<link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container py-4">

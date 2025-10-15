@@ -13,6 +13,7 @@ class Lapangan extends Model
     protected $fillable = [
         'pemilik_id',
         'nama_lapangan',
+        'kategori',
         'deskripsi',
         'lokasi',
         'harga_per_jam',

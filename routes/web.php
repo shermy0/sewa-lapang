@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -98,6 +99,13 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');
+    Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+});
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
