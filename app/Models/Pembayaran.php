@@ -26,3 +26,4 @@ class Pembayaran extends Model
         return $this->belongsTo(Pemesanan::class, 'pemesanan_id');
     }
 }
+

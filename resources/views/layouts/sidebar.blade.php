@@ -16,12 +16,23 @@
 
     if ($user && $user->role === 'pemilik') {
         $menuItems = [
-            ['label' => 'Dashboard', 'icon' => 'fa-solid fa-chart-pie', 'url' => '#'],
+            [
+                'label' => 'Dashboard',
+                'icon' => 'fa-solid fa-chart-pie',
+                'route' => 'dashboard.pemilik',
+                'active_routes' => ['dashboard.pemilik'],
+            ],
             ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
             ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
+            [
+                'label' => 'Scan', 
+                'icon' => 'fa-solid fa-qrcode', 
+                'route' => 'pemilik.scan',
+                'active_routes' => ['pemilik.scan'],
+            ],
             ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
         ];
     } else {
@@ -35,7 +46,8 @@
             [
                 'label' => 'Favorit',
                 'icon' => 'fa-solid fa-heart',
-                'route' => 'penyewa.favorit.index',
+                'route' => 'favorit.index',
+                'active_routes' => ['favorit.index'],
             ],
             [
                 'label' => 'Pemesanan Saya',

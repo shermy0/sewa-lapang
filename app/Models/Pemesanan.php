@@ -16,6 +16,8 @@ class Pemesanan extends Model
         'jadwal_id',
         'status',
         'kode_tiket', // jangan lupa tambahkan
+        'status_scan',
+        'waktu_scan',
     ];
 
     public function penyewa()
@@ -40,7 +42,8 @@ class Pemesanan extends Model
     public function pembayaran() {
         return $this->hasOne(Pembayaran::class);
     }
-        public function ulasan()
+    
+    public function ulasan()
     {
         return $this->hasOne(Ulasan::class);
     }

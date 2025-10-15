@@ -8,6 +8,10 @@ use App\Http\Controllers\PembayaranController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\UlasanController;
+use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
+use App\Http\Controllers\PemilikDashboardController;
+use App\Http\Controllers\ScanTiketController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -34,7 +38,21 @@ Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
 Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
 
-    
+    // BERANDA PENYEWA
+    Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
+    Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
+   
+    // ULASAN PENYEWA
+    Route::post('/simpan/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
+    Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
+    Route::put('/{id}/update', [UlasanController::class, 'update'])->name('ulasan.update');
+    Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
+
+    // FAVORIT PENYEWA
+    Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
+    Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
+    Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->route('verification.success');
@@ -71,6 +89,7 @@ Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'ge
         return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
     })->name('verification.success');
 });
+
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
@@ -80,5 +99,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 
-Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
-Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
+    Route::get('/pemilik/scan', [ScanTiketController::class, 'scan'])->name('pemilik.scan');
+});

@@ -19,12 +19,11 @@ class AppServiceProvider extends ServiceProvider
      * Bootstrap any application services.
      */
 
-public function boot(): void
-{
-    Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-    Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-    Config::$isSanitized = true;
-    Config::$is3ds = true;
-}
-
+    public function boot(): void
+    {
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+    }
 }
