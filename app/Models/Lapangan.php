@@ -16,6 +16,7 @@ class Lapangan extends Model
         'nama_lapangan',
         'kategori',
         'lokasi',
+        'harga_per_jam',
         'harga_sewa',
         'durasi_sewa',
         'status',
@@ -27,6 +28,7 @@ class Lapangan extends Model
     ];
 
     protected $casts = [
+        'harga_per_jam' => 'decimal:2',
         'harga_sewa' => 'decimal:2',
         'rating' => 'decimal:1',
         'durasi_sewa' => 'integer',

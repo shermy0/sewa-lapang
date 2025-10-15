@@ -9,12 +9,14 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
- public function up(): void
-{
-    Schema::table('lapangan', function (Blueprint $table) {
-        $table->string('kategori')->after('nama_lapangan');
-    });
-}
+    public function up(): void
+    {
+        Schema::table('lapangan', function (Blueprint $table) {
+            if (!Schema::hasColumn('lapangan', 'kategori')) {
+                $table->string('kategori')->nullable()->after('nama_lapangan');
+            }
+        });
+    }
 
 
     /**
@@ -23,7 +25,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('lapangan', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('lapangan', 'kategori')) {
+                $table->dropColumn('kategori');
+            }
         });
     }
 };

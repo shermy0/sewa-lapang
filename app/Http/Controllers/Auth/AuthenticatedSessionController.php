@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,16 @@ class AuthenticatedSessionController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email'],
             'password' => ['required', 'string'],
         ]);
+
+        $user = User::where('email', $credentials['email'])->first();
+
+        if ($user && $user->getAttribute('status') === 'nonaktif') {
+            return back()
+                ->withErrors([
+                    'email' => __('Akun Anda dinonaktifkan. Silakan hubungi administrator.'),
+                ])
+                ->onlyInput('email');
+        }
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
