@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lapangan;
+use App\Models\LaporanPenyalahgunaan;
 use App\Models\Pembayaran;
 use App\Models\Pemesanan;
 use App\Models\User;
@@ -19,6 +20,7 @@ class AdminDashboardController extends Controller
             'totalLapangan' => Lapangan::count(),
             'totalPemesanan' => Pemesanan::count(),
             'totalPendapatan' => Pembayaran::where('status', 'berhasil')->sum('jumlah'),
+            'pendingReports' => LaporanPenyalahgunaan::where('status', 'pending')->count(),
         ];
 
         $monthlyLabels = [];

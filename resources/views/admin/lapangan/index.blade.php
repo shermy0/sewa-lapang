@@ -9,7 +9,7 @@
             <h4 class="fw-bold text-dark mb-0">
                 <i class="fa-solid fa-warehouse me-2 text-success"></i> Manajemen Lapangan
             </h4>
-            <p class="text-muted mb-0">Moderasi, verifikasi, dan perbarui data lapangan dari seluruh pemilik.</p>
+            <p class="text-muted mb-0">Pantau daftar lapangan dari seluruh pemilik.</p>
         </div>
     </div>
 
@@ -23,13 +23,6 @@
     @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            Terdapat kesalahan input. Periksa kembali data yang Anda masukkan.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
@@ -54,13 +47,6 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-lg-3 col-md-4">
-                    <select name="verification" class="form-select">
-                        <option value="">Semua Verifikasi</option>
-                        <option value="verified" @selected(request('verification') === 'verified')>Sudah diverifikasi</option>
-                        <option value="unverified" @selected(request('verification') === 'unverified')>Belum diverifikasi</option>
-                    </select>
-                </div>
                 <div class="col-md-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="fa-solid fa-filter me-1"></i> Terapkan
@@ -81,7 +67,6 @@
                             <th>Harga/Jam</th>
                             <th>Rating</th>
                             <th>Status</th>
-                            <th>Verifikasi</th>
                             <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
@@ -106,19 +91,10 @@
                                         {{ $item->status }}
                                     </span>
                                 </td>
-                                <td>
-                                    <span class="badge {{ $item->is_verified ? 'bg-success' : 'bg-dark' }}">
-                                        {{ $item->is_verified ? 'Terverifikasi' : 'Belum Verifikasi' }}
-                                    </span>
-                                </td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal"
+                                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                                         data-bs-target="#modalPreviewLapangan{{ $item->id }}">
                                         <i class="fa-solid fa-eye me-1"></i> Tinjauan
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
-                                        data-bs-target="#modalUpdateLapangan{{ $item->id }}">
-                                        <i class="fa-solid fa-sliders me-1"></i> Moderasi
                                     </button>
                                 </td>
                             </tr>
@@ -163,76 +139,13 @@
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Tutup</button>
                                         </div>
-                                    </div>
-                                </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="modal fade" id="modalUpdateLapangan{{ $item->id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Moderasi Lapangan</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                aria-label="Close"></button>
-                                        </div>
-                                        <form action="{{ route('admin.lapangan.update', $item) }}" method="POST">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Status Penayangan</label>
-                                                    <select name="status" class="form-select">
-                                                        @foreach ($statuses as $status)
-                                                            <option value="{{ $status }}" @selected($item->status === $status)>
-                                                                {{ ucfirst($status) }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Pemilik Lapangan</label>
-                                                    <select name="pemilik_id" class="form-select">
-                                                        <option value="">Tanpa Pemilik</option>
-                                                        @foreach ($owners as $id => $name)
-                                                            <option value="{{ $id }}" @selected($item->pemilik_id === $id)>
-                                                                {{ $name }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Kategori</label>
-                                                    <input type="text" name="kategori" value="{{ $item->kategori }}"
-                                                        class="form-control">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Harga per Jam (Rp)</label>
-                                                    <input type="number" step="1000" min="0" name="harga_per_jam"
-                                                        value="{{ $item->harga_per_jam }}" class="form-control">
-                                                </div>
-                                                <input type="hidden" name="is_verified" value="0">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" role="switch"
-                                                        id="verifikasiLapangan{{ $item->id }}" name="is_verified" value="1"
-                                                        {{ $item->is_verified ? 'checked' : '' }}>
-                                                    <label class="form-check-label" for="verifikasiLapangan{{ $item->id }}">
-                                                        Tandai sebagai sudah diverifikasi
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Perubahan
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">Belum ada data lapangan.</td>
+                                <td colspan="7" class="text-center text-muted py-4">Belum ada data lapangan.</td>
                             </tr>
                         @endforelse
                     </tbody>

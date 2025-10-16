@@ -16,7 +16,7 @@
                 <i class="fa-solid fa-futbol me-1"></i> Kelola Lapangan
             </a>
             <a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary">
-                <i class="fa-solid fa-users-viewfinder me-1"></i> Moderasi Pengguna
+                <i class="fa-solid fa-users-viewfinder me-1"></i> Kelola Pengguna
             </a>
         </div>
     </div>
@@ -112,20 +112,24 @@
                 </div>
                 <div class="card-body d-grid gap-2">
                     <a href="{{ route('admin.users.index') }}" class="btn btn-light border text-start">
-                        <i class="fa-solid fa-user-check me-2 text-success"></i>
-                        Verifikasi Pemilik Baru
+                        <i class="fa-solid fa-users-gear me-2 text-success"></i>
+                        Kelola Data Pengguna
                     </a>
                     <a href="{{ route('admin.pembayaran.index') }}" class="btn btn-light border text-start">
                         <i class="fa-solid fa-wallet me-2 text-primary"></i>
                         Tinjau Laporan Pembayaran
                     </a>
-                    <a href="#" class="btn btn-light border text-start">
-                        <i class="fa-solid fa-flag me-2 text-danger"></i>
-                        Laporan Penyalahgunaan
-                    </a>
-                    <a href="#" class="btn btn-light border text-start">
-                        <i class="fa-solid fa-pen-to-square me-2 text-secondary"></i>
-                        Kelola Konten & Banner
+                    <a
+                        href="{{ route('admin.laporan.penyalahgunaan.index') }}"
+                        class="btn btn-light border d-flex justify-content-between align-items-center"
+                    >
+                        <span>
+                            <i class="fa-solid fa-flag me-2 text-danger"></i>
+                            Laporan Penyalahgunaan
+                        </span>
+                        <span class="badge rounded-pill bg-danger-subtle text-danger">
+                            {{ number_format($stats['pendingReports']) }} pending
+                        </span>
                     </a>
                 </div>
             </div>
