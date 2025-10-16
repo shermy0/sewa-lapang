@@ -41,11 +41,6 @@
                     'route' => route('admin.lapangan.index'),
                 ],
                 [
-                    'label' => 'Pemesanan',
-                    'icon' => 'fa-solid fa-calendar-check',
-                    'route' => route('admin.pemesanan.index'),
-                ],
-                [
                     'label' => 'Pembayaran',
                     'icon' => 'fa-solid fa-money-bill-transfer',
                     'route' => route('admin.pembayaran.index'),

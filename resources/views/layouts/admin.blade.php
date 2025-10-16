@@ -314,30 +314,18 @@ body {
                 'match' => 'admin.lapangan.*',
             ],
             [
-                'label' => 'Pemesanan',
-                'icon' => 'fa-solid fa-calendar-check',
-                'route' => route('admin.pemesanan.index'),
-                'match' => 'admin.pemesanan.*',
-            ],
+            'label' => 'Pembayaran',
+            'icon' => 'fa-solid fa-money-bill-transfer',
+            'route' => route('admin.pembayaran.index'),
+            'match' => 'admin.pembayaran.*',
+        ],
             [
-                'label' => 'Pembayaran',
-                'icon' => 'fa-solid fa-money-bill-transfer',
-                'route' => route('admin.pembayaran.index'),
-                'match' => 'admin.pembayaran.*',
-            ],
-            [
-                'label' => 'Laporan',
-                'icon' => 'fa-solid fa-file-lines',
-                'route' => '#',
-                'match' => '',
-            ],
-            [
-                'label' => 'Pengaturan Sistem',
-                'icon' => 'fa-solid fa-gear',
-                'route' => '#',
-                'match' => '',
-            ],
-        ];
+            'label' => 'Laporan Penyalahgunaan',
+            'icon' => 'fa-solid fa-flag',
+            'route' => route('admin.laporan.penyalahgunaan.index'),
+            'match' => 'admin.laporan.penyalahgunaan.*',
+        ],
+    ];
     @endphp
 
     <!-- Sidebar -->

@@ -8,8 +8,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\LapanganController as AdminLapanganController;
-use App\Http\Controllers\Admin\PemesananController as AdminPemesananController;
 use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
+use App\Http\Controllers\Admin\LaporanPenyalahgunaanController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -54,13 +54,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
         Route::get('lapangan', [AdminLapanganController::class, 'index'])->name('lapangan.index');
-        Route::put('lapangan/{lapangan}', [AdminLapanganController::class, 'update'])->name('lapangan.update');
-
-        Route::get('pemesanan', [AdminPemesananController::class, 'index'])->name('pemesanan.index');
-        Route::put('pemesanan/{pemesanan}', [AdminPemesananController::class, 'update'])->name('pemesanan.update');
 
         Route::get('pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
         Route::put('pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('pembayaran.update');
+
+        Route::prefix('laporan')->name('laporan.')->group(function () {
+            Route::get('penyalahgunaan', [LaporanPenyalahgunaanController::class, 'index'])->name('penyalahgunaan.index');
+            Route::get('penyalahgunaan/{laporanPenyalahgunaan}', [LaporanPenyalahgunaanController::class, 'show'])->name('penyalahgunaan.show');
+            Route::patch('penyalahgunaan/{laporanPenyalahgunaan}/status', [LaporanPenyalahgunaanController::class, 'updateStatus'])->name('penyalahgunaan.update-status');
+            Route::delete('penyalahgunaan/{laporanPenyalahgunaan}', [LaporanPenyalahgunaanController::class, 'destroy'])->name('penyalahgunaan.destroy');
+        });
+
     });
 });
 
