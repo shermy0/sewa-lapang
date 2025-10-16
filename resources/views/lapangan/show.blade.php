@@ -10,7 +10,8 @@
                 <!-- 🖼️ Foto Lapangan -->
                 <div class="col-lg-6">
                     @php
-                        $fotos = json_decode($lapangan->foto, true) ?? [];
+                        // Karena $lapangan->foto sudah array (dari $casts)
+                        $fotos = $lapangan->foto ?? [];
                     @endphp
 
                     @if (count($fotos) > 0)
@@ -42,8 +43,12 @@
                     <h2 class="fw-bold text-dark mb-3">{{ $lapangan->nama_lapangan }}</h2>
 
                     <div class="mb-3">
-                        <span class="badge bg-primary fs-6"><i class="fa-solid fa-futbol me-1"></i> {{ ucfirst($lapangan->kategori) }}</span>
-                        <span class="badge bg-success fs-6"><i class="fa-solid fa-circle me-1"></i> {{ ucfirst($lapangan->status) }}</span>
+                        <span class="badge bg-primary fs-6">
+                            <i class="fa-solid fa-futbol me-1"></i> {{ ucfirst($lapangan->kategori) }}
+                        </span>
+                        <span class="badge bg-success fs-6">
+                            <i class="fa-solid fa-circle me-1"></i> {{ ucfirst($lapangan->status) }}
+                        </span>
                     </div>
 
                     <p class="text-muted mb-2">
@@ -63,15 +68,7 @@
 
                     <p class="text-muted mb-2">
                         <i class="fa-solid fa-money-bill-wave text-success me-2"></i>
-                        <strong>Harga Sewa:</strong> Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }} / jam
-                    </p>
-                    <p class="text-muted mb-2">
-                        <i class="fa-solid fa-star text-warning me-2"></i>
-                        <strong>Rating:</strong>
-                        @for ($i = 1; $i <= 5; $i++)
-                            <i class="fa-solid fa-star {{ $i <= round($lapangan->rating) ? 'text-warning' : 'text-secondary' }}"></i>
-                        @endfor
-                        <span class="ms-1">({{ number_format($lapangan->rating, 1) }})</span>
+                        <strong>Harga Sewa:</strong> Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }} / jam
                     </p>
 
                     <hr>
@@ -89,7 +86,9 @@
 
             <!-- 📅 Jadwal Lapangan -->
             <hr class="my-4">
-            <h4 class="fw-bold text-dark mb-3"><i class="fa-solid fa-calendar-days me-2"></i> Jadwal Lapangan</h4>
+            <h4 class="fw-bold text-dark mb-3">
+                <i class="fa-solid fa-calendar-days me-2"></i> Jadwal Lapangan
+            </h4>
 
             @if($lapangan->jadwal->count() > 0)
                 <div class="table-responsive">

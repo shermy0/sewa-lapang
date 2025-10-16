@@ -9,14 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('lapangan', function (Blueprint $table) {
-            $table->float('rating')->default(0)->after('harga_per_jam');
+            $table->dropColumn('rating');
         });
     }
 
     public function down(): void
     {
         Schema::table('lapangan', function (Blueprint $table) {
-            $table->dropColumn('rating');
+            $table->float('rating')->default(0)->after('harga_per_jam');
         });
     }
 };
