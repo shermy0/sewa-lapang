@@ -1,9 +1,9 @@
 <?php
 
 namespace App\Providers;
-use Midtrans\Config;
 
 use Illuminate\Support\ServiceProvider;
+use Midtrans\Config as MidtransConfig; // <── ini penting!
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,12 +18,11 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-
     public function boot(): void
     {
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-        Config::$isSanitized = true;
-        Config::$is3ds = true;
+        MidtransConfig::$serverKey = env('MIDTRANS_SERVER_KEY');
+        MidtransConfig::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        MidtransConfig::$isSanitized = true;
+        MidtransConfig::$is3ds = true;
     }
 }

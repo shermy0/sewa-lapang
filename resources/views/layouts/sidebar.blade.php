@@ -26,8 +26,8 @@
             [
                 'label' => 'Favorit',
                 'icon' => 'fa-solid fa-heart',
-                'route' => 'favorit.index',
-                'active_routes' => ['#'],
+                'route' => 'pemilik.favorit',
+                'active_routes' => ['pemilik.favorit'],
             ],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             [
@@ -116,13 +116,35 @@
     @endforeach
   </nav>
 
-    <form action="{{ route('logout') }}" method="POST">
+  <!-- Tambahkan CDN SweetAlert2 di head -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <form id="logout-form" action="{{ route('logout') }}" method="POST">
       @csrf
-      <button type="submit" class="logout-btn">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        <span class="logout-text">Keluar</span>
+      <button type="button" id="logout-button" class="logout-btn">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="logout-text">Keluar</span>
       </button>
-    </form>
+  </form>
+
+  <script>
+  document.getElementById('logout-button').addEventListener('click', function() {
+      Swal.fire({
+          title: 'Yakin ingin keluar?',
+          text: "Kamu akan logout dari akun ini",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6', // biru
+          cancelButtonColor: '#d33',     // merah
+          confirmButtonText: 'Ya, keluar!',
+          cancelButtonText: 'Batal'
+      }).then((result) => {
+          if (result.isConfirmed) {
+              document.getElementById('logout-form').submit(); // submit form logout
+          }
+      });
+  });
+  </script>
   </div>
 </aside>
 
@@ -130,6 +152,10 @@
   @yield('content')
 </main>
 
+<!-- Bootstrap Bundle JS (untuk modal, dropdown, dsb) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Sidebar toggle -->
 <script>
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
@@ -140,6 +166,6 @@
     mainContent.classList.toggle('expanded');
   });
 </script>
-
+@stack('scripts')
 </body>
 </html>

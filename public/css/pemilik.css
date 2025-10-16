@@ -56,3 +56,87 @@ body {
     border-radius: 10px;
     font-size: 16px;
 }
+
+/*  
+// SCAN //
+/      */
+.scanner-box {
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #28a745;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.result-box {
+    max-width: 500px;
+    margin: 20px auto 0;
+    padding: 15px 20px;
+    border-radius: 10px;
+    background: #f9f9f9; /* putih lembut */
+    text-align: center;
+    font-size: 16px;
+    color: #333;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.result-box b {
+    color: #28a745;
+}
+
+.result-box span {
+    font-weight: bold;
+}
+
+/* efek ketika hasil scan muncul */
+.result-box.active {
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 576px) {
+    .scanner-box, .result-box {
+        width: 100%;
+    }
+}
+
+/* 
+// FAVORIT //
+/*        */
+.modal-content {
+    animation: fadeIn 0.3s ease-in-out;
+    background-color: #ffffff;
+}
+@keyframes fadeIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Styling isi modal */
+#favoritModalBody::-webkit-scrollbar {
+    width: 6px;
+}
+#favoritModalBody::-webkit-scrollbar-thumb {
+    background-color: #d1d1d1;
+    border-radius: 10px;
+}
+
+.favorit-user {
+    display: flex;
+    align-items: center;
+    background-color: #f8f8f8;
+    border-radius: 10px;
+    padding: 10px;
+    transition: all 0.2s ease;
+}
+.favorit-user:hover {
+    background-color: #eeeeee;
+    transform: translateX(3px);
+}
+.favorit-user img {
+    border: 2px solid #ccc;
+}
