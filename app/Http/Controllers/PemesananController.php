@@ -18,7 +18,7 @@ class PemesananController extends Controller
 public function downloadTiket($id)
 {
     $pemesanan = Pemesanan::findOrFail($id);
-    $pdf = Pdf::loadView('penyewa.tiket-pdf', compact('pemesanan'))
+    $pdf = Pdf::loadView('penyewa.tiket-download', compact('pemesanan'))
               ->setPaper('a4', 'landscape');
     return $pdf->download('Tiket_'.$pemesanan->kode_tiket.'.pdf');
 }

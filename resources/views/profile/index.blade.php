@@ -43,13 +43,13 @@
                     <i class="bi bi-person-circle me-1"></i> Profile
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            {{-- <li class="nav-item" role="presentation">
                 <button 
                     class="nav-link {{ session('activeTab') === 'password' ? 'active' : '' }}" 
                     id="tab-password" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab">
                     <i class="bi bi-lock me-1"></i> Ganti Password
                 </button>
-            </li>
+            </li> --}}
             @if($user->role === 'pemilik')
             <li class="nav-item" role="presentation">
                 <button 
@@ -92,7 +92,7 @@
             </div>
 
             <!-- ====================== TAB PASSWORD ====================== -->
-            <div class="tab-pane fade {{ session('activeTab') === 'password' ? 'show active' : '' }}" id="password" role="tabpanel">
+            {{-- <div class="tab-pane fade {{ session('activeTab') === 'password' ? 'show active' : '' }}" id="password" role="tabpanel">
                 <form action="{{ route('profile.password.update') }}" method="POST">
                     @csrf
                     <div class="col-md-12 mt-3">
@@ -127,7 +127,7 @@
                         </div>
                     </div>
                 </form>
-            </div>
+            </div> --}}
 
             <!-- ====================== TAB LAPANGAN ====================== -->
             @if($user->role === 'pemilik')
