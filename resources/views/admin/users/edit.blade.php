@@ -90,27 +90,7 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Password Baru</label>
-                                    <input type="password" name="password"
-                                        class="form-control @error('password') is-invalid @enderror"
-                                        placeholder="Biarkan kosong jika tidak diganti">
-                                    @error('password')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Konfirmasi Password</label>
-                                    <input type="password" name="password_confirmation" class="form-control"
-                                        placeholder="Ulangi password baru">
-                                </div>
-                            </div>
-                        </div>
-
+                      
                         <div class="mb-4">
                             <label class="form-label">Foto Profil</label>
                             <input type="file" name="foto_profil" accept="image/*"
