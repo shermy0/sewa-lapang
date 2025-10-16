@@ -12,10 +12,27 @@ return new class extends Migration
     public function up()
     {
         Schema::table('lapangan', function (Blueprint $table) {
-            $table->integer('tiket_tersedia')
-                  ->default(0)
-                  ->after('harga_per_jam')
-                  ->comment('Jumlah tiket yang tersedia untuk booking');
+            if (Schema::hasColumn('lapangan', 'tiket_tersedia')) {
+                return;
+            }
+
+            $afterColumn = null;
+
+            if (Schema::hasColumn('lapangan', 'harga_sewa')) {
+                $afterColumn = 'harga_sewa';
+            } elseif (Schema::hasColumn('lapangan', 'harga_per_jam')) {
+                $afterColumn = 'harga_per_jam';
+            } elseif (Schema::hasColumn('lapangan', 'kategori')) {
+                $afterColumn = 'kategori';
+            }
+
+            $column = $table->integer('tiket_tersedia')
+                ->default(0)
+                ->comment('Jumlah tiket yang tersedia untuk booking');
+
+            if ($afterColumn) {
+                $column->after($afterColumn);
+            }
         });
     }
 
