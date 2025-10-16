@@ -15,7 +15,6 @@ return new class extends Migration
             $table->text('deskripsi')->nullable();
             $table->string('lokasi');
             $table->string('kategori');
-            $table->decimal('harga_per_jam', 10, 2);
             $table->float('rating')->default(0);
             $table->string('foto')->nullable();
             $table->string('status')->default('standard');

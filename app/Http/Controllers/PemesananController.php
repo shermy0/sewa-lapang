@@ -57,7 +57,7 @@ public function getSnapToken(Request $request)
     $snapToken = Snap::getSnapToken([
         'transaction_details' => [
             'order_id' => 'ORDER-' . $pemesanan->id,
-            'gross_amount' => $lapangan->harga_per_jam,
+            'gross_amount' => $lapangan->harga_sewa,
         ],
         'customer_details' => [
             'first_name' => Auth::user()->name,
@@ -70,7 +70,7 @@ public function getSnapToken(Request $request)
         ['pemesanan_id' => $pemesanan->id],
         [
             'metode' => 'midtrans',
-            'jumlah' => $lapangan->harga_per_jam,
+            'jumlah' => $lapangan->harga_sewa,
             'status' => 'pending',
             'order_id' => 'ORDER-' . $pemesanan->id,
             'snap_token' => $snapToken,
@@ -94,7 +94,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
                 'order_id' => $uniqueOrderId,
-                'gross_amount' => $lapangan->harga_per_jam,
+                'gross_amount' => $lapangan->harga_sewa,
             ],
             'customer_details' => [
                 'first_name' => Auth::user()->name,
@@ -108,7 +108,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
             $pembayaran = Pembayaran::create([
                 'pemesanan_id' => $pemesanan->id,
                 'metode' => 'midtrans',
-                'jumlah' => $lapangan->harga_per_jam,
+                'jumlah' => $lapangan->harga_sewa,
                 'status' => 'pending',
                 'order_id' => $uniqueOrderId,
                 'snap_token' => $snapToken,
@@ -162,7 +162,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
         Pembayaran::create([
             'pemesanan_id' => $pemesanan->id,
             'metode' => 'midtrans',
-            'jumlah' => $lapangan->harga_per_jam,
+            'jumlah' => $lapangan->harga_sewa,
             'status' => 'pending',
             'order_id' => 'ORDER-' . time(),
             'snap_token' => $request->snap_token,

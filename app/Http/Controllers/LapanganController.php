@@ -2,115 +2,90 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Lapangan;
 use App\Models\JadwalLapangan;
+use App\Models\Lapangan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class LapanganController extends Controller
 {
-    /**
-     * Menampilkan semua data lapangan.
-     */
     public function index(Request $request)
     {
-        $query = Lapangan::with('jadwal');
-
-        // 🔍 Filter pencarian (nama atau lokasi)
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nama_lapangan', 'like', '%' . $request->search . '%')
-                  ->orWhere('lokasi', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        // 🎯 Filter kategori
-        if ($request->filled('kategori')) {
-            $query->where('kategori', 'like', '%' . $request->kategori . '%');
-        }
-
-        // 🎯 Filter status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // 💰 Filter harga minimal dan maksimal
-        if ($request->filled('min_harga')) {
-            $query->where('harga_sewa', '>=', $request->min_harga);
-        }
-        if ($request->filled('max_harga')) {
-            $query->where('harga_sewa', '<=', $request->max_harga);
-        }
-
-        // ⭐ Filter rating
-        if ($request->filled('rating')) {
-            $query->where('rating', '>=', $request->rating);
-        }
-
-        // 🔄 Urutkan berdasarkan harga
-        if ($request->filled('sort_harga')) {
-            $query->orderBy('harga_sewa', $request->sort_harga);
-        } else {
-            $query->latest();
-        }
-
-        // ✅ Pagination
-        $lapangan = $query->paginate(6)->appends($request->query());
+        $lapangan = Lapangan::query()
+            ->with('jadwal')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('nama_lapangan', 'like', '%' . $request->search . '%')
+                        ->orWhere('lokasi', 'like', '%' . $request->search . '%');
+                });
+            })
+            ->when($request->filled('kategori'), function ($query) use ($request) {
+                $query->where('kategori', 'like', '%' . $request->kategori . '%');
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', $request->status);
+            })
+            ->when($request->filled('tiket_tersedia'), function ($query) use ($request) {
+                if ($request->tiket_tersedia === 'tersedia') {
+                    $query->where('tiket_tersedia', '>', 0);
+                } elseif ($request->tiket_tersedia === 'habis') {
+                    $query->where('tiket_tersedia', '<=', 0);
+                }
+            })
+            ->when($request->filled('min_harga'), function ($query) use ($request) {
+                $query->where('harga_sewa', '>=', $request->min_harga);
+            })
+            ->when($request->filled('max_harga'), function ($query) use ($request) {
+                $query->where('harga_sewa', '<=', $request->max_harga);
+            })
+            ->when($request->filled('sort_harga'), function ($query) use ($request) {
+                $query->orderBy('harga_sewa', $request->sort_harga);
+            }, function ($query) {
+                $query->latest();
+            })
+            ->paginate(6)
+            ->appends($request->query());
 
         return view('lapangan.index', compact('lapangan'));
     }
 
-    /**
-     * Simpan data lapangan baru ke database.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'nama_lapangan' => 'required|string|max:255',
-            'kategori' => 'required|string|max:255',
-            'lokasi' => 'required|string|max:500',
-            'harga_sewa' => 'required|numeric|min:0',
-            'durasi_sewa' => 'required|integer|min:30|max:300',
-            'status' => 'required|string|max:255',
-            'rating' => 'nullable|numeric|min:0|max:5',
-            'tiket_tersedia' => 'required|integer|min:0',
-            'fasilitas' => 'nullable|string|max:500',
-            'deskripsi' => 'nullable|string',
-            'foto.*' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'nama_lapangan' => ['required', 'string', 'max:255'],
+            'kategori' => ['required', 'string', 'max:255'],
+            'lokasi' => ['required', 'string', 'max:500'],
+            'harga_sewa' => ['required', 'numeric', 'min:0'],
+            'durasi_sewa' => ['required', 'integer', 'min:30', 'max:300'],
+            'status' => ['required', 'string', 'max:255'],
+            'tiket_tersedia' => ['required', 'integer', 'min:0'],
+            'deskripsi' => ['nullable', 'string'],
+            'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
-        // Proses upload foto
         $fotoPaths = [];
         if ($request->hasFile('foto')) {
             foreach ($request->file('foto') as $foto) {
-                $path = $foto->store('lapangan', 'public');
-                $fotoPaths[] = $path;
+                $fotoPaths[] = $foto->store('lapangan', 'public');
             }
         }
 
-        // Simpan ke database
         Lapangan::create([
             'pemilik_id' => auth()->id(),
             'nama_lapangan' => $request->nama_lapangan,
             'kategori' => $request->kategori,
             'lokasi' => $request->lokasi,
-            'harga_per_jam' => $request->harga_sewa,
             'harga_sewa' => $request->harga_sewa,
             'durasi_sewa' => $request->durasi_sewa,
             'status' => $request->status,
-            'rating' => $request->rating ?? 0,
             'tiket_tersedia' => $request->tiket_tersedia,
-            'fasilitas' => $request->fasilitas,
             'deskripsi' => $request->deskripsi,
-            'foto' => json_encode($fotoPaths),
+            'foto' => $fotoPaths,
         ]);
 
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
     }
 
-    /**
-     * Tampilkan detail lapangan.
-     */
     public function show($id)
     {
         $lapangan = Lapangan::with('jadwal')->findOrFail($id);
@@ -118,30 +93,28 @@ class LapanganController extends Controller
         return view('lapangan.show', compact('lapangan'));
     }
 
-    /**
-     * Update data lapangan.
-     */
     public function update(Request $request, $id)
     {
         $lapangan = Lapangan::findOrFail($id);
 
         $request->validate([
-            'nama_lapangan' => 'required|string|max:255',
-            'kategori' => 'required|string|max:255',
-            'lokasi' => 'required|string|max:500',
-            'harga_sewa' => 'required|numeric|min:0',
-            'durasi_sewa' => 'required|integer|min:30|max:300',
-            'status' => 'required|string|max:255',
-            'rating' => 'nullable|numeric|min:0|max:5',
-            'tiket_tersedia' => 'required|integer|min:0',
-            'fasilitas' => 'nullable|string|max:500',
-            'deskripsi' => 'nullable|string',
-            'foto.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'nama_lapangan' => ['required', 'string', 'max:255'],
+            'kategori' => ['required', 'string', 'max:255'],
+            'lokasi' => ['required', 'string', 'max:500'],
+            'harga_sewa' => ['required', 'numeric', 'min:0'],
+            'durasi_sewa' => ['required', 'integer', 'min:30', 'max:300'],
+            'status' => ['required', 'string', 'max:255'],
+            'tiket_tersedia' => ['required', 'integer', 'min:0'],
+            'deskripsi' => ['nullable', 'string'],
+            'foto.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
-        $fotoPaths = json_decode($lapangan->foto, true) ?? [];
+        $fotoPaths = $lapangan->foto ?? [];
+        if (!is_array($fotoPaths)) {
+            $decoded = json_decode($lapangan->foto, true);
+            $fotoPaths = is_array($decoded) ? $decoded : [];
+        }
 
-        // Jika ada foto baru, upload dan ganti yang lama
         if ($request->hasFile('foto')) {
             foreach ($fotoPaths as $oldFoto) {
                 Storage::disk('public')->delete($oldFoto);
@@ -149,8 +122,7 @@ class LapanganController extends Controller
 
             $fotoPaths = [];
             foreach ($request->file('foto') as $foto) {
-                $path = $foto->store('lapangan', 'public');
-                $fotoPaths[] = $path;
+                $fotoPaths[] = $foto->store('lapangan', 'public');
             }
         }
 
@@ -158,52 +130,44 @@ class LapanganController extends Controller
             'nama_lapangan' => $request->nama_lapangan,
             'kategori' => $request->kategori,
             'lokasi' => $request->lokasi,
-            'harga_per_jam' => $request->harga_sewa,
             'harga_sewa' => $request->harga_sewa,
             'durasi_sewa' => $request->durasi_sewa,
             'status' => $request->status,
-            'rating' => $request->rating ?? $lapangan->rating ?? 0,
             'tiket_tersedia' => $request->tiket_tersedia,
-            'fasilitas' => $request->fasilitas,
             'deskripsi' => $request->deskripsi,
-            'foto' => !empty($fotoPaths) ? json_encode($fotoPaths) : $lapangan->foto,
+            'foto' => $fotoPaths,
         ]);
 
         return redirect()->route('lapangan.index')->with('success', 'Data lapangan berhasil diperbarui!');
     }
 
-    /**
-     * Hapus data lapangan.
-     */
     public function destroy($id)
     {
         $lapangan = Lapangan::findOrFail($id);
 
-        // Hapus foto dari storage
-        if ($lapangan->foto) {
-            foreach (json_decode($lapangan->foto, true) as $foto) {
-                Storage::disk('public')->delete($foto);
-            }
+        $fotoPaths = $lapangan->foto ?? [];
+        if (!is_array($fotoPaths)) {
+            $decoded = json_decode($lapangan->foto, true);
+            $fotoPaths = is_array($decoded) ? $decoded : [];
         }
 
-        // Hapus jadwal terkait
-        $lapangan->jadwal()->delete();
+        foreach ($fotoPaths as $foto) {
+            Storage::disk('public')->delete($foto);
+        }
 
+        $lapangan->jadwal()->delete();
         $lapangan->delete();
 
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil dihapus!');
     }
 
-    /**
-     * Simpan jadwal lapangan.
-     */
     public function storeJadwal(Request $request, $lapanganId)
     {
         $request->validate([
-            'tanggal' => 'required|date|after_or_equal:today',
-            'jam_mulai' => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
-            'tersedia' => 'required|boolean',
+            'tanggal' => ['required', 'date', 'after_or_equal:today'],
+            'jam_mulai' => ['required', 'date_format:H:i'],
+            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'tersedia' => ['required', 'boolean'],
         ]);
 
         $hasConflict = JadwalLapangan::where('lapangan_id', $lapanganId)
@@ -227,9 +191,6 @@ class LapanganController extends Controller
         return redirect()->back()->with('success', 'Jadwal berhasil ditambahkan!');
     }
 
-    /**
-     * Hapus jadwal lapangan.
-     */
     public function destroyJadwal(Request $request, $lapanganId, $jadwalId = null)
     {
         $jadwalId = $jadwalId ?? $request->input('jadwal_id');

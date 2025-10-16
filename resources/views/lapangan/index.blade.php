@@ -118,7 +118,10 @@
     <div class="row g-4">
         @foreach ($lapangan as $item)
             @php
-                $fotoArray = $item->foto; // Langsung array, tidak perlu json_decode
+                $fotoArray = $item->foto;
+                if (!is_array($fotoArray)) {
+                    $fotoArray = [];
+                }
                 $totalJadwal = $item->jadwal->count();
                 $tiketTersedia = $item->tiket_tersedia;
                 $isJadwalDisabled = $totalJadwal >= $tiketTersedia;
