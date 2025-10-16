@@ -9,6 +9,8 @@
     @if(session('success'))
         <div class="alert alert-success shadow-sm text-center">{{ session('success') }}</div>
     @endif
+                <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
 
     <div class="card shadow-lg border-0 p-4">
         <!-- FOTO PROFIL -->
@@ -62,8 +64,6 @@
         <div class="tab-content" id="profileTabsContent">
             <!-- ====================== TAB PROFILE ====================== -->
             <div class="tab-pane fade {{ (session('activeTab') === 'profile' || !session('activeTab')) ? 'show active' : '' }}" id="profile" role="tabpanel">
-                <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
                     <div class="row mt-3">
                         <div class="col-md-12">
                             <div class="mb-3">
