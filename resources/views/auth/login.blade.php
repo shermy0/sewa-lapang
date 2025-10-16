@@ -61,6 +61,9 @@
                             >
                             <span class="ml-2">Remember me</span>
                         </label>
+                        <a href="{{ route('password.request') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                            Lupa password?
+                        </a>
                     </div>
 
                     <button
