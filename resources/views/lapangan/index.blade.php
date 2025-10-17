@@ -30,7 +30,7 @@
                             <span class="input-group-text bg-white border-end-0">
                                 <i class="fa-solid fa-search text-muted"></i>
                             </span>
-                            <input type="text" name="search" value="{{ request('search') }}" 
+                            <input type="text" name="search" value="{{ request('search') }}"
                                 class="form-control border-start-0 ps-0"
                                 placeholder="Cari nama lapangan atau lokasi...">
                         </div>
@@ -38,8 +38,8 @@
 
                     {{-- Filter Kategori --}}
                     <div class="col-lg-2">
-                        <input type="text" name="kategori" value="{{ request('kategori') }}" 
-                            class="form-control form-control-lg" 
+                        <input type="text" name="kategori" value="{{ request('kategori') }}"
+                            class="form-control form-control-lg"
                             placeholder="Kategori...">
                     </div>
 
@@ -109,9 +109,9 @@
                                     <div class="carousel-inner h-100">
                                         @foreach ($fotoArray as $index => $foto)
                                             <div class="carousel-item h-100 {{ $index == 0 ? 'active' : '' }}">
-                                                <img src="{{ asset('storage/' . $foto) }}" 
-                                                     class="d-block w-100 h-100" 
-                                                     alt="{{ $item->nama_lapangan }}" 
+                                                <img src="{{ asset('storage/' . $foto) }}"
+                                                     class="d-block w-100 h-100"
+                                                     alt="{{ $item->nama_lapangan }}"
                                                      style="object-fit: cover; object-position: center;">
                                             </div>
                                         @endforeach
@@ -131,26 +131,26 @@
                                     </div>
                                 </div>
                             @else
-                                <img src="{{ asset('storage/' . $fotoArray[0]) }}" 
-                                     class="w-100 h-100" 
-                                     alt="{{ $item->nama_lapangan }}" 
+                                <img src="{{ asset('storage/' . $fotoArray[0]) }}"
+                                     class="w-100 h-100"
+                                     alt="{{ $item->nama_lapangan }}"
                                      style="object-fit: cover; object-position: center;">
                             @endif
                         @else
-                            <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=600&h=400&fit=crop" 
-                                 class="w-100 h-100" 
-                                 alt="Default Image" 
+                            <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=600&h=400&fit=crop"
+                                 class="w-100 h-100"
+                                 alt="Default Image"
                                  style="object-fit: cover; object-position: center;">
                         @endif
-                        
+
                         {{-- Badge Total Jadwal --}}
                         <div class="position-absolute top-0 start-0 m-3" style="z-index: 10;">
                             <span class="badge bg-primary px-3 py-2 shadow">
-                                <i class="fa-solid fa-calendar me-1"></i> 
+                                <i class="fa-solid fa-calendar me-1"></i>
                                 {{ $totalJadwal }} Jadwal
                             </span>
                         </div>
-                        
+
                         {{-- Badge Kategori --}}
                         <div class="position-absolute bottom-0 start-0 m-3" style="z-index: 10;">
                             <span class="badge bg-dark bg-opacity-75 px-3 py-2">
@@ -195,22 +195,22 @@
 
                         {{-- Tombol Aksi --}}
                         <div class="d-flex gap-2">
-                            <button class="btn btn-outline-success flex-fill" 
-                                data-bs-toggle="modal" 
+                            <button class="btn btn-outline-success flex-fill"
+                                data-bs-toggle="modal"
                                 data-bs-target="#editLapanganModal{{ $item->id }}">
                                 <i class="fa-solid fa-pen me-1"></i> Edit
                             </button>
                             <a href="{{ route('lapangan.show', $item->id) }}" class="btn btn-outline-primary flex-fill">
                                 <i class="fa-solid fa-eye me-1"></i> Detail
                             </a>
-                            
+
                             {{-- Tombol Jadwal --}}
-                            <button class="btn btn-outline-info flex-fill" 
-                                data-bs-toggle="modal" 
+                            <button class="btn btn-outline-info flex-fill"
+                                data-bs-toggle="modal"
                                 data-bs-target="#kelolaJadwalModal{{ $item->id }}">
                                 <i class="fa-solid fa-calendar me-1"></i> Jadwal
                             </button>
-                            
+
                             <form action="{{ route('lapangan.destroy', $item->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
@@ -243,25 +243,66 @@
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-tag me-1 text-success"></i> Nama Lapangan
                                         </label>
-                                        <input type="text" name="nama_lapangan" class="form-control form-control-lg" 
+                                        <input type="text" name="nama_lapangan" class="form-control form-control-lg"
                                             value="{{ $item->nama_lapangan }}" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-layer-group me-1 text-success"></i> Jenis Olahraga / Kategori
                                         </label>
-                                        <input type="text" name="kategori" class="form-control form-control-lg" 
+                                        <input type="text" name="kategori" class="form-control form-control-lg"
                                             value="{{ $item->kategori }}" required>
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-location-dot me-1 text-success"></i> Alamat Lengkap
                                         </label>
-                                        <input type="text" name="lokasi" class="form-control form-control-lg" 
+                                        <input type="text" name="lokasi" class="form-control form-control-lg"
                                             value="{{ $item->lokasi }}" required>
                                     </div>
 
-                                   
+                                    {{-- Informasi Harga dan Durasi --}}
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-dark">
+                                            <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga Sewa
+                                        </label>
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-success text-white fw-bold">Rp</span>
+                                            <input type="number" name="harga_sewa" class="form-control"
+                                                value="{{ $item->harga_sewa }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-dark">
+                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Sewa
+                                        </label>
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-info text-white">
+                                                <i class="fa-solid fa-hourglass"></i>
+                                            </span>
+                                            <select name="durasi_sewa" class="form-select" required>
+                                                <option value="60" {{ $item->durasi_sewa == 60 ? 'selected' : '' }}>60 menit</option>
+                                                <option value="90" {{ $item->durasi_sewa == 90 ? 'selected' : '' }}>90 menit</option>
+                                                <option value="120" {{ $item->durasi_sewa == 120 ? 'selected' : '' }}>120 menit</option>
+                                                <option value="150" {{ $item->durasi_sewa == 150 ? 'selected' : '' }}>150 menit</option>
+                                                <option value="180" {{ $item->durasi_sewa == 180 ? 'selected' : '' }}>180 menit</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-dark">
+                                            <i class="fa-solid fa-medal me-1 text-success"></i> Status
+                                        </label>
+                                        <select name="status" class="form-select form-select-lg" required>
+                                            <option value="premium" {{ $item->status == 'premium' ? 'selected' : '' }}>Premium</option>
+                                            <option value="populer" {{ $item->status == 'populer' ? 'selected' : '' }}>Populer</option>
+                                            <option value="promo" {{ $item->status == 'promo' ? 'selected' : '' }}>Promo</option>
+                                            <option value="standard" {{ $item->status == 'standard' ? 'selected' : '' }}>Standard</option>
+                                        </select>
+                                    </div>
+                                    <input type="hidden" name="tiket_tersedia" value="{{ $item->tiket_tersedia }}">
+
+
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-calendar me-1 text-primary"></i> Total Jadwal
@@ -273,11 +314,11 @@
                                             <input type="text" class="form-control bg-light" value="{{ $totalJadwal }} jadwal" readonly>
                                         </div>
                                         <div class="form-text text-info">
-                                            <i class="fa-solid fa-circle-info me-1"></i> 
+                                            <i class="fa-solid fa-circle-info me-1"></i>
                                             Total jadwal yang sudah dibuat
                                         </div>
                                     </div>
-            
+
                                     <div class="col-12">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
@@ -289,7 +330,7 @@
                                             <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
                                         </label>
                                         <input type="file" name="foto[]" class="form-control form-control-lg foto-input" accept="image/*" multiple>
-                                        
+
                                         <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
 
                                         {{-- Tampilkan foto yang sudah ada --}}
@@ -341,14 +382,14 @@
                                     <div class="d-flex align-items-center">
                                         <i class="fa-solid fa-calendar me-2 fs-5"></i>
                                         <div>
-                                            <strong>Total Jadwal:</strong> 
+                                            <strong>Total Jadwal:</strong>
                                             <span class="fw-bold">{{ $totalJadwal }}</span> slot
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center">
                                         <i class="fa-solid fa-money-bill-wave me-2 fs-5"></i>
                                         <div>
-                                            <strong>Harga:</strong> 
+                                            <strong>Harga:</strong>
                                             <span class="fw-bold text-success">Di-set per jadwal</span>
                                         </div>
                                     </div>
@@ -374,7 +415,7 @@
                                         <div class="row g-3">
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold text-dark">Tanggal</label>
-                                                <input type="date" name="tanggal" class="form-control" 
+                                                <input type="date" name="tanggal" class="form-control"
                                                     min="{{ date('Y-m-d') }}" required>
                                             </div>
                                             <div class="col-md-2">
@@ -387,14 +428,14 @@
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label fw-semibold text-dark">Durasi (menit)</label>
-                                                <input type="number" name="durasi_sewa" class="form-control" 
+                                                <input type="number" name="durasi_sewa" class="form-control"
                                                     min="30" max="300" placeholder="60" required>
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold text-dark">Harga Sewa</label>
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-success text-white">Rp</span>
-                                                    <input type="number" name="harga_sewa" class="form-control" 
+                                                    <input type="number" name="harga_sewa" class="form-control"
                                                         placeholder="150000" required>
                                                 </div>
                                             </div>
@@ -452,11 +493,11 @@
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <form action="{{ route('lapangan.jadwal.destroy', [$item->id, $jadwal->id]) }}" 
+                                                    <form action="{{ route('lapangan.jadwal.destroy', [$item->id, $jadwal->id]) }}"
                                                         method="POST" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger"
                                                             onclick="return confirm('Yakin hapus jadwal?')">
                                                             <i class="fa-solid fa-trash"></i>
                                                         </button>
@@ -562,8 +603,8 @@
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-layer-group me-1 text-success"></i> Jenis Olahraga / Kategori
                             </label>
-                            <input type="text" name="kategori" class="form-control form-control-lg" 
-                                placeholder="Contoh: Futsal Indoor, Badminton, Basket Outdoor" 
+                            <input type="text" name="kategori" class="form-control form-control-lg"
+                                placeholder="Contoh: Futsal Indoor, Badminton, Basket Outdoor"
                                 value="{{ old('kategori') }}" required>
                         </div>
                         <div class="col-12">
@@ -573,7 +614,27 @@
                             <input type="text" name="lokasi" class="form-control form-control-lg" placeholder="Jl. Sudirman No.123, Jakarta Selatan" value="{{ old('lokasi') }}" required>
                         </div>
 
-                       
+                        {{-- Informasi Harga dan Durasi --}}
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">
+                                <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga Sewa
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-success text-white fw-bold">Rp</span>
+                                <input type="number" name="harga_sewa" class="form-control" placeholder="150000" value="{{ old('harga_sewa', 0) }}" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">
+                                <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Sewa (menit)
+                            </label>
+                            <input type="number" name="durasi_sewa" class="form-control form-control-lg" placeholder="60" value="{{ old('durasi_sewa', 60) }}" min="30" max="300" step="15" required>
+                        </div>
+
+                        <input type="hidden" name="status" value="{{ old('status', 'standard') }}">
+                        <input type="hidden" name="tiket_tersedia" value="{{ old('tiket_tersedia', 0) }}">
+
+
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
@@ -585,12 +646,12 @@
                                 <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
                             </label>
 
-                            <input 
-                                type="file" 
-                                name="foto[]" 
-                                class="form-control form-control-lg foto-input" 
-                                accept="image/*" 
-                                multiple 
+                            <input
+                                type="file"
+                                name="foto[]"
+                                class="form-control form-control-lg foto-input"
+                                accept="image/*"
+                                multiple
                                 required
                             >
 
@@ -677,7 +738,7 @@
         form.addEventListener('submit', function(e) {
             const jamMulai = form.querySelector('input[name="jam_mulai"]');
             const jamSelesai = form.querySelector('input[name="jam_selesai"]');
-            
+
             if (jamMulai && jamSelesai && jamMulai.value && jamSelesai.value) {
                 if (jamMulai.value >= jamSelesai.value) {
                     e.preventDefault();
