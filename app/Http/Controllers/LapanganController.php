@@ -58,7 +58,6 @@ class LapanganController extends Controller
             'harga_sewa' => ['required', 'numeric', 'min:0'],
             'durasi_sewa' => ['required', 'integer', 'min:30', 'max:300'],
             'status' => ['required', 'string', 'max:255'],
-            'tiket_tersedia' => ['required', 'integer', 'min:0'],
             'deskripsi' => ['nullable', 'string'],
             'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
@@ -78,7 +77,6 @@ class LapanganController extends Controller
             'harga_sewa' => $request->harga_sewa,
             'durasi_sewa' => $request->durasi_sewa,
             'status' => $request->status,
-            'tiket_tersedia' => $request->tiket_tersedia,
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPaths,
         ]);
@@ -104,7 +102,6 @@ class LapanganController extends Controller
             'harga_sewa' => ['required', 'numeric', 'min:0'],
             'durasi_sewa' => ['required', 'integer', 'min:30', 'max:300'],
             'status' => ['required', 'string', 'max:255'],
-            'tiket_tersedia' => ['required', 'integer', 'min:0'],
             'deskripsi' => ['nullable', 'string'],
             'foto.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
@@ -133,7 +130,6 @@ class LapanganController extends Controller
             'harga_sewa' => $request->harga_sewa,
             'durasi_sewa' => $request->durasi_sewa,
             'status' => $request->status,
-            'tiket_tersedia' => $request->tiket_tersedia,
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPaths,
         ]);
