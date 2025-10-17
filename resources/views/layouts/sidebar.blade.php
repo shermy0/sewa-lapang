@@ -9,7 +9,12 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+
+  <style>
+
+  </style>
 </head>
+
 <body>
 @php
     $user = Auth::user();
@@ -22,14 +27,22 @@
                 'route' => 'dashboard.pemilik',
                 'active_routes' => ['dashboard.pemilik'],
             ],
-            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
             [
-                'label' => 'Favorit',
-                'icon' => 'fa-solid fa-heart',
-                'route' => 'pemilik.favorit',
-                'active_routes' => ['pemilik.favorit'],
+                'label' => 'Data Lapangan', 
+                'icon' => 'fa-solid fa-futbol', 
+                'route' => 'lapangan.index',
+                'active_routes' => ['lapangan.index'],
             ],
+            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
+            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
+            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
+                        [
+                'label' => 'Kelola Rekening', 
+                'icon' => 'fa-solid fa-qrcode', 
+                'route' => 'rekening.index',
+                'active_routes' => ['rekening.index'],
+            ],
             [
                 'label' => 'Scan', 
                 'icon' => 'fa-solid fa-qrcode', 
@@ -52,26 +65,34 @@
                 'route' => 'favorit.index',
                 'active_routes' => ['favorit.index'],
             ],
+            // Dropdown untuk pemesanan
             [
                 'label' => 'Pemesanan Saya',
                 'icon' => 'fa-solid fa-calendar-days',
-                'route' => 'penyewa.pemesanan',
-            ],
-            [
-                'label' => 'Pembayaran',
-                'icon' => 'fa-solid fa-wallet',
-                'route' => 'penyewa.pembayaran',
-            ],
-            [
-                'label' => 'Riwayat Sewa',
-                'icon' => 'fa-solid fa-clock-rotate-left',
-                'route' => 'penyewa.riwayat',
-                'active_routes' => ['penyewa.riwayat'],
+                'submenu' => [
+                    [
+                        'label' => 'Tiket Saya',
+                        'route' => 'penyewa.tiket',
+                        'active_routes' => ['penyewa.tiket'],
+                    ],
+                    [
+                        'label' => 'Menunggu Pembayaran',
+                        'route' => 'penyewa.pembayaran',
+                        'active_routes' => ['penyewa.pembayaran'],
+                    ],
+                    [
+                        'label' => 'Riwayat',
+                        'route' => 'penyewa.riwayat',
+                        'active_routes' => ['penyewa.riwayat'],
+
+                    ],
+                ]
             ],
             [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
-                'route' => 'penyewa.akun',
+                'route' => 'profile.index',
+                'active_routes' => ['profile.index'],
             ],
         ];
     }
@@ -89,34 +110,69 @@
   </div>
 
   <div class="user-info">
-    <img src="{{ Auth::user()->foto_profil ? Auth::user()->foto_profil : asset('images/profile.jpg') }}" 
-      alt="Profile" 
-      class="profile-photo">
-    <div class="user-meta">
-      <h6 class="mb-0">{{ Auth::user()->name }}</h6>
-      <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>
-    </div>
-  </div>
+  @php
+      $user = Auth::user();
+      $avatarUrl = $user->foto_profil 
+          ? asset('storage/' . $user->foto_profil)
+          :'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
+  @endphp
 
+  <img src="{{ $avatarUrl }}" alt="Profile" class="profile-photo">
+  <div class="user-meta">
+    <h6 class="mb-0">{{ $user->name }}</h6>
+    <small class="text-muted text-capitalize">{{ $user->role }}</small>
+  </div>
+</div>
   <nav class="menu-list">
     @foreach ($menuItems as $item)
-      @php
+      @if (isset($item['submenu']))
+        @php
+          // Deteksi apakah salah satu submenu sedang aktif
+          $isParentActive = false;
+          foreach ($item['submenu'] as $sub) {
+              if (isset($sub['active_routes']) && Route::currentRouteNamed(...$sub['active_routes'])) {
+                  $isParentActive = true;
+                  break;
+              }
+          }
+        @endphp
+
+        {{-- Dropdown --}}
+        <div class="menu-item">
+          <div class="menu-link dropdown-toggle {{ $isParentActive ? 'active' : '' }}" data-bs-toggle="submenu">
+            <div>
+              <i class="{{ $item['icon'] }}"></i>
+              <span class="menu-text">{{ $item['label'] }}</span>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="submenu {{ $isParentActive ? 'show' : '' }}">
+            @foreach ($item['submenu'] as $sub)
+              @php
+                $isActive = isset($sub['active_routes']) && Route::currentRouteNamed(...$sub['active_routes']);
+                $url = Route::has($sub['route']) ? route($sub['route']) : '#';
+              @endphp
+              <a href="{{ $url }}" class="{{ $isActive ? 'active' : '' }}">{{ $sub['label'] }}</a>
+            @endforeach
+          </div>
+        </div>
+      @else
+        {{-- Single menu item --}}
+        @php
           $routes = $item['active_routes'] ?? (isset($item['route']) ? [$item['route']] : []);
           $isActive = $routes ? Route::currentRouteNamed(...$routes) : false;
-          $url = '#';
-
-          if (isset($item['route']) && Route::has($item['route'])) {
-              $url = route($item['route'], $item['params'] ?? []);
-          } elseif (isset($item['url'])) {
-              $url = $item['url'];
-          }
-      @endphp
-      <a href="{{ $url }}" class="menu-link {{ $isActive ? 'active' : '' }}">
-        <i class="{{ $item['icon'] }}"></i>
-        <span class="menu-text">{{ $item['label'] }}</span>
-      </a>
+          $url = isset($item['route']) && Route::has($item['route'])
+                ? route($item['route'])
+                : ($item['url'] ?? '#');
+        @endphp
+        <a href="{{ $url }}" class="menu-link {{ $isActive ? 'active' : '' }}">
+          <i class="{{ $item['icon'] }}"></i>
+          <span class="menu-text">{{ $item['label'] }}</span>
+        </a>
+      @endif
     @endforeach
   </nav>
+
 
   <!-- Tambahkan CDN SweetAlert2 di head -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -147,27 +203,38 @@
       });
   });
   </script>
-  </div>
+
 </aside>
 
 <main class="main-content" id="mainContent">
   @yield('content')
 </main>
 
-<!-- Bootstrap Bundle JS (untuk modal, dropdown, dsb) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Sidebar toggle -->
 <script>
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
   const toggleSidebar = document.getElementById('toggleSidebar');
+  const dropdownToggles = document.querySelectorAll('[data-bs-toggle="submenu"]');
 
   toggleSidebar.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     mainContent.classList.toggle('expanded');
   });
+
+  dropdownToggles.forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const submenu = toggle.nextElementSibling;
+      const isShown = submenu.classList.contains('show');
+      document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
+      document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
+
+      if (!isShown) {
+        submenu.classList.add('show');
+        toggle.classList.add('active');
+      }
+    });
+  });
 </script>
-@stack('scripts')
+
 </body>
 </html>
