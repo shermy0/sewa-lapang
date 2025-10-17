@@ -89,7 +89,9 @@
   </div>
 
   <div class="user-info">
-    <img src="{{ Auth::user()->foto_profil ? asset('storage/' . Auth::user()->foto_profil) : asset('images/profile.jpg') }}" alt="Profile" class="profile-photo">
+    <img src="{{ Auth::user()->foto_profil ? Auth::user()->foto_profil : asset('images/profile.jpg') }}" 
+      alt="Profile" 
+      class="profile-photo">
     <div class="user-meta">
       <h6 class="mb-0">{{ Auth::user()->name }}</h6>
       <small class="text-muted text-capitalize">{{ Auth::user()->role }}</small>

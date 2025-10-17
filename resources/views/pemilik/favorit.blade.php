@@ -90,7 +90,12 @@ document.querySelectorAll('.show-favorit').forEach(btn => {
                 const foto = user.foto ? `/storage/${user.foto}` : 'https://via.placeholder.com/50';
                 return `
                     <div class="favorit-user mb-3">
-                        <img src="${foto}" width="50" height="50" class="rounded-circle me-3" style="object-fit:cover;">
+                    <img src="${user.foto_profil 
+                        ? (user.foto_profil.startsWith('http') 
+                            ? user.foto_profil 
+                            : '/storage/' + user.foto_profil) 
+                        : '{{ asset('images/profile.jpg') }}'}" 
+                        class="rounded-circle me-3" width="50" height="50">
                         <strong>${user.name}</strong><br>
                     </div>
                 `;

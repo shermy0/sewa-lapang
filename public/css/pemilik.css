@@ -60,48 +60,57 @@ body {
 /*  
 // SCAN //
 /      */
-.scanner-box {
-    width: 100%;
-    max-width: 500px;
-    height: 300px;
-    margin: 0 auto;
+.scan-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+#barcode-scanner {
+    width: 500px;
+    height: 320px;
+    border: 3px solid #28a745;
     border-radius: 12px;
     overflow: hidden;
-    border: 2px solid #28a745;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-.result-box {
-    max-width: 500px;
-    margin: 20px auto 0;
-    padding: 15px 20px;
-    border-radius: 10px;
-    background: #f9f9f9; /* putih lembut */
-    text-align: center;
+#result-box {
+    flex: 1;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    min-width: 300px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+#result-box h5 {
+    color: #198754;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+#result {
+    line-height: 1.8;
     font-size: 16px;
-    color: #333;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
 }
 
-.result-box b {
-    color: #28a745;
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #198754;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
 }
-
-.result-box span {
-    font-weight: bold;
-}
-
-/* efek ketika hasil scan muncul */
-.result-box.active {
-    transform: scale(1.05);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-}
-
-@media (max-width: 576px) {
-    .scanner-box, .result-box {
-        width: 100%;
-    }
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* 
