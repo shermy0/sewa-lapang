@@ -13,19 +13,33 @@ class ScanTiketController extends Controller
         return view('pemilik.scan');
     }
 
-    // Proses verifikasi kode tiket hasil scan
     public function verifyTiket($kode)
     {
-        $pemesanan = Pemesanan::where('kode_tiket', $kode)->first();
-        if (!$pemesanan) {
-            return redirect()->back()->with('error', 'Tiket tidak ditemukan!');
+        $pemesanan = \App\Models\Pemesanan::with('penyewa')
+            ->where('kode_tiket', $kode)
+            ->first();
+
+        if(!$pemesanan){
+            return response()->json(['status' => 'error', 'message' => 'Tiket tidak ditemukan']);
         }
 
-        // update status scan
-        $pemesanan->status_scan = 'sudah_scan';
-        $pemesanan->waktu_scan = now();
-        $pemesanan->save();
+        // Update status scan kalau perlu
+        if($pemesanan->status_scan === 'belum_scan'){
+            $pemesanan->update([
+                'status_scan' => 'sudah_scan',
+                'waktu_scan' => now()
+            ]);
+        }
 
-        return redirect()->back()->with('success', 'Tiket berhasil discan!');
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'nama_penyewa' => $pemesanan->penyewa->name,
+                'status_scan' => $pemesanan->status_scan,
+                'status_pembayaran' => $pemesanan->status,
+                'tanggal_main' => $pemesanan->created_at->format('d M Y H:i'),
+                'waktu_scan' => $pemesanan->waktu_scan ? $pemesanan->waktu_scan->format('d M Y H:i') : '-',
+            ]
+        ]);
     }
 }

@@ -168,9 +168,22 @@
                         <p class="text-muted">Belum ada ulasan untuk lapangan ini.</p>
                     @endif
                     <div class="mt-3">
+                    @php
+                        $bolehUlas = \App\Models\Pemesanan::where('penyewa_id', Auth::id() ?? 0)
+                            ->where('lapangan_id', $lapangan->id)
+                            ->where('status_scan', 'sudah_scan')
+                            ->exists();
+                    @endphp
+
+                    @if ($bolehUlas)
                         <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
                             + Tambah Ulasan
                         </a>
+                    @else
+                        <button class="btn btn-secondary px-4" disabled>
+                            + Tambah Ulasan (scan tiket terlebih dahulu)
+                        </button>
+                    @endif
                     </div>
                 </div>
             </div>
