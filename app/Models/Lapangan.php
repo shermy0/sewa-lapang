@@ -17,9 +17,8 @@ class Lapangan extends Model
         'lokasi',
         'kategori',
         'foto',
-        'status',
-        'harga_sewa',
-        'durasi_sewa'
+        'status'
+        // harga_sewa dan durasi_sewa dihapus
     ];
 
     public function jadwal()

@@ -15,7 +15,15 @@ class JadwalLapangan extends Model
         'tanggal',
         'jam_mulai',
         'jam_selesai',
+        'harga_sewa', // Ditambahkan
+        'durasi_sewa', // Ditambahkan
         'tersedia'
+    ];
+
+    protected $casts = [
+        'tanggal' => 'date',
+        'tersedia' => 'boolean',
+        'harga_sewa' => 'decimal:2',
     ];
 
     public function lapangan()
