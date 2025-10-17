@@ -54,15 +54,6 @@
                         </select>
                     </div>
 
-                    {{-- Filter Tiket Tersedia --}}
-                    <div class="col-lg-2">
-                        <select name="tiket_tersedia" class="form-select form-select-lg">
-                            <option value="">Status Tiket</option>
-                            <option value="tersedia" {{ request('tiket_tersedia')=='tersedia' ? 'selected' : '' }}>Tiket Tersedia</option>
-                            <option value="habis" {{ request('tiket_tersedia')=='habis' ? 'selected' : '' }}>Tiket Habis</option>
-                        </select>
-                    </div>
-
                     {{-- Filter Harga --}}
                     <div class="col-lg-2">
                         <select name="sort_harga" class="form-select form-select-lg">
@@ -123,19 +114,6 @@
                     $fotoArray = [];
                 }
                 $totalJadwal = $item->jadwal->count();
-                $tiketTersedia = $item->tiket_tersedia;
-                $isJadwalDisabled = $totalJadwal >= $tiketTersedia;
-                $tiketTersisa = max(0, $tiketTersedia - $totalJadwal);
-                $percentage = $tiketTersedia > 0 ? ($tiketTersisa / $tiketTersedia) * 100 : 0;
-                
-                // Warna progress bar
-                if ($percentage == 0) {
-                    $progressColor = 'bg-danger';
-                } elseif ($percentage <= 30) {
-                    $progressColor = 'bg-warning';
-                } else {
-                    $progressColor = 'bg-success';
-                }
             @endphp
 
             <div class="col-lg-6 col-xl-4">
@@ -189,11 +167,11 @@
                             </span>
                         </div>
                         
-                        {{-- Badge Tiket Tersedia --}}
+                        {{-- Badge Total Jadwal --}}
                         <div class="position-absolute top-0 start-0 m-3" style="z-index: 10;">
-                            <span class="badge {{ $tiketTersisa > 0 ? 'bg-primary' : 'bg-danger' }} px-3 py-2 shadow">
-                                <i class="fa-solid fa-ticket me-1"></i> 
-                                {{ $tiketTersisa > 0 ? $tiketTersisa . ' Tiket' : 'Habis' }}
+                            <span class="badge bg-primary px-3 py-2 shadow">
+                                <i class="fa-solid fa-calendar me-1"></i> 
+                                {{ $totalJadwal }} Jadwal
                             </span>
                         </div>
                         
@@ -217,41 +195,18 @@
                             {{ Str::limit($item->deskripsi, 100) }}
                         </p>
 
-                        {{-- Tiket Tersedia dengan Progress Bar --}}
-                        <div class="mb-3">
+                        {{-- Informasi Jadwal --}}
+                        <div class="mb-3 p-3 bg-light rounded">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <small class="text-muted">
-                                    <i class="fa-solid fa-ticket text-primary me-1"></i> Status Tiket
+                                    <i class="fa-solid fa-calendar text-primary me-1"></i> Total Jadwal
                                 </small>
-                                <div class="d-flex align-items-center">
-                                    <span class="fw-bold {{ $tiketTersisa > 0 ? 'text-success' : 'text-danger' }}">
-                                        {{ $tiketTersisa }} / {{ $tiketTersedia }} Tiket
-                                    </span>
-                                </div>
-                            </div>
-                            {{-- Progress Bar --}}
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar {{ $progressColor }}" 
-                                     role="progressbar" 
-                                     style="width: {{ $percentage }}%"
-                                     aria-valuenow="{{ $tiketTersisa }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="{{ $tiketTersedia }}">
-                                </div>
-                            </div>
-                            <small class="text-muted mt-1 d-flex justify-content-between">
-                                <span>
-                                    @if($tiketTersisa == 0)
-                                        <i class="fa-solid fa-times text-danger me-1"></i> Tiket habis
-                                    @elseif($tiketTersisa <= $tiketTersedia * 0.3)
-                                        <i class="fa-solid fa-exclamation-triangle text-warning me-1"></i> Sedikit tiket
-                                    @else
-                                        <i class="fa-solid fa-check text-success me-1"></i> Tersedia
-                                    @endif
+                                <span class="fw-bold text-primary">
+                                    {{ $totalJadwal }} Slot
                                 </span>
-                                <span class="fw-semibold">
-                                    {{ $totalJadwal }} jadwal terpakai
-                                </span>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fa-solid fa-clock text-info me-1"></i> {{ $item->durasi_sewa }} menit/sesi
                             </small>
                         </div>
 
@@ -265,9 +220,6 @@
                                     Rp {{ number_format($item->harga_sewa, 0, ',', '.') }}
                                 </span>
                             </div>
-                            <small class="text-muted">
-                                <i class="fa-solid fa-clock text-info me-1"></i> {{ $item->durasi_sewa }} menit/sesi
-                            </small>
                         </div>
 
                         {{-- Tombol Aksi --}}
@@ -281,15 +233,11 @@
                                 <i class="fa-solid fa-eye me-1"></i> Detail
                             </a>
                             
-                            {{-- Tombol Jadwal dengan kondisi disabled --}}
-                            <button class="btn btn-outline-info flex-fill {{ $isJadwalDisabled ? 'disabled' : '' }}" 
+                            {{-- Tombol Jadwal --}}
+                            <button class="btn btn-outline-info flex-fill" 
                                 data-bs-toggle="modal" 
-                                data-bs-target="#kelolaJadwalModal{{ $item->id }}"
-                                @if($isJadwalDisabled) disabled @endif>
+                                data-bs-target="#kelolaJadwalModal{{ $item->id }}">
                                 <i class="fa-solid fa-calendar me-1"></i> Jadwal
-                                @if($isJadwalDisabled)
-                                <small class="d-block">(Penuh)</small>
-                                @endif
                             </button>
                             
                             <form action="{{ route('lapangan.destroy', $item->id) }}" method="POST" class="d-inline">
@@ -384,18 +332,17 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-ticket me-1 text-primary"></i> Tiket Tersedia
+                                            <i class="fa-solid fa-calendar me-1 text-primary"></i> Total Jadwal
                                         </label>
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-text bg-primary text-white">
-                                                <i class="fa-solid fa-ticket"></i>
+                                                <i class="fa-solid fa-calendar"></i>
                                             </span>
-                                            <input type="number" name="tiket_tersedia" class="form-control" 
-                                                value="{{ $item->tiket_tersedia }}" min="0" max="100" required>
+                                            <input type="text" class="form-control bg-light" value="{{ $totalJadwal }} jadwal" readonly>
                                         </div>
-                                        <div class="form-text text-warning">
-                                            <i class="fa-solid fa-exclamation-triangle me-1"></i> 
-                                            Mengubah jumlah tiket akan mempengaruhi batas maksimal jadwal
+                                        <div class="form-text text-info">
+                                            <i class="fa-solid fa-circle-info me-1"></i> 
+                                            Total jadwal yang sudah dibuat
                                         </div>
                                     </div>
             
@@ -413,7 +360,7 @@
                                         
                                         <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
 
-                                        {{-- Tampilkan foto yang sudah ada - langsung array --}}
+                                        {{-- Tampilkan foto yang sudah ada --}}
                                         @if (!empty($item->foto))
                                             <div class="mt-3">
                                                 <small class="text-muted d-block mb-2">Foto saat ini:</small>
@@ -456,14 +403,14 @@
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body p-4">
-                            {{-- Info Tiket Tersedia --}}
+                            {{-- Info Jadwal --}}
                             <div class="alert alert-info mb-4">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div class="d-flex align-items-center">
-                                        <i class="fa-solid fa-ticket me-2 fs-5"></i>
+                                        <i class="fa-solid fa-calendar me-2 fs-5"></i>
                                         <div>
-                                            <strong>Tiket Tersedia:</strong> 
-                                            <span class="fw-bold">{{ $item->tiket_tersedia }}</span> tiket
+                                            <strong>Total Jadwal:</strong> 
+                                            <span class="fw-bold">{{ $totalJadwal }}</span> slot
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center">
@@ -473,25 +420,16 @@
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <i class="fa-solid fa-calendar me-2 fs-5"></i>
+                                        <i class="fa-solid fa-infinity me-2 fs-5"></i>
                                         <div>
-                                            <strong>Jadwal Terpakai:</strong> 
-                                            <span class="fw-bold {{ $totalJadwal >= $tiketTersedia ? 'text-danger' : 'text-success' }}">
-                                                {{ $totalJadwal }} / {{ $tiketTersedia }}
-                                            </span>
+                                            <strong>Status:</strong> 
+                                            <span class="fw-bold text-success">Tidak Terbatas</span>
                                         </div>
                                     </div>
                                 </div>
-                                @if($totalJadwal >= $tiketTersedia)
-                                <div class="mt-2 alert alert-warning mb-0">
-                                    <i class="fa-solid fa-exclamation-triangle me-2"></i>
-                                    <strong>Perhatian:</strong> Tiket sudah penuh! Tidak bisa menambah jadwal baru.
-                                </div>
-                                @endif
                             </div>
 
                             {{-- Form Tambah Jadwal --}}
-                            @if($totalJadwal < $tiketTersedia)
                             <div class="card border-0 bg-light mb-4">
                                 <div class="card-header bg-transparent border-0">
                                     <h6 class="mb-0 fw-bold text-dark">
@@ -531,13 +469,6 @@
                                     </form>
                                 </div>
                             </div>
-                            @else
-                            <div class="alert alert-warning mb-4">
-                                <i class="fa-solid fa-ban me-2"></i>
-                                <strong>Tiket sudah penuh!</strong> Tidak bisa menambah jadwal baru. 
-                                Hapus beberapa jadwal terlebih dahulu atau tambah jumlah tiket.
-                            </div>
-                            @endif
 
                             {{-- Daftar Jadwal --}}
                             <h6 class="fw-bold text-dark mb-3">
@@ -733,21 +664,6 @@
                                 <option value="standard" {{ old('status') == 'standard' ? 'selected' : '' }}>Standard</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">
-                                <i class="fa-solid fa-ticket me-1 text-primary"></i> Tiket Tersedia
-                            </label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-primary text-white">
-                                    <i class="fa-solid fa-ticket"></i>
-                                </span>
-                                <input type="number" name="tiket_tersedia" class="form-control" 
-                                    value="{{ old('tiket_tersedia', 10) }}" min="1" max="100" required>
-                            </div>
-                            <div class="form-text">
-                                <i class="fa-solid fa-circle-info me-1"></i> Jumlah tiket menentukan maksimal jadwal yang bisa dibuat
-                            </div>
-                        </div>
                        
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">
@@ -847,46 +763,29 @@
         }
     });
 
-    // ========== PREVENT MODAL OPEN WHEN DISABLED ==========
-    document.addEventListener('DOMContentLoaded', function() {
-        // Cegah modal terbuka ketika tombol disabled
-        document.querySelectorAll('button[data-bs-toggle="modal"]').forEach(button => {
-            button.addEventListener('click', function(e) {
-                if (this.disabled || this.classList.contains('disabled')) {
+    // Validasi form jadwal sebelum submit
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const jamMulai = form.querySelector('input[name="jam_mulai"]');
+            const jamSelesai = form.querySelector('input[name="jam_selesai"]');
+            
+            if (jamMulai && jamSelesai && jamMulai.value && jamSelesai.value) {
+                if (jamMulai.value >= jamSelesai.value) {
                     e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Tampilkan alert
-                    const lapanganName = this.closest('.card').querySelector('.card-title').textContent;
-                    alert(`Tiket untuk "${lapanganName}" sudah habis! Tidak bisa menambah jadwal baru.`);
+                    alert('Jam selesai harus lebih besar dari jam mulai!');
+                    return false;
                 }
-            });
+            }
         });
+    });
 
-        // Validasi form jadwal sebelum submit
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                const jamMulai = form.querySelector('input[name="jam_mulai"]');
-                const jamSelesai = form.querySelector('input[name="jam_selesai"]');
-                
-                if (jamMulai && jamSelesai && jamMulai.value && jamSelesai.value) {
-                    if (jamMulai.value >= jamSelesai.value) {
-                        e.preventDefault();
-                        alert('Jam selesai harus lebih besar dari jam mulai!');
-                        return false;
-                    }
-                }
-            });
-        });
-
-        // Auto close alert setelah 5 detik
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
-            setTimeout(() => {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            }, 5000);
-        });
+    // Auto close alert setelah 5 detik
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000);
     });
 </script>
 
@@ -925,23 +824,6 @@
     }
     .modal-body::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
-    }
-    .progress {
-        background-color: #e9ecef;
-        border-radius: 4px;
-    }
-    .progress-bar {
-        border-radius: 4px;
-        transition: width 0.6s ease;
-    }
-    .btn.disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        pointer-events: none;
-    }
-    .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
     }
 </style>
 @endsection
