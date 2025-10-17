@@ -21,15 +21,33 @@ class BerandaController extends Controller
         $kategoris = explode("','", $matches[1]);
 
         // Query data lapangan
-        $lapangan = DB::table('lapangan')
-            ->when($keyword, function ($query) use ($keyword) {
-                $query->where('nama_lapangan', 'like', "%{$keyword}%")
-                      ->orWhere('lokasi', 'like', "%{$keyword}%");
-            })
-            ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
-                $query->where('kategori', $kategori);
-            })
-            ->get();
+$lapangan = DB::table('jadwal_lapangan')
+    ->join('lapangan', 'jadwal_lapangan.lapangan_id', '=', 'lapangan.id')
+    ->select(
+        'lapangan.id as lapangan_id',
+        'lapangan.nama_lapangan',
+        'lapangan.lokasi',
+        'lapangan.kategori',
+        'lapangan.foto',
+        'jadwal_lapangan.id as jadwal_id',
+        'jadwal_lapangan.tanggal',
+        'jadwal_lapangan.jam_mulai',
+        'jadwal_lapangan.jam_selesai',
+        'jadwal_lapangan.harga_sewa',
+        'jadwal_lapangan.tersedia'
+    )
+    ->where('jadwal_lapangan.tersedia', 1)
+    ->when($keyword, function ($query) use ($keyword) {
+        $query->where('lapangan.nama_lapangan', 'like', "%{$keyword}%")
+              ->orWhere('lapangan.lokasi', 'like', "%{$keyword}%");
+    })
+    ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
+        $query->where('lapangan.kategori', $kategori);
+    })
+    ->orderBy('jadwal_lapangan.tanggal', 'asc')
+    ->limit(12)
+    ->get();
+
 
         return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris'));
     }
