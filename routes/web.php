@@ -11,6 +11,8 @@ use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Auth\VerifyEmailController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -67,11 +69,10 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
         return view('auth.verify-email');
     })->name('verification.notice');
 
-    Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
+Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+    ->middleware(['auth', 'signed', 'throttle:6,1'])
+    ->name('verification.verify');
 
-        return redirect()->route('verification.success');
-    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
     Route::post('/email/verification-notification', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
