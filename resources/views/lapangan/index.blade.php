@@ -43,28 +43,9 @@
                             placeholder="Kategori...">
                     </div>
 
-                    {{-- Filter Status --}}
-                    <div class="col-lg-2">
-                        <select name="status" class="form-select form-select-lg">
-                            <option value="">Semua Status</option>
-                            <option value="premium" {{ request('status')=='premium' ? 'selected' : '' }}>Premium</option>
-                            <option value="populer" {{ request('status')=='populer' ? 'selected' : '' }}>Populer</option>
-                            <option value="promo" {{ request('status')=='promo' ? 'selected' : '' }}>Promo</option>
-                            <option value="standard" {{ request('status')=='standard' ? 'selected' : '' }}>Standard</option>
-                        </select>
-                    </div>
-
-                    {{-- Filter Harga --}}
-                    <div class="col-lg-2">
-                        <select name="sort_harga" class="form-select form-select-lg">
-                            <option value="">Urutkan Harga</option>
-                            <option value="asc" {{ request('sort_harga')=='asc' ? 'selected' : '' }}>Termurah</option>
-                            <option value="desc" {{ request('sort_harga')=='desc' ? 'selected' : '' }}>Termahal</option>
-                        </select>
-                    </div>
 
                     {{-- Tombol Aksi --}}
-                    <div class="col-lg-2 d-flex gap-2">
+                    <div class="col-lg-4 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-lg w-100">
                             <i class="fa-solid fa-magnifying-glass me-1"></i> Cari
                         </button>
@@ -114,6 +95,8 @@
                     $fotoArray = [];
                 }
                 $totalJadwal = $item->jadwal->count();
+                // Hitung harga rata-rata dari jadwal
+                $hargaRataRata = $item->jadwal->avg('harga_sewa');
             @endphp
 
             <div class="col-lg-6 col-xl-4">
@@ -160,13 +143,6 @@
                                  style="object-fit: cover; object-position: center;">
                         @endif
                         
-                        {{-- Badge Status --}}
-                        <div class="position-absolute top-0 end-0 m-3" style="z-index: 10;">
-                            <span class="badge bg-success px-3 py-2 shadow">
-                                <i class="fa-solid fa-star me-1"></i> {{ ucfirst($item->status) }}
-                            </span>
-                        </div>
-                        
                         {{-- Badge Total Jadwal --}}
                         <div class="position-absolute top-0 start-0 m-3" style="z-index: 10;">
                             <span class="badge bg-primary px-3 py-2 shadow">
@@ -205,21 +181,16 @@
                                     {{ $totalJadwal }} Slot
                                 </span>
                             </div>
-                            <small class="text-muted">
-                                <i class="fa-solid fa-clock text-info me-1"></i> {{ $item->durasi_sewa }} menit/sesi
-                            </small>
-                        </div>
-
-                        {{-- Informasi Harga --}}
-                        <div class="mb-3 p-3 bg-light rounded">
+                            @if($hargaRataRata)
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
-                                    <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Sewa
+                                    <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Rata-rata
                                 </small>
                                 <span class="fw-bold text-success">
-                                    Rp {{ number_format($item->harga_sewa, 0, ',', '.') }}
+                                    Rp {{ number_format($hargaRataRata, 0, ',', '.') }}
                                 </span>
                             </div>
+                            @endif
                         </div>
 
                         {{-- Tombol Aksi --}}
@@ -289,47 +260,8 @@
                                         <input type="text" name="lokasi" class="form-control form-control-lg" 
                                             value="{{ $item->lokasi }}" required>
                                     </div>
-                                    
-                                    {{-- Informasi Harga dan Durasi --}}
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga Sewa
-                                        </label>
-                                        <div class="input-group input-group-lg">
-                                            <span class="input-group-text bg-success text-white fw-bold">Rp</span>
-                                            <input type="number" name="harga_sewa" class="form-control" 
-                                                value="{{ $item->harga_sewa }}" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Sewa
-                                        </label>
-                                        <div class="input-group input-group-lg">
-                                            <span class="input-group-text bg-info text-white">
-                                                <i class="fa-solid fa-hourglass"></i>
-                                            </span>
-                                            <select name="durasi_sewa" class="form-select" required>
-                                                <option value="60" {{ $item->durasi_sewa == 60 ? 'selected' : '' }}>60 menit</option>
-                                                <option value="90" {{ $item->durasi_sewa == 90 ? 'selected' : '' }}>90 menit</option>
-                                                <option value="120" {{ $item->durasi_sewa == 120 ? 'selected' : '' }}>120 menit</option>
-                                                <option value="150" {{ $item->durasi_sewa == 150 ? 'selected' : '' }}>150 menit</option>
-                                                <option value="180" {{ $item->durasi_sewa == 180 ? 'selected' : '' }}>180 menit</option>
-                                            </select>
-                                        </div>
-                                    </div>
 
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-medal me-1 text-success"></i> Status
-                                        </label>
-                                        <select name="status" class="form-select form-select-lg" required>
-                                            <option value="premium" {{ $item->status == 'premium' ? 'selected' : '' }}>Premium</option>
-                                            <option value="populer" {{ $item->status == 'populer' ? 'selected' : '' }}>Populer</option>
-                                            <option value="promo" {{ $item->status == 'promo' ? 'selected' : '' }}>Promo</option>
-                                            <option value="standard" {{ $item->status == 'standard' ? 'selected' : '' }}>Standard</option>
-                                        </select>
-                                    </div>
+                                   
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-calendar me-1 text-primary"></i> Total Jadwal
@@ -414,16 +346,16 @@
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <i class="fa-solid fa-clock me-2 fs-5"></i>
+                                        <i class="fa-solid fa-money-bill-wave me-2 fs-5"></i>
                                         <div>
-                                            <strong>Durasi Sewa:</strong> {{ $item->durasi_sewa }} menit per sesi
+                                            <strong>Harga:</strong> 
+                                            <span class="fw-bold text-success">Di-set per jadwal</span>
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <i class="fa-solid fa-infinity me-2 fs-5"></i>
+                                        <i class="fa-solid fa-clock me-2 fs-5"></i>
                                         <div>
-                                            <strong>Status:</strong> 
-                                            <span class="fw-bold text-success">Tidak Terbatas</span>
+                                            <strong>Durasi:</strong> Di-set per jadwal
                                         </div>
                                     </div>
                                 </div>
@@ -437,25 +369,38 @@
                                     </h6>
                                 </div>
                                 <div class="card-body">
-                                    <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST">
+                                    <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST" id="formJadwal{{ $item->id }}">
                                         @csrf
                                         <div class="row g-3">
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <label class="form-label fw-semibold text-dark">Tanggal</label>
                                                 <input type="date" name="tanggal" class="form-control" 
                                                     min="{{ date('Y-m-d') }}" required>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-2">
                                                 <label class="form-label fw-semibold text-dark">Jam Mulai</label>
                                                 <input type="time" name="jam_mulai" class="form-control" required>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-2">
                                                 <label class="form-label fw-semibold text-dark">Jam Selesai</label>
                                                 <input type="time" name="jam_selesai" class="form-control" required>
                                             </div>
                                             <div class="col-md-2">
+                                                <label class="form-label fw-semibold text-dark">Durasi (menit)</label>
+                                                <input type="number" name="durasi_sewa" class="form-control" 
+                                                    min="30" max="300" placeholder="60" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold text-dark">Harga Sewa</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-success text-white">Rp</span>
+                                                    <input type="number" name="harga_sewa" class="form-control" 
+                                                        placeholder="150000" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
                                                 <label class="form-label fw-semibold text-dark">Status</label>
-                                                <select name="tersedia" class="form-select">
+                                                <select name="tersedia" class="form-select" required>
                                                     <option value="1">Tersedia</option>
                                                     <option value="0">Tidak Tersedia</option>
                                                 </select>
@@ -482,6 +427,7 @@
                                             <th>Jam Mulai</th>
                                             <th>Jam Selesai</th>
                                             <th>Durasi</th>
+                                            <th>Harga</th>
                                             <th>Status</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -491,13 +437,15 @@
                                             @php
                                                 $jamMulai = \Carbon\Carbon::parse($jadwal->jam_mulai);
                                                 $jamSelesai = \Carbon\Carbon::parse($jadwal->jam_selesai);
-                                                $durasi = $jamMulai->diffInMinutes($jamSelesai);
                                             @endphp
                                             <tr>
                                                 <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') }}</td>
                                                 <td>{{ $jamMulai->format('H:i') }}</td>
                                                 <td>{{ $jamSelesai->format('H:i') }}</td>
-                                                <td>{{ $durasi }} menit</td>
+                                                <td>{{ $jadwal->durasi_sewa }} menit</td>
+                                                <td class="fw-bold text-success">
+                                                    Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }}
+                                                </td>
                                                 <td>
                                                     <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
                                                         {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
@@ -517,7 +465,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">
+                                                <td colspan="7" class="text-center text-muted py-4">
                                                     <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
                                                     <br>Belum ada jadwal
                                                 </td>
@@ -624,46 +572,7 @@
                             </label>
                             <input type="text" name="lokasi" class="form-control form-control-lg" placeholder="Jl. Sudirman No.123, Jakarta Selatan" value="{{ old('lokasi') }}" required>
                         </div>
-                        
-                        {{-- Informasi Harga dan Durasi --}}
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">
-                                <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga Sewa
-                            </label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-success text-white fw-bold">Rp</span>
-                                <input type="number" name="harga_sewa" class="form-control" placeholder="150000" value="{{ old('harga_sewa') }}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">
-                                <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Sewa
-                            </label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-info text-white">
-                                    <i class="fa-solid fa-hourglass"></i>
-                                </span>
-                                <select name="durasi_sewa" class="form-select" required>
-                                    <option value="60" {{ old('durasi_sewa') == 60 ? 'selected' : '' }}>60 menit</option>
-                                    <option value="90" {{ old('durasi_sewa') == 90 ? 'selected' : '' }}>90 menit</option>
-                                    <option value="120" {{ old('durasi_sewa', 120) == 120 ? 'selected' : '' }}>120 menit</option>
-                                    <option value="150" {{ old('durasi_sewa') == 150 ? 'selected' : '' }}>150 menit</option>
-                                    <option value="180" {{ old('durasi_sewa') == 180 ? 'selected' : '' }}>180 menit</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">
-                                <i class="fa-solid fa-medal me-1 text-success"></i> Status
-                            </label>
-                            <select name="status" class="form-select form-select-lg" required>
-                                <option value="premium" {{ old('status') == 'premium' ? 'selected' : '' }}>Premium</option>
-                                <option value="populer" {{ old('status') == 'populer' ? 'selected' : '' }}>Populer</option>
-                                <option value="promo" {{ old('status') == 'promo' ? 'selected' : '' }}>Promo</option>
-                                <option value="standard" {{ old('status') == 'standard' ? 'selected' : '' }}>Standard</option>
-                            </select>
-                        </div>
                        
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">
@@ -787,6 +696,20 @@
             bsAlert.close();
         }, 5000);
     });
+
+    // Refresh modal jadwal setelah berhasil tambah jadwal
+    @if(session('success') && str_contains(session('success'), 'Jadwal'))
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cari modal jadwal yang aktif
+            const activeModal = document.querySelector('.modal.show');
+            if (activeModal && activeModal.id.includes('kelolaJadwalModal')) {
+                // Refresh halaman setelah 1 detik untuk update data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        });
+    @endif
 </script>
 
 <style>
