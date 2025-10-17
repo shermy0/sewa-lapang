@@ -11,6 +11,8 @@ use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\KelolaRekeningController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -27,12 +29,14 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     
+    
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     // Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 
+    Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
 
@@ -100,6 +104,9 @@ Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
 Route::middleware(['auth'])->group(function () {
+    Route::get('/kelola-rekening', [KelolaRekeningController::class, 'index'])->name('rekening.index');
+    Route::post('/kelola-rekening', [KelolaRekeningController::class, 'update'])->name('rekening.update');
+     Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');

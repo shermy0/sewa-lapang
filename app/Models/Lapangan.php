@@ -13,7 +13,6 @@ class Lapangan extends Model
     protected $fillable = [
         'pemilik_id',
         'nama_lapangan',
-        'kategori',
         'deskripsi',
         'lokasi',
         'harga_per_jam',
@@ -23,7 +22,7 @@ class Lapangan extends Model
     public function pemilik()
     {
         return $this->belongsTo(User::class, 'pemilik_id');
-    }
+    }    
 
     public function jadwal()
     {
