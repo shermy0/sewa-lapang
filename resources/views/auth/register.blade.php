@@ -24,11 +24,11 @@
                         {{ session('warning') }}
                     </div>
                 @endif
-                @if (empty($notificationEmail))
+                {{-- @if (empty($notificationEmail))
                     <div class="mb-4 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
                         Pastikan konfigurasi email notifikasi di variabel <code>REGISTER_NOTIFICATION_EMAIL</code> pada file <code>.env</code>.
                     </div>
-                @endif
+                @endif --}}
                 @php
                     $availableRoles = isset($roles) && is_array($roles) && count($roles) ? $roles : ['penyewa'];
                     $defaultRole = old('role', $availableRoles[0] ?? 'penyewa');
