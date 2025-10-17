@@ -15,7 +15,7 @@ class Lapangan extends Model
         'nama_lapangan',
         'deskripsi',
         'lokasi',
-        'harga_per_jam',
+        'harga_sewa',
         'foto',
     ];
 

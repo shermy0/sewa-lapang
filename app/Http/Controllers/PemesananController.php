@@ -96,7 +96,7 @@ class PemesananController extends Controller
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
                 'order_id' => 'ORDER-' . $pemesanan->id,
-                'gross_amount' => $lapangan->harga_per_jam,
+                'gross_amount' => $lapangan->harga_sewa,
             ],
             'customer_details' => [
                 'first_name' => Auth::user()->name,
@@ -108,7 +108,7 @@ class PemesananController extends Controller
             ['pemesanan_id' => $pemesanan->id],
             [
                 'metode' => 'midtrans',
-                'jumlah' => $lapangan->harga_per_jam,
+                'jumlah' => $lapangan->harga_sewa,
                 'status' => 'pending',
                 'order_id' => 'ORDER-' . $pemesanan->id,
                 'snap_token' => $snapToken,
@@ -153,7 +153,7 @@ class PemesananController extends Controller
             $snapToken = Snap::getSnapToken([
                 'transaction_details' => [
                     'order_id' => $uniqueOrderId,
-                    'gross_amount' => $lapangan->harga_per_jam,
+                    'gross_amount' => $lapangan->harga_sewa,
                 ],
                 'customer_details' => [
                     'first_name' => Auth::user()->name,
@@ -166,7 +166,7 @@ class PemesananController extends Controller
                 $pembayaran = Pembayaran::create([
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'midtrans',
-                    'jumlah' => $lapangan->harga_per_jam,
+                    'jumlah' => $lapangan->harga_sewa,
                     'status' => 'pending',
                     'order_id' => $uniqueOrderId,
                     'snap_token' => $snapToken,
@@ -216,7 +216,7 @@ class PemesananController extends Controller
         Pembayaran::create([
             'pemesanan_id' => $pemesanan->id,
             'metode' => 'midtrans',
-            'jumlah' => $lapangan->harga_per_jam,
+            'jumlah' => $lapangan->harga_sewa,
             'status' => 'pending',
             'order_id' => 'ORDER-' . time(),
             'snap_token' => $request->snap_token,

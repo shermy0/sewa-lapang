@@ -72,7 +72,7 @@
                                 {{ $item->lokasi }}
                             </p>
                             <p class="fw-semibold text-success">
-                                Rp {{ number_format($item->harga_per_jam, 0, ',', '.') }}/jam
+                                Rp {{ number_format($item->harga_sewa, 0, ',', '.') }}/jam
                             </p>
                             <span class="badge bg-success">{{ $item->kategori }}</span>
                         </div>
