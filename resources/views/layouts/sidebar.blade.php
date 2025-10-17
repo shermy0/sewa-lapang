@@ -32,6 +32,12 @@
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
+                        [
+                'label' => 'Kelola Rekening', 
+                'icon' => 'fa-solid fa-qrcode', 
+                'route' => 'rekening.index',
+                'active_routes' => ['rekening.index'],
+            ],
             [
                 'label' => 'Scan', 
                 'icon' => 'fa-solid fa-qrcode', 

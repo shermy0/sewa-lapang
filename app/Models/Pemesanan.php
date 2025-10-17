@@ -22,7 +22,7 @@ class Pemesanan extends Model
 
     public function penyewa()
     {
-        return $this->belongsTo(User::class, 'penyewa_id');
+        return $this->belongsTo(User::class, 'penyewa_id'); // relasi ke user
     }
 
     public function lapangan()
@@ -35,14 +35,10 @@ class Pemesanan extends Model
         return $this->belongsTo(JadwalLapangan::class, 'jadwal_id');
     }
 
-    // public function pembayaran()
-    // {
-    //     return $this->hasOne(Pembayaran::class, 'pemesanan_id');
-    // }
     public function pembayaran() {
         return $this->hasOne(Pembayaran::class);
     }
-    
+
     public function ulasan()
     {
         return $this->hasOne(Ulasan::class);
