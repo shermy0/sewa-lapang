@@ -168,13 +168,37 @@
     @endforeach
   </nav>
 
-  <form action="{{ route('logout') }}" method="POST">
-    @csrf
-    <button type="submit" class="logout-btn">
-      <i class="fa-solid fa-right-from-bracket"></i>
-      <span class="logout-text">Keluar</span>
-    </button>
+
+  <!-- Tambahkan CDN SweetAlert2 di head -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <form id="logout-form" action="{{ route('logout') }}" method="POST">
+      @csrf
+      <button type="button" id="logout-button" class="logout-btn">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="logout-text">Keluar</span>
+      </button>
   </form>
+
+  <script>
+  document.getElementById('logout-button').addEventListener('click', function() {
+      Swal.fire({
+          title: 'Yakin ingin keluar?',
+          text: "Kamu akan logout dari akun ini",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6', // biru
+          cancelButtonColor: '#d33',     // merah
+          confirmButtonText: 'Ya, keluar!',
+          cancelButtonText: 'Batal'
+      }).then((result) => {
+          if (result.isConfirmed) {
+              document.getElementById('logout-form').submit(); // submit form logout
+          }
+      });
+  });
+  </script>
+
 </aside>
 
 <main class="main-content" id="mainContent">

@@ -18,8 +18,8 @@
     <div class="card-booking">
         <h4 class="fw-bold mb-3">{{ $lapangan->nama_lapangan }}</h4>
         <p class="fw-semibold mb-4">
-            Harga per jam: <span style="color: var(--green);">
-                Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}
+            Harga per sesi: <span style="color: var(--green);">
+                Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}
             </span>
         </p>
 
@@ -53,7 +53,7 @@
             Jadwal: <span id="summary-jadwal" class="text-success"></span><br>
             Total Bayar: 
             <span class="fw-bold" style="color: var(--gold);">
-                Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}
+                Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}
             </span>
         </div>
 
@@ -74,7 +74,7 @@
                     {{ \Carbon\Carbon::parse($pemesananPending->jadwal->tanggal)->format('d M Y') }}
                     ({{ $pemesananPending->jadwal->jam_mulai }} - {{ $pemesananPending->jadwal->jam_selesai }})
                 </span><br>
-                Total: <strong>Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}</strong><br>
+                Total: <strong>Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}</strong><br>
                 <span id="countdown" class="text-danger fw-semibold"></span>
             </div>
 
