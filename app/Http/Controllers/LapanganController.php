@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\JadwalLapangan;
 use App\Models\Lapangan;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -163,6 +164,8 @@ class LapanganController extends Controller
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'durasi_sewa' => ['nullable', 'integer', 'min:1', 'max:1440'],
+            'harga_sewa' => ['nullable', 'numeric', 'min:0'],
             'tersedia' => ['required', 'boolean'],
         ]);
 
@@ -176,11 +179,26 @@ class LapanganController extends Controller
             return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!');
         }
 
+        $durasiSewa = $request->input('durasi_sewa');
+        if (empty($durasiSewa)) {
+            $jamMulaiCarbon = Carbon::createFromFormat('H:i', $request->jam_mulai);
+            $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $request->jam_selesai);
+            $durasiSewa = max(1, $jamMulaiCarbon->diffInMinutes($jamSelesaiCarbon));
+        }
+
+        $hargaSewa = $request->input('harga_sewa');
+        if (is_null($hargaSewa)) {
+            $lapangan = Lapangan::select('harga_sewa')->find($lapanganId);
+            $hargaSewa = $lapangan?->harga_sewa ?? 0;
+        }
+
         JadwalLapangan::create([
             'lapangan_id' => $lapanganId,
             'tanggal' => $request->tanggal,
             'jam_mulai' => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
+            'durasi_sewa' => $durasiSewa,
+            'harga_sewa' => $hargaSewa,
             'tersedia' => $request->tersedia,
         ]);
 
