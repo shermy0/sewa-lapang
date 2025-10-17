@@ -614,23 +614,9 @@
                             <input type="text" name="lokasi" class="form-control form-control-lg" placeholder="Jl. Sudirman No.123, Jakarta Selatan" value="{{ old('lokasi') }}" required>
                         </div>
 
-                        {{-- Informasi Harga dan Durasi --}}
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">
-                                <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga Sewa
-                            </label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-success text-white fw-bold">Rp</span>
-                                <input type="number" name="harga_sewa" class="form-control" placeholder="150000" value="{{ old('harga_sewa', 0) }}" min="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark">
-                                <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Sewa (menit)
-                            </label>
-                            <input type="number" name="durasi_sewa" class="form-control form-control-lg" placeholder="60" value="{{ old('durasi_sewa', 60) }}" min="30" max="300" step="15" required>
-                        </div>
-
+                        {{-- Hidden fields dengan nilai default --}}
+                        <input type="hidden" name="harga_sewa" value="0">
+                        <input type="hidden" name="durasi_sewa" value="60">
                         <input type="hidden" name="status" value="{{ old('status', 'standard') }}">
                         <input type="hidden" name="tiket_tersedia" value="{{ old('tiket_tersedia', 0) }}">
 
