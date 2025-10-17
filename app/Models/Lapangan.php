@@ -22,12 +22,43 @@ class Lapangan extends Model
         'durasi_sewa'
     ];
 
-    protected $casts = [
-        'foto' => 'array'
-    ];
-
-    public function jadwals()
+    public function jadwal()
     {
         return $this->hasMany(JadwalLapangan::class, 'lapangan_id');
+    }
+
+    public function getFotoAttribute($value)
+    {
+        if (empty($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [$value];
+    }
+
+    public function setFotoAttribute($value)
+    {
+        if (is_null($value)) {
+            $this->attributes['foto'] = null;
+            return;
+        }
+
+        if (is_array($value)) {
+            $cleaned = array_values(array_filter($value, fn ($item) => !is_null($item) && $item !== ''));
+            $this->attributes['foto'] = $cleaned ? json_encode($cleaned) : null;
+            return;
+        }
+
+        $this->attributes['foto'] = json_encode([$value]);
     }
 }
