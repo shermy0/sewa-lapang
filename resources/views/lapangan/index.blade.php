@@ -184,10 +184,10 @@
                             @if($hargaRataRata)
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
-                                    <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Rata-rata
+                                    <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Rata-rata per Jam
                                 </small>
                                 <span class="fw-bold text-success">
-                                    Rp {{ number_format($hargaRataRata, 0, ',', '.') }}
+                                    Rp {{ number_format($hargaRataRata, 0, ',', '.') }} / jam
                                 </span>
                             </div>
                             @endif
@@ -264,17 +264,21 @@
                                     {{-- Informasi Harga dan Durasi --}}
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga Sewa
+                                            <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga per Jam
                                         </label>
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-text bg-success text-white fw-bold">Rp</span>
                                             <input type="number" name="harga_sewa" class="form-control"
-                                                value="{{ $item->harga_sewa }}" required>
+                                                value="{{ $item->harga_sewa }}" placeholder="Contoh: 150000" required>
+                                            <span class="input-group-text bg-light text-muted">/ jam</span>
+                                        </div>
+                                        <div class="form-text text-muted">
+                                            Masukkan tarif sewa per jam. Total harga jadwal akan dihitung otomatis berdasarkan durasi.
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Sewa
+                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Standar (menit)
                                         </label>
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-text bg-info text-white">
@@ -287,6 +291,9 @@
                                                 <option value="150" {{ $item->durasi_sewa == 150 ? 'selected' : '' }}>150 menit</option>
                                                 <option value="180" {{ $item->durasi_sewa == 180 ? 'selected' : '' }}>180 menit</option>
                                             </select>
+                                        </div>
+                                        <div class="form-text text-muted">
+                                            Durasi ini dijadikan acuan saat membuat jadwal baru.
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -420,23 +427,44 @@
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label fw-semibold text-dark">Jam Mulai</label>
-                                                <input type="time" name="jam_mulai" class="form-control" required>
+                                                <input type="time" name="jam_mulai" class="form-control" required data-jam-mulai-input>
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label fw-semibold text-dark">Jam Selesai</label>
-                                                <input type="time" name="jam_selesai" class="form-control" required>
+                                                <input type="time" name="jam_selesai" class="form-control" required data-jam-selesai-input>
+                                                <div class="form-text text-muted">Disesuaikan otomatis dari durasi.</div>
                                             </div>
                                             <div class="col-md-2">
-                                                <label class="form-label fw-semibold text-dark">Durasi (menit)</label>
+                                                @php
+                                                    $durasiInputDefault = old('durasi_sewa');
+                                                    if (!is_null($durasiInputDefault) && $durasiInputDefault !== '') {
+                                                        $numericDefault = is_numeric($durasiInputDefault) ? (float) $durasiInputDefault : 0;
+                                                        $durasiInputDefault = $numericDefault > 24 ? $numericDefault / 60 : $numericDefault;
+                                                    } else {
+                                                        $durasiInputDefault = 1;
+                                                    }
+                                                    $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
+                                                @endphp
+                                                <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
                                                 <input type="number" name="durasi_sewa" class="form-control"
-                                                    min="30" max="300" placeholder="60" required>
+                                                    min="0.25" max="24" step="0.25" placeholder="1" value="{{ $durasiInputDefault }}"
+                                                    required data-durasi-jam-input>
+                                                <div class="form-text text-muted">
+                                                    <span data-durasi-jam-preview>{{ $durasiPreviewDisplay }}</span> jam — sesuaikan untuk mengatur jam selesai otomatis.
+                                                </div>
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label fw-semibold text-dark">Harga Sewa</label>
+                                                <label class="form-label fw-semibold text-dark">Harga per Jam</label>
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-success text-white">Rp</span>
                                                     <input type="number" name="harga_sewa" class="form-control"
-                                                        placeholder="150000" required>
+                                                        placeholder="150000" required data-harga-per-jam-input>
+                                                    <span class="input-group-text bg-light text-muted">/ jam</span>
+                                                </div>
+                                                <div class="form-text text-muted">
+                                                    Total untuk durasi ini:
+                                                    <span class="fw-semibold text-success" data-harga-total-display>Rp 0</span>
+                                                    (<span data-durasi-jam-display>{{ $durasiPreviewDisplay }}</span> jam)
                                                 </div>
                                             </div>
                                             <div class="col-md-2">
@@ -467,8 +495,8 @@
                                             <th>Tanggal</th>
                                             <th>Jam Mulai</th>
                                             <th>Jam Selesai</th>
-                                            <th>Durasi</th>
-                                            <th>Harga</th>
+                                            <th>Durasi (Jam)</th>
+                                            <th>Total Harga (Durasi)</th>
                                             <th>Status</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -478,14 +506,26 @@
                                             @php
                                                 $jamMulai = \Carbon\Carbon::parse($jadwal->jam_mulai);
                                                 $jamSelesai = \Carbon\Carbon::parse($jadwal->jam_selesai);
+                                                $durasiJam = $jadwal->durasi_sewa > 0 ? $jadwal->durasi_sewa / 60 : 0;
+                                                $durasiJamFormatted = $durasiJam > 0
+                                                    ? rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',')
+                                                    : '0';
                                             @endphp
                                             <tr>
                                                 <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') }}</td>
                                                 <td>{{ $jamMulai->format('H:i') }}</td>
                                                 <td>{{ $jamSelesai->format('H:i') }}</td>
-                                                <td>{{ $jadwal->durasi_sewa }} menit</td>
-                                                <td class="fw-bold text-success">
-                                                    Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }}
+                                                <td>
+                                                    {{ $durasiJamFormatted }} jam
+                                                </td>
+                                                <td>
+                                                    <span class="fw-bold text-success d-block">
+                                                        Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}
+                                                    </span>
+                                                    <small class="text-muted d-block">
+                                                        Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam
+                                                    </small>
+                                                    <small class="text-muted">untuk durasi {{ $durasiJamFormatted }} jam</small>
                                                 </td>
                                                 <td>
                                                     <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
@@ -724,6 +764,7 @@
         form.addEventListener('submit', function(e) {
             const jamMulai = form.querySelector('input[name="jam_mulai"]');
             const jamSelesai = form.querySelector('input[name="jam_selesai"]');
+            const durasiJamField = form.querySelector('[data-durasi-jam-input]');
 
             if (jamMulai && jamSelesai && jamMulai.value && jamSelesai.value) {
                 if (jamMulai.value >= jamSelesai.value) {
@@ -731,8 +772,192 @@
                     alert('Jam selesai harus lebih besar dari jam mulai!');
                     return false;
                 }
+
+                if (durasiJamField) {
+                    const [mulaiJam = '0', mulaiMenit = '0'] = jamMulai.value.split(':');
+                    const [selesaiJam = '0', selesaiMenit = '0'] = jamSelesai.value.split(':');
+                    const mulaiTotal = (parseInt(mulaiJam, 10) * 60) + parseInt(mulaiMenit, 10);
+                    const selesaiTotal = (parseInt(selesaiJam, 10) * 60) + parseInt(selesaiMenit, 10);
+                    const selisihJam = (selesaiTotal - mulaiTotal) / 60;
+                    const durasiJam = parseFloat(String(durasiJamField.value ?? '0').replace(',', '.'));
+
+                    if (!Number.isFinite(durasiJam) || durasiJam <= 0 || Math.abs(selisihJam - durasiJam) > 0.01) {
+                        e.preventDefault();
+                        alert('Durasi harus sama dengan selisih jam mulai dan jam selesai.');
+                        return false;
+                    }
+                }
             }
         });
+
+        const hargaPerJamInput = form.querySelector('[data-harga-per-jam-input]');
+        const durasiInput = form.querySelector('[data-durasi-jam-input]');
+        const jamMulaiInput = form.querySelector('[data-jam-mulai-input]');
+        const jamSelesaiInput = form.querySelector('[data-jam-selesai-input]');
+        const totalDisplay = form.querySelector('[data-harga-total-display]');
+        const durasiJamPreview = form.querySelector('[data-durasi-jam-preview]');
+        const durasiJamDisplay = form.querySelector('[data-durasi-jam-display]');
+
+        if (hargaPerJamInput && totalDisplay) {
+            const formatRupiah = (value) => {
+                const safeValue = Number.isFinite(value) ? value : 0;
+                const nominal = Math.max(0, Math.round(safeValue));
+                return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(nominal);
+            };
+            const formatJam = (value) => {
+                if (!Number.isFinite(value) || value <= 0) {
+                    return '0';
+                }
+                const rounded = Math.round(value * 100) / 100;
+                return new Intl.NumberFormat('id-ID', {
+                    minimumFractionDigits: rounded < 1 ? 1 : 0,
+                    maximumFractionDigits: 2,
+                }).format(rounded);
+            };
+
+            const normalizeNumber = (value) => {
+                if (typeof value !== 'string') {
+                    value = String(value ?? '');
+                }
+                const parsed = parseFloat(value.replace(',', '.'));
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const updateDurationDisplays = (durasiJam) => {
+                const formattedJam = formatJam(durasiJam);
+                if (durasiJamPreview) {
+                    durasiJamPreview.textContent = formattedJam;
+                }
+                if (durasiJamDisplay) {
+                    durasiJamDisplay.textContent = formattedJam;
+                }
+            };
+
+            const setDurasiInputValue = (jam) => {
+                if (!durasiInput) {
+                    return;
+                }
+                const numericJam = Number.isFinite(jam) ? Math.max(0, jam) : 0;
+                const decimals = Number.isInteger(numericJam) ? 0 : 2;
+                durasiInput.value = numericJam.toFixed(decimals);
+                updateDurationDisplays(numericJam);
+            };
+
+            const getMinutesFromTime = (value) => {
+                if (!value || !value.includes(':')) {
+                    return null;
+                }
+                const [jamStr, menitStr] = value.split(':');
+                const jam = parseInt(jamStr, 10);
+                const menit = parseInt(menitStr, 10);
+
+                if (!Number.isInteger(jam) || !Number.isInteger(menit)) {
+                    return null;
+                }
+
+                if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
+                    return null;
+                }
+
+                return (jam * 60) + menit;
+            };
+
+            const setTimeFromMinutes = (input, minutesTotal) => {
+                if (!input) {
+                    return;
+                }
+
+                const clampedMinutes = Math.max(0, Math.min(minutesTotal, (23 * 60) + 59));
+                const jam = String(Math.floor(clampedMinutes / 60)).padStart(2, '0');
+                const menit = String(clampedMinutes % 60).padStart(2, '0');
+                input.value = `${jam}:${menit}`;
+            };
+
+            let isSyncing = false;
+
+            const syncDurationFromTimes = () => {
+                if (isSyncing || !jamMulaiInput || !jamSelesaiInput) {
+                    return;
+                }
+                const mulai = getMinutesFromTime(jamMulaiInput.value);
+                const selesai = getMinutesFromTime(jamSelesaiInput.value);
+
+                if (mulai === null || selesai === null || selesai <= mulai) {
+                    if (durasiInput) {
+                        durasiInput.value = '';
+                    }
+                    updateDurationDisplays(0);
+                    return;
+                }
+
+                const selisihJam = (selesai - mulai) / 60;
+                isSyncing = true;
+                setDurasiInputValue(selisihJam);
+                isSyncing = false;
+            };
+
+            const syncEndTimeFromDuration = () => {
+                if (isSyncing || !jamMulaiInput || !jamSelesaiInput || !durasiInput) {
+                    return;
+                }
+
+                const mulai = getMinutesFromTime(jamMulaiInput.value);
+                const durasiJam = normalizeNumber(durasiInput.value);
+
+                if (mulai === null || durasiJam <= 0) {
+                    return;
+                }
+
+                let selesai = mulai + Math.round(durasiJam * 60);
+                selesai = Math.max(selesai, mulai + 1);
+                isSyncing = true;
+                setTimeFromMinutes(jamSelesaiInput, selesai);
+                isSyncing = false;
+                syncDurationFromTimes();
+            };
+
+            const updateTotalHarga = () => {
+                const durasiJam = normalizeNumber(durasiInput?.value ?? '0');
+                const safeDurasiJam = durasiJam > 0 ? durasiJam : 0;
+                const hargaPerJam = parseFloat(hargaPerJamInput.value || '0');
+                const total = hargaPerJam * safeDurasiJam;
+
+                totalDisplay.textContent = formatRupiah(total);
+                updateDurationDisplays(safeDurasiJam);
+            };
+
+            const handleJamChange = () => {
+                syncDurationFromTimes();
+                updateTotalHarga();
+            };
+
+            const handleDurasiChange = () => {
+                syncEndTimeFromDuration();
+                updateTotalHarga();
+            };
+
+            [hargaPerJamInput].forEach(input => {
+                input.addEventListener('input', updateTotalHarga);
+                input.addEventListener('change', updateTotalHarga);
+            });
+
+            if (durasiInput) {
+                ['input', 'change'].forEach(eventName => {
+                    durasiInput.addEventListener(eventName, handleDurasiChange);
+                });
+            }
+
+            [jamMulaiInput, jamSelesaiInput]
+                .filter(Boolean)
+                .forEach(input => {
+                    ['input', 'change'].forEach(eventName => {
+                        input.addEventListener(eventName, handleJamChange);
+                    });
+                });
+
+            syncDurationFromTimes();
+            updateTotalHarga();
+        }
     });
 
     // Auto close alert setelah 5 detik

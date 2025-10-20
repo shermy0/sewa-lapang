@@ -24,10 +24,25 @@ class JadwalLapangan extends Model
         'tanggal' => 'date',
         'tersedia' => 'boolean',
         'harga_sewa' => 'decimal:2',
+        'durasi_sewa' => 'integer',
+    ];
+
+    protected $appends = [
+        'harga_total',
     ];
 
     public function lapangan()
     {
         return $this->belongsTo(Lapangan::class, 'lapangan_id');
+    }
+
+    public function getHargaTotalAttribute(): float
+    {
+        $durasiMenit = (int) $this->durasi_sewa;
+        $durasiJam = $durasiMenit > 0 ? $durasiMenit / 60 : 0;
+
+        $hargaPerJam = (float) $this->harga_sewa;
+
+        return round($hargaPerJam * $durasiJam, 2);
     }
 }
