@@ -164,7 +164,7 @@ class LapanganController extends Controller
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
-            'durasi_sewa' => ['nullable', 'integer', 'min:1', 'max:1440'],
+            'durasi_sewa' => ['nullable', 'numeric', 'min:0.25', 'max:24'],
             'harga_sewa' => ['nullable', 'numeric', 'min:0'],
             'tersedia' => ['required', 'boolean'],
         ]);
@@ -179,18 +179,44 @@ class LapanganController extends Controller
             return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!');
         }
 
-        $durasiSewa = $request->input('durasi_sewa');
-        if (empty($durasiSewa)) {
-            $jamMulaiCarbon = Carbon::createFromFormat('H:i', $request->jam_mulai);
-            $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $request->jam_selesai);
-            $durasiSewa = max(1, $jamMulaiCarbon->diffInMinutes($jamSelesaiCarbon));
+        $jamMulaiCarbon = Carbon::createFromFormat('H:i', $request->jam_mulai);
+        $jamSelesaiCarbon = Carbon::createFromFormat('H:i', $request->jam_selesai);
+
+        $durasiInput = $request->input('durasi_sewa');
+        $durasiSewa = null;
+
+        if (!is_null($durasiInput) && $durasiInput !== '') {
+            $durasiNumeric = (float) str_replace(',', '.', (string) $durasiInput);
+            $durasiNumeric = max(0, $durasiNumeric);
+
+            if ($durasiNumeric > 24) {
+                $durasiSewa = (int) round($durasiNumeric);
+            } else {
+                $durasiSewa = (int) round($durasiNumeric * 60);
+            }
         }
 
-        $hargaSewa = $request->input('harga_sewa');
-        if (is_null($hargaSewa)) {
-            $lapangan = Lapangan::select('harga_sewa')->find($lapanganId);
-            $hargaSewa = $lapangan?->harga_sewa ?? 0;
+        $rentangMenit = $jamMulaiCarbon->diffInMinutes($jamSelesaiCarbon);
+
+        if (empty($durasiSewa) || $durasiSewa <= 0) {
+            $durasiSewa = max(1, $rentangMenit);
         }
+
+        if (abs($rentangMenit - $durasiSewa) > 1) {
+            return redirect()
+                ->back()
+                ->withErrors([
+                    'durasi_sewa' => 'Durasi harus sesuai dengan selisih Jam Mulai dan Jam Selesai.',
+                ])
+                ->withInput();
+        }
+
+        $hargaPerJam = $request->input('harga_sewa');
+        if (is_null($hargaPerJam)) {
+            $lapangan = Lapangan::select('harga_sewa')->find($lapanganId);
+            $hargaPerJam = $lapangan?->harga_sewa ?? 0;
+        }
+        $hargaPerJam = (float) $hargaPerJam;
 
         JadwalLapangan::create([
             'lapangan_id' => $lapanganId,
@@ -198,7 +224,7 @@ class LapanganController extends Controller
             'jam_mulai' => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
             'durasi_sewa' => $durasiSewa,
-            'harga_sewa' => $hargaSewa,
+            'harga_sewa' => $hargaPerJam,
             'tersedia' => $request->tersedia,
         ]);
 

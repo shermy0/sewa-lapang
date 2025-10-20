@@ -68,7 +68,7 @@
 
                     <p class="text-muted mb-2">
                         <i class="fa-solid fa-money-bill-wave text-success me-2"></i>
-                        <strong>Harga Sewa:</strong> Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }} / jam
+                        <strong>Harga per Jam:</strong> Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }} / jam
                     </p>
 
                     <hr>
