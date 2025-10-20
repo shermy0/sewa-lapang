@@ -3,161 +3,193 @@
 @section('title', 'Detail Lapangan')
 
 @section('content')
-<div class="container py-5">
-    <div class="card shadow border-0">
-        <div class="card-body p-4">
-            <div class="row g-4">
-                <!-- 🖼️ Foto Lapangan -->
-                <div class="col-lg-6">
+<div class="container-fluid py-4">
+
+    {{-- Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-futbol text-success me-2"></i> Detail Lapangan
+            </h2>
+            <p class="text-muted mb-0">Informasi lengkap dan jadwal tersedia</p>
+        </div>
+        <a href="{{ route('lapangan.index') }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-2"></i> Kembali
+        </a>
+    </div>
+
+    {{-- Alert --}}
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fa-solid fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="row g-4">
+        {{-- Kolom kiri --}}
+        <div class="col-lg-8 mx-auto">
+            {{-- Foto Lapangan --}}
+            <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                <div class="card-body p-0">
                     @php
-                        // Karena $lapangan->foto sudah array (dari $casts)
                         $fotos = $lapangan->foto ?? [];
+                        if (!is_array($fotos)) $fotos = [];
                     @endphp
 
-                    @if (count($fotos) > 0)
-                        <div id="fotoUtamaContainer" class="mb-3 text-center">
-                            <img id="fotoUtama"
-                                 src="{{ asset('storage/' . $fotos[0]) }}"
-                                 class="rounded shadow-sm img-fluid"
-                                 style="width:100%; max-height:400px; object-fit:cover; cursor:pointer;">
-                        </div>
-
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            @foreach($fotos as $foto)
-                                <img src="{{ asset('storage/' . $foto) }}"
-                                     class="img-thumbnail pilih-foto"
-                                     style="width:90px; height:80px; object-fit:cover; cursor:pointer; transition:0.3s;">
-                            @endforeach
+                    @if(count($fotos) > 0)
+                        <div id="carouselLapangan" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner rounded">
+                                @foreach($fotos as $i => $foto)
+                                    <div class="carousel-item {{ $i == 0 ? 'active' : '' }}">
+                                        <img src="{{ asset('storage/' . $foto) }}"
+                                             class="d-block w-100 rounded"
+                                             alt="Foto Lapangan"
+                                             style="height: 220px; object-fit: cover;">
+                                    </div>
+                                @endforeach
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#carouselLapangan" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#carouselLapangan" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
                         </div>
                     @else
                         <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800"
-                             class="rounded shadow-sm img-fluid"
-                             alt="Default Lapangan"
-                             style="width:100%; max-height:400px; object-fit:cover;">
-                        <p class="text-center text-muted mt-2">Tidak ada foto tersedia</p>
+                             class="w-100 rounded"
+                             style="height:220px; object-fit:cover;"
+                             alt="Default">
                     @endif
                 </div>
+            </div>
 
-                <!-- 📋 Detail Lapangan -->
-                <div class="col-lg-6">
-                    <h2 class="fw-bold text-dark mb-3">{{ $lapangan->nama_lapangan }}</h2>
-
-                    <div class="mb-3">
-                        <span class="badge bg-primary fs-6">
-                            <i class="fa-solid fa-futbol me-1"></i> {{ ucfirst($lapangan->kategori) }}
-                        </span>
-                        <span class="badge bg-success fs-6">
-                            <i class="fa-solid fa-circle me-1"></i> {{ ucfirst($lapangan->status) }}
-                        </span>
-                    </div>
-
-                    <p class="text-muted mb-2">
-                        <i class="fa-solid fa-location-dot text-danger me-2"></i>
-                        <strong>Lokasi:</strong> {{ $lapangan->lokasi }}
-                    </p>
-
-                    <p class="text-muted mb-2">
-                        <i class="fa-solid fa-ticket text-info me-2"></i>
-                        <strong>Tiket Tersedia:</strong> {{ $lapangan->tiket_tersedia }}
-                    </p>
-
-                    <p class="text-muted mb-2">
-                        <i class="fa-solid fa-clock text-secondary me-2"></i>
-                        <strong>Durasi Sewa:</strong> {{ $lapangan->durasi_sewa }} jam
-                    </p>
-
-                    <p class="text-muted mb-2">
-                        <i class="fa-solid fa-money-bill-wave text-success me-2"></i>
-                        <strong>Harga per Jam:</strong> Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }} / jam
-                    </p>
-
-                    <hr>
-
-                    <h5 class="fw-semibold mt-3">Deskripsi</h5>
-                    <p class="text-secondary">{{ $lapangan->deskripsi ?: 'Belum ada deskripsi untuk lapangan ini.' }}</p>
-
-                    <div class="mt-4 d-flex gap-2">
-                        <a href="{{ route('lapangan.index') }}" class="btn btn-outline-secondary">
-                            <i class="fa-solid fa-arrow-left me-1"></i> Kembali
-                        </a>
+            {{-- Detail Informasi --}}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-0">
+                    <h5 class="fw-bold mb-0">
+                        <i class="fa-solid fa-circle-info text-primary me-2"></i> Informasi Lapangan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong>Nama Lapangan:</strong> <br>
+                            {{ $lapangan->nama_lapangan }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Kategori:</strong> <br>
+                            <span class="badge bg-success px-3 py-2">{{ ucfirst($lapangan->kategori) }}</span>
+                        </div>
+                        <div class="col-12">
+                            <strong>Lokasi:</strong> <br>
+                            <i class="fa-solid fa-location-dot text-danger me-2"></i>
+                            {{ $lapangan->lokasi }}
+                        </div>
+                        <div class="col-12">
+                            <strong>Deskripsi:</strong>
+                            <div class="bg-light rounded p-3 mt-1">
+                                {{ $lapangan->deskripsi ?: 'Belum ada deskripsi untuk lapangan ini.' }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 📅 Jadwal Lapangan -->
-            <hr class="my-4">
-            <h4 class="fw-bold text-dark mb-3">
-                <i class="fa-solid fa-calendar-days me-2"></i> Jadwal Lapangan
-            </h4>
-
-            @if($lapangan->jadwal->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle text-center">
-                        <thead class="table-light">
-                            <tr>
-                                <th>No</th>
-                                <th>Tanggal</th>
-                                <th>Jam Mulai</th>
-                                <th>Jam Selesai</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($lapangan->jadwal as $index => $jadwal)
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
-                                    <td>
-                                        @if($jadwal->tersedia)
-                                            <span class="badge bg-success">Tersedia</span>
-                                        @else
-                                            <span class="badge bg-danger">Penuh</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+            {{-- Jadwal Lapangan --}}
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">
+                        <i class="fa-solid fa-calendar-days text-success me-2"></i> Jadwal Lapangan
+                    </h5>
                 </div>
-            @else
-                <p class="text-muted">Belum ada jadwal tersedia untuk lapangan ini.</p>
-            @endif
+                <div class="card-body">
+                    @php
+                        use Carbon\Carbon;
+
+                        // Ambil jadwal tersedia
+                        $jadwalTersedia = $lapangan->jadwal
+                            ->sortBy(['tanggal', 'jam_mulai']);
+                    @endphp
+
+                    @if($jadwalTersedia->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle text-center">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Tanggal</th>
+                                        <th>Jam Mulai</th>
+                                        <th>Jam Selesai</th>
+                                        <th>Durasi</th>
+                                        <th>Harga per Jam</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($jadwalTersedia as $i => $jadwal)
+                                        @php
+                                            try {
+                                                $mulai = Carbon::parse($jadwal->jam_mulai);
+                                                $selesai = Carbon::parse($jadwal->jam_selesai);
+                                                $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
+                                                $durasiJam = $durasiMenit / 60;
+                                            } catch (\Exception $e) {
+                                                $durasiJam = 0;
+                                            }
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $i + 1 }}</td>
+                                            <td>{{ Carbon::parse($jadwal->tanggal)->format('d M Y') }}</td>
+                                            <td>{{ $mulai->format('H:i') }}</td>
+                                            <td>{{ $selesai->format('H:i') }}</td>
+                                            <td>{{ $durasiJam }} jam</td>
+                                            <td>Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }}</td>
+                                            <td>
+                                                @if($jadwal->tersedia)
+                                                    <span class="badge bg-success px-3 py-2">Tersedia</span>
+                                                @else
+                                                    <span class="badge bg-secondary px-3 py-2">Tidak Tersedia</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-muted">Tidak ada jadwal tersedia saat ini.</p>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Foto -->
-<div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content bg-transparent border-0">
-            <img id="fotoZoom" src="" class="img-fluid rounded shadow">
-        </div>
-    </div>
-</div>
-
-@section('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const fotoUtama = document.getElementById('fotoUtama');
-    const fotoZoom = document.getElementById('fotoZoom');
-    const modal = new bootstrap.Modal(document.getElementById('fotoModal'));
-    const thumbnails = document.querySelectorAll('.pilih-foto');
-
-    thumbnails.forEach(img => {
-        img.addEventListener('click', () => fotoUtama.src = img.src);
-        img.addEventListener('dblclick', () => {
-            fotoZoom.src = img.src;
-            modal.show();
-        });
-    });
-
-    fotoUtama?.addEventListener('click', () => {
-        fotoZoom.src = fotoUtama.src;
-        modal.show();
-    });
-});
-</script>
-@endsection
+{{-- Styling tambahan --}}
+<style>
+    .carousel-inner {
+        height: 220px !important;
+    }
+    .carousel-item img {
+        object-fit: cover;
+        height: 220px;
+        border-radius: 10px;
+    }
+    .table th {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .card {
+        border-radius: 15px !important;
+    }
+    .card-header h5 {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+</style>
 @endsection
