@@ -36,46 +36,50 @@
     <div class="row g-4">
         {{-- Kolom kiri --}}
         <div class="col-xl-10 mx-auto">
-            {{-- Foto Lapangan --}}
-            <div class="card shadow-sm border-0 mb-4 overflow-hidden photo-card mx-auto">
-                <div class="card-body p-0 bg-light">
-                    @php
-                        $fotos = $lapangan->foto ?? [];
-                        if (!is_array($fotos)) $fotos = [];
-                    @endphp
+            <div class="row g-4 align-items-stretch flex-column flex-lg-row">
+                {{-- Foto Lapangan --}}
+                <div class="col-lg-5">
+                    <div class="card shadow-sm border-0 h-100 overflow-hidden photo-card">
+                        <div class="card-body p-0 bg-light h-100">
+                            @php
+                                $fotos = $lapangan->foto ?? [];
+                                if (!is_array($fotos)) $fotos = [];
+                            @endphp
 
-                    @if(count($fotos) > 0)
-                        @php $carouselId = 'carouselLapangan' . $lapangan->id; @endphp
-                        <div id="{{ $carouselId }}" class="carousel slide carousel-lapangan" data-bs-ride="carousel">
-                            <div class="carousel-inner rounded-top">
-                                @foreach($fotos as $i => $foto)
-                                    <div class="carousel-item {{ $i == 0 ? 'active' : '' }}">
-                                        <img src="{{ asset('storage/' . $foto) }}"
-                                             class="d-block w-100"
-                                             alt="Foto Lapangan">
+                            @if(count($fotos) > 0)
+                                @php $carouselId = 'carouselLapangan' . $lapangan->id; @endphp
+                                <div id="{{ $carouselId }}" class="carousel slide carousel-lapangan h-100" data-bs-ride="carousel">
+                                    <div class="carousel-inner rounded-top h-100">
+                                        @foreach($fotos as $i => $foto)
+                                            <div class="carousel-item {{ $i == 0 ? 'active' : '' }}">
+                                                <img src="{{ asset('storage/' . $foto) }}"
+                                                     class="d-block w-100"
+                                                     alt="Foto Lapangan">
+                                            </div>
+                                        @endforeach
                                     </div>
-                                @endforeach
-                            </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#{{ $carouselId }}" data-bs-slide="next">
-                                <span class="carousel-control-next-icon"></span>
-                            </button>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#{{ $carouselId }}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#{{ $carouselId }}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
+                                </div>
+                            @else
+                                <div class="ratio ratio-1x1 bg-light-subtle rounded-top overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1000&q=80"
+                                         class="w-100 h-100 object-fit-cover"
+                                         alt="Default">
+                                </div>
+                            @endif
                         </div>
-                    @else
-                        <div class="ratio ratio-1x1 bg-light-subtle rounded-top overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1000&q=80"
-                                 class="w-100 h-100 object-fit-cover"
-                                 alt="Default">
-                        </div>
-                    @endif
+                    </div>
                 </div>
-            </div>
 
-            {{-- Detail Informasi --}}
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4 p-lg-5">
+                {{-- Detail Informasi --}}
+                <div class="col-lg-7">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body p-4 p-lg-5 d-flex flex-column">
                     <div class="row g-4 align-items-center">
                         <div class="col-md-8">
                             <h3 class="fw-bold text-dark mb-2">{{ $lapangan->nama_lapangan }}</h3>
@@ -120,6 +124,8 @@
                                     {{ $lapangan->deskripsi ?: 'Belum ada deskripsi yang ditambahkan untuk lapangan ini.' }}
                                 </p>
                             </div>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 </div>
@@ -244,6 +250,13 @@
     }
     .photo-card {
         max-width: 540px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    @media (min-width: 992px) {
+        .photo-card {
+            max-width: 100%;
+        }
     }
     .carousel-lapangan .carousel-item {
         position: relative;
