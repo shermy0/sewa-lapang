@@ -73,6 +73,26 @@
     object-fit: cover;
 }
 
+/* ===== Gaya untuk gambar lapangan ===== */
+.card img {
+    width: 100%;
+    height: 200px; /* tinggi gambar seragam */
+    object-fit: cover; /* biar nggak gepeng */
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+/* Opsional: kalau mau efek hover yang halus */
+.card:hover img {
+    transform: scale(1.03);
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Rapikan teks agar sejajar */
+.card-body {
+    padding: 15px;
+}
+
 /* =======================
    SPACING & TYPOGRAPHY
 ======================= */
