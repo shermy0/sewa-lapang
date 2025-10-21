@@ -17,6 +17,9 @@ class Lapangan extends Model
         'lokasi',
         'harga_sewa',
         'foto',
+        'kategori',
+        'status'
+        // harga_sewa dan durasi_sewa dihapus
     ];
 
     public function pemilik()
@@ -28,7 +31,6 @@ class Lapangan extends Model
     {
         return $this->hasMany(JadwalLapangan::class, 'lapangan_id');
     }
-
     public function pemesanan()
     {
         return $this->hasMany(Pemesanan::class, 'lapangan_id');
@@ -51,5 +53,40 @@ class Lapangan extends Model
     {
         return $this->belongsToMany(User::class, 'favorit_lapangan', 'lapangan_id', 'penyewa_id')
                     ->withTimestamps();
+    }
+
+    public function getFotoAttribute($value)
+    {
+        if (empty($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [$value];
+    }
+
+    public function setFotoAttribute($value)
+    {
+        if (is_null($value)) {
+            $this->attributes['foto'] = null;
+            return;
+        }
+
+        if (is_array($value)) {
+            $cleaned = array_values(array_filter($value, fn ($item) => !is_null($item) && $item !== ''));
+            $this->attributes['foto'] = $cleaned ? json_encode($cleaned) : null;
+            return;
+        }
+
+        $this->attributes['foto'] = json_encode([$value]);
     }
 }

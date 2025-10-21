@@ -51,7 +51,7 @@
                 </button>
             </li> --}}
             
-            @if($user->role === 'pemilik')
+            {{-- @if($user->role === 'pemilik')
             <li class="nav-item" role="presentation">
                 <button 
                     class="nav-link {{ session('activeTab') === 'lapangan' ? 'active' : '' }}" 
@@ -59,7 +59,7 @@
                     <i class="bi bi-building me-1"></i> Lapangan Dimiliki
                 </button>
             </li>
-            @endif
+            @endif --}}
         </ul>
 
         <div class="tab-content" id="profileTabsContent">

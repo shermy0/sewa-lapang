@@ -16,6 +16,7 @@ use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\ScanTiketController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
+use App\Http\Controllers\LapanganController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -117,6 +118,10 @@ Route::middleware(['auth'])->group(function () {
 
 });
 
+// Route::middleware('auth')->get('/test-sidebar', function () {
+//     return view('dashboard');
+// })->name('test.sidebar');
+
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
@@ -127,3 +132,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
     Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);    
 });
+
+
+Route::middleware(['auth'])->group(function () {
+    // CRUD Lapangan
+    Route::get('/lapangan', [LapanganController::class, 'index'])->name('lapangan.index');
+    Route::post('/lapangan', [LapanganController::class, 'store'])->name('lapangan.store');
+    Route::get('/lapangan/{id}', [LapanganController::class, 'show'])->name('lapangan.show');
+    Route::put('/lapangan/{id}', [LapanganController::class, 'update'])->name('lapangan.update');
+    Route::delete('/lapangan/{id}', [LapanganController::class, 'destroy'])->name('lapangan.destroy');
+    
+    // Jadwal Lapangan
+    Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
+    Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
+    
+    // API Tiket (optional)
+    Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
+    Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
+});
+
