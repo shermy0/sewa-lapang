@@ -15,10 +15,15 @@ class BerandaController extends Controller
         $keyword = $request->input('search');
         $kategori = $request->input('kategori');
 
-        // Ambil semua nilai enum kategori dari tabel lapangan
-        $enumQuery = DB::select("SHOW COLUMNS FROM lapangan LIKE 'kategori'");
-        preg_match("/^enum\('(.*)'\)$/", $enumQuery[0]->Type, $matches);
-        $kategoris = explode("','", $matches[1]);
+        // Ambil daftar kategori unik dari tabel lapangan (tahan terhadap tipe kolom non-enum)
+        $kategoris = DB::table('lapangan')
+            ->whereNotNull('kategori')
+            ->distinct()
+            ->pluck('kategori')
+            ->filter()
+            ->sort()
+            ->values()
+            ->toArray();
 
         // Query data lapangan
         $lapangan = DB::table('lapangan')
@@ -29,7 +34,11 @@ class BerandaController extends Controller
             ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
                 $query->where('kategori', $kategori);
             })
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->harga_display = $item->harga_per_jam ?? $item->harga_sewa ?? $item->harga ?? 0;
+                return $item;
+            });
 
         return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris'));
     }

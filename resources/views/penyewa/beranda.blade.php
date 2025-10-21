@@ -64,7 +64,7 @@
             <div class="col-md-4 mb-4">
                 <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
                     <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ $item->foto }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded">
+                        <img src="{{ $item->foto ?? 'https://via.placeholder.com/640x360?text=Lapangan' }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded">
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1">
@@ -72,7 +72,7 @@
                                 {{ $item->lokasi }}
                             </p>
                             <p class="fw-semibold text-success">
-                                Rp {{ number_format($item->harga_per_jam, 0, ',', '.') }}/jam
+                                Rp {{ number_format($item->harga_display, 0, ',', '.') }}/jam
                             </p>
                             <span class="badge bg-success">{{ $item->kategori }}</span>
                         </div>
