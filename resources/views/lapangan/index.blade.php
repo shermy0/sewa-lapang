@@ -277,23 +277,29 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
+                                        @php
+                                            $durasiJamDefault = $item->durasi_sewa ? $item->durasi_sewa / 60 : 1;
+                                            $durasiJamDisplay = rtrim(rtrim(number_format($durasiJamDefault, 2, '.', ''), '0'), '.');
+                                        @endphp
                                         <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Standar (menit)
+                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Standar (jam)
                                         </label>
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-text bg-info text-white">
                                                 <i class="fa-solid fa-hourglass"></i>
                                             </span>
-                                            <select name="durasi_sewa" class="form-select" required>
-                                                <option value="60" {{ $item->durasi_sewa == 60 ? 'selected' : '' }}>60 menit</option>
-                                                <option value="90" {{ $item->durasi_sewa == 90 ? 'selected' : '' }}>90 menit</option>
-                                                <option value="120" {{ $item->durasi_sewa == 120 ? 'selected' : '' }}>120 menit</option>
-                                                <option value="150" {{ $item->durasi_sewa == 150 ? 'selected' : '' }}>150 menit</option>
-                                                <option value="180" {{ $item->durasi_sewa == 180 ? 'selected' : '' }}>180 menit</option>
-                                            </select>
+                                            <input type="number"
+                                                   name="durasi_sewa"
+                                                   class="form-control"
+                                                   min="0.5"
+                                                   max="5"
+                                                   step="0.25"
+                                                   value="{{ $durasiJamDisplay }}"
+                                                   placeholder="Contoh: 1.5"
+                                                   required>
                                         </div>
                                         <div class="form-text text-muted">
-                                            Durasi ini dijadikan acuan saat membuat jadwal baru.
+                                            Gunakan jam desimal (misal 1.5 jam = 1 jam 30 menit). Durasi ini menjadi acuan default saat membuat jadwal baru.
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -656,7 +662,7 @@
 
                         {{-- Hidden fields dengan nilai default --}}
                         <input type="hidden" name="harga_sewa" value="0">
-                        <input type="hidden" name="durasi_sewa" value="60">
+                        <input type="hidden" name="durasi_sewa" value="1">
                         <input type="hidden" name="status" value="{{ old('status', 'standard') }}">
                         <input type="hidden" name="tiket_tersedia" value="{{ old('tiket_tersedia', 0) }}">
 
