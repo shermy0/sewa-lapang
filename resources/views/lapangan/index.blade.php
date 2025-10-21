@@ -261,64 +261,11 @@
                                             value="{{ $item->lokasi }}" required>
                                     </div>
 
-                                    {{-- Informasi Harga dan Durasi --}}
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Harga per Jam
-                                        </label>
-                                        <div class="input-group input-group-lg">
-                                            <span class="input-group-text bg-success text-white fw-bold">Rp</span>
-                                            <input type="number" name="harga_sewa" class="form-control"
-                                                value="{{ $item->harga_sewa }}" placeholder="Contoh: 150000" required>
-                                            <span class="input-group-text bg-light text-muted">/ jam</span>
-                                        </div>
-                                        <div class="form-text text-muted">
-                                            Masukkan tarif sewa per jam. Total harga jadwal akan dihitung otomatis berdasarkan durasi.
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        @php
-                                            $durasiJamDefault = $item->durasi_sewa ? $item->durasi_sewa / 60 : 1;
-                                            $durasiJamDisplay = rtrim(rtrim(number_format($durasiJamDefault, 2, '.', ''), '0'), '.');
-                                        @endphp
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-clock me-1 text-info"></i> Durasi Standar (jam)
-                                        </label>
-                                        <div class="input-group input-group-lg">
-                                            <span class="input-group-text bg-info text-white">
-                                                <i class="fa-solid fa-hourglass"></i>
-                                            </span>
-                                            <input type="number"
-                                                   name="durasi_sewa"
-                                                   class="form-control"
-                                                   min="0.5"
-                                                   max="5"
-                                                   step="0.25"
-                                                   value="{{ $durasiJamDisplay }}"
-                                                   placeholder="Contoh: 1.5"
-                                                   required>
-                                        </div>
-                                        <div class="form-text text-muted">
-                                            Gunakan jam desimal (misal 1.5 jam = 1 jam 30 menit). Durasi ini menjadi acuan default saat membuat jadwal baru.
-                                        </div>
-                                    </div>
-
-
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-calendar me-1 text-primary"></i> Total Jadwal
-                                        </label>
-                                        <div class="input-group input-group-lg">
-                                            <span class="input-group-text bg-primary text-white">
-                                                <i class="fa-solid fa-calendar"></i>
-                                            </span>
-                                            <input type="text" class="form-control bg-light" value="{{ $totalJadwal }} jadwal" readonly>
-                                        </div>
-                                        <div class="form-text text-info">
-                                            <i class="fa-solid fa-circle-info me-1"></i>
-                                            Total jadwal yang sudah dibuat
-                                        </div>
-                                    </div>
+                                    {{-- Hidden fields --}}
+                                    <input type="hidden" name="status" value="{{ $item->status }}">
+                                    <input type="hidden" name="harga_sewa" value="{{ $item->harga_sewa }}">
+                                    <input type="hidden" name="durasi_sewa" value="{{ $item->durasi_sewa }}">
+                                    <input type="hidden" name="tiket_tersedia" value="{{ $item->tiket_tersedia }}">
 
                                     <div class="col-12">
                                         <label class="form-label fw-semibold text-dark">
@@ -526,7 +473,13 @@
                                                         {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td class="text-nowrap">
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-outline-primary me-1"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editJadwalModal{{ $jadwal->id }}">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
                                                     <form action="{{ route('lapangan.jadwal.destroy', [$item->id, $jadwal->id]) }}"
                                                         method="POST" class="d-inline">
                                                         @csrf
@@ -560,6 +513,102 @@
             </div>
         @endforeach
     </div>
+
+    @foreach ($lapangan as $item)
+        @foreach($item->jadwal->sortBy('tanggal')->sortBy('jam_mulai') as $jadwal)
+            @php
+                $durasiJamEdit = $jadwal->durasi_sewa > 0 ? $jadwal->durasi_sewa / 60 : 0;
+                $durasiInputValue = $durasiJamEdit > 0
+                    ? rtrim(rtrim(number_format($durasiJamEdit, 2, '.', ''), '0'), '.')
+                    : '0';
+                if ($durasiInputValue === '') {
+                    $durasiInputValue = '0';
+                }
+                $durasiDisplayEdit = $durasiJamEdit > 0
+                    ? rtrim(rtrim(number_format($durasiJamEdit, 2, ',', '.'), '0'), ',')
+                    : '0';
+                $tanggalEdit = \Carbon\Carbon::parse($jadwal->tanggal)->format('Y-m-d');
+                $jamMulaiEdit = \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
+                $jamSelesaiEdit = \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
+                $hargaTotalEdit = number_format($jadwal->harga_total, 0, ',', '.');
+            @endphp
+            <div class="modal fade" id="editJadwalModal{{ $jadwal->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-0" style="background: linear-gradient(135deg, #0d6efd 0%, #20c997 100%);">
+                            <h5 class="modal-title text-white fw-bold">
+                                <i class="fa-solid fa-clock-rotate-left me-2"></i> Edit Jadwal
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ route('lapangan.jadwal.update', [$item->id, $jadwal->id]) }}" method="POST">
+                            @csrf
+                            @method('PUT')
+                            <div class="modal-body p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold text-dark">Tanggal</label>
+                                        <input type="date" name="tanggal" class="form-control"
+                                            value="{{ $tanggalEdit }}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold text-dark">Jam Mulai</label>
+                                        <input type="time" name="jam_mulai" class="form-control"
+                                            value="{{ $jamMulaiEdit }}" required data-jam-mulai-input>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold text-dark">Jam Selesai</label>
+                                        <input type="time" name="jam_selesai" class="form-control"
+                                            value="{{ $jamSelesaiEdit }}" required data-jam-selesai-input>
+                                        <div class="form-text text-muted">Disesuaikan otomatis dari durasi.</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
+                                        <input type="number" name="durasi_sewa" class="form-control"
+                                            min="0.25" max="24" step="0.25" placeholder="1"
+                                            value="{{ $durasiInputValue }}" data-durasi-jam-input>
+                                        <div class="form-text text-muted">
+                                            <span data-durasi-jam-preview>{{ $durasiDisplayEdit }}</span> jam - sesuaikan untuk mengatur jam selesai otomatis.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold text-dark">Harga per Jam</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-success text-white">Rp</span>
+                                            <input type="number" name="harga_sewa" class="form-control"
+                                                value="{{ $jadwal->harga_sewa }}" min="0" step="1000"
+                                                required data-harga-per-jam-input>
+                                            <span class="input-group-text bg-light text-muted">/ jam</span>
+                                        </div>
+                                        <div class="form-text text-muted">
+                                            Total untuk durasi ini:
+                                            <span class="fw-semibold text-success" data-harga-total-display>Rp {{ $hargaTotalEdit }}</span>
+                                            (<span data-durasi-jam-display>{{ $durasiDisplayEdit }}</span> jam)
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold text-dark">Status</label>
+                                        <select name="tersedia" class="form-select" required>
+                                            <option value="1" {{ $jadwal->tersedia ? 'selected' : '' }}>Tersedia</option>
+                                            <option value="0" {{ !$jadwal->tersedia ? 'selected' : '' }}>Tidak Tersedia</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 bg-light p-4">
+                                <button type="button" class="btn btn-lg btn-outline-secondary px-4" data-bs-dismiss="modal">
+                                    <i class="fa-solid fa-xmark me-2"></i> Batal
+                                </button>
+                                <button type="submit" class="btn btn-lg btn-success px-5 shadow">
+                                    <i class="fa-solid fa-check-circle me-2"></i> Simpan Perubahan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    @endforeach
 
     {{-- Empty State --}}
     @if ($lapangan->count() == 0)

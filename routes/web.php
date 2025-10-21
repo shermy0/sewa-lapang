@@ -32,8 +32,8 @@ Route::middleware('guest')->group(function () {
 
 
 Route::middleware('auth')->group(function () {
-    
-    
+
+
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
@@ -54,7 +54,7 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
     // BERANDA PENYEWA
     Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
     Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
-   
+
     // ULASAN PENYEWA
     Route::post('/simpan/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
     Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
@@ -130,7 +130,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
-    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);    
+    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
 });
 
 
@@ -141,13 +141,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/lapangan/{id}', [LapanganController::class, 'show'])->name('lapangan.show');
     Route::put('/lapangan/{id}', [LapanganController::class, 'update'])->name('lapangan.update');
     Route::delete('/lapangan/{id}', [LapanganController::class, 'destroy'])->name('lapangan.destroy');
-    
+
     // Jadwal Lapangan
     Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
+    Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
     Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
-    
+
     // API Tiket (optional)
     Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
     Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
 });
-
