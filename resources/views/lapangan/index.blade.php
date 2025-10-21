@@ -302,18 +302,6 @@
                                             Gunakan jam desimal (misal 1.5 jam = 1 jam 30 menit). Durasi ini menjadi acuan default saat membuat jadwal baru.
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-dark">
-                                            <i class="fa-solid fa-medal me-1 text-success"></i> Status
-                                        </label>
-                                        <select name="status" class="form-select form-select-lg" required>
-                                            <option value="premium" {{ $item->status == 'premium' ? 'selected' : '' }}>Premium</option>
-                                            <option value="populer" {{ $item->status == 'populer' ? 'selected' : '' }}>Populer</option>
-                                            <option value="promo" {{ $item->status == 'promo' ? 'selected' : '' }}>Promo</option>
-                                            <option value="standard" {{ $item->status == 'standard' ? 'selected' : '' }}>Standard</option>
-                                        </select>
-                                    </div>
-                                    <input type="hidden" name="tiket_tersedia" value="{{ $item->tiket_tersedia }}">
 
 
                                     <div class="col-md-6">
