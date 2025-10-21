@@ -3,90 +3,73 @@
 @section('title', 'Scan Tiket')
 
 @section('content')
+<link rel="stylesheet" href="{{ asset('css/pemilik.css') }}">
 <div class="container py-4">
-    <h2 class="fw-bold text-success mb-3">Scan Tiket Penyewa</h2>
-    <p class="text-muted">Arahkan kamera ke QR Code dari tiket penyewa untuk memverifikasi pemesanan.</p>
+    <h2 class="fw-bold mb-4 text-success">Scan Tiket</h2>
 
-    <div class="card p-4 shadow-sm">
-        <!-- HARUS DIV bukan video -->
-        <div id="preview" style="width: 100%; height: 300px;" class="rounded border"></div>
+    <div class="scan-wrapper">
+        <!-- Kamera Scanner -->
+        <div id="barcode-scanner"></div>
+
+        <!-- Hasil Scan -->
+        <div id="result-box">
+            <h5>Hasil Scan</h5>
+            <div id="result">Arahkan kamera ke barcode tiket untuk mulai memindai...</div>
+        </div>
     </div>
-
-    <div id="result" class="mt-3 alert d-none"></div>
 </div>
 
-{{-- QR Scanner JS --}}
-<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
-
+{{-- QuaggaJS --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const qrDiv = document.getElementById("preview");
-    const resultDiv = document.getElementById("result");
+document.addEventListener('DOMContentLoaded', function(){
+    Quagga.init({
+        inputStream : {
+            name : "Live",
+            type : "LiveStream",
+            target: document.querySelector('#barcode-scanner'),
+            constraints: { facingMode: "environment" }
+        },
+        decoder : { readers : ["code_128_reader"] }
+    }, function(err) {
+        if (err) { console.error(err); return; }
+        Quagga.start();
+    });
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        resultDiv.className = "alert alert-danger";
-        resultDiv.innerHTML = "Browser kamu tidak mendukung kamera.";
-        resultDiv.classList.remove("d-none");
-        return;
-    }
+    let isProcessing = false; // biar gak dobel scan
 
-    const html5QrCode = new Html5Qrcode("preview");
+    Quagga.onDetected(function(data) {
+        if (isProcessing) return;
+        isProcessing = true;
 
-    function onScanSuccess(decodedText) {
-        console.log("✅ QR Code terdeteksi:", decodedText);
+        let kode = data.codeResult.code;
+        document.getElementById('result').innerHTML = `
+            <span class="loader"></span> Memverifikasi kode tiket <b>${kode}</b> ...
+        `;
 
-        html5QrCode.stop().then(() => {
-            resultDiv.className = "alert alert-info";
-            resultDiv.classList.remove("d-none");
-            resultDiv.innerHTML = "Memverifikasi tiket...";
-
-            fetch('{{ route('pemilik.scan') }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ kode_tiket: decodedText })
-            })
+        fetch(`/verify-tiket/${kode}`)
             .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    resultDiv.className = "alert alert-success";
-                    resultDiv.innerHTML = data.success;
-                } else if (data.error) {
-                    resultDiv.className = "alert alert-danger";
-                    resultDiv.innerHTML = data.error;
-                } else if (data.info) {
-                    resultDiv.className = "alert alert-warning";
-                    resultDiv.innerHTML = data.info;
+            .then(result => {
+                if(result.status === 'success'){
+                    document.getElementById('result').innerHTML = `
+                        <b>Nama Penyewa:</b> ${result.data.nama_penyewa} <br>
+                        <b>Status Scan:</b> ${result.data.status_scan} <br>
+                        <b>Tanggal Main:</b> ${result.data.tanggal_main} <br>
+                        <b>Status Pembayaran:</b> ${result.data.status_pembayaran} <br>
+                        <b>Waktu Scan:</b> ${result.data.waktu_scan}
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `<span style="color:red">${result.message}</span>`;
                 }
             })
             .catch(err => {
-                console.error("❌ Error:", err);
-                resultDiv.className = "alert alert-danger";
-                resultDiv.innerHTML = "Terjadi kesalahan saat memproses tiket.";
+                console.error(err);
+                document.getElementById('result').innerHTML = `<span style="color:red">Terjadi kesalahan server</span>`;
+            })
+            .finally(() => {
+                setTimeout(() => { isProcessing = false; }, 2000);
             });
-        });
-    }
-
-    function onScanError(errorMessage) {
-        console.warn("Scan error:", errorMessage);
-    }
-
-    setTimeout(() => {
-        console.log("🎥 Memulai kamera...");
-        html5QrCode.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            onScanSuccess,
-            onScanError
-        ).catch(err => {
-            console.error("Gagal start kamera:", err);
-            resultDiv.className = "alert alert-danger";
-            resultDiv.classList.remove("d-none");
-            resultDiv.innerHTML = "Gagal mengakses kamera. Pastikan izin kamera diaktifkan.";
-        });
-    }, 500);
+    });
 });
 </script>
 @endsection
