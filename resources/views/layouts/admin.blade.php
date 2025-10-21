@@ -379,29 +379,93 @@ body {
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         const sidebar = document.getElementById('adminSidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('toggleSidebar');
 
-        // Toggle sidebar collapse
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-        });
+        if (toggleBtn && sidebar && mainContent) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            });
 
-        // Handle mobile view
-        if (window.innerWidth <= 768) {
-            sidebar.classList.add('collapsed');
-            mainContent.classList.add('expanded');
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+            }
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('show');
+                }
+            });
         }
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('show');
+        if (typeof Swal !== 'undefined') {
+            const flashMessages = {
+                error: @json(session('error')),
+                success: @json(session('success')),
+                status: @json(session('status')),
+                warning: @json(session('warning')),
+                info: @json(session('info')),
+            };
+
+            const flashTitles = {
+                error: 'Terjadi Kesalahan',
+                success: 'Berhasil',
+                status: 'Berhasil',
+                warning: 'Perhatian',
+                info: 'Informasi',
+            };
+
+            const flashOrder = ['error', 'success', 'status', 'warning', 'info'];
+
+            for (const type of flashOrder) {
+                const message = flashMessages[type];
+                if (!message) {
+                    continue;
+                }
+
+                Swal.fire({
+                    icon: type === 'status' ? 'success' : type,
+                    title: flashTitles[type] ?? 'Informasi',
+                    text: message,
+                    confirmButtonColor: '#41A67E',
+                });
+
+                break;
             }
-        });
+
+            document.querySelectorAll('form[data-confirm]').forEach((form) => {
+                form.addEventListener('submit', (event) => {
+                    if (form.dataset.confirmed === 'true') {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    const confirmOptions = {
+                        title: form.dataset.confirmTitle || 'Apakah Anda yakin?',
+                        text: form.dataset.confirm || '',
+                        icon: form.dataset.confirmIcon || 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#41A67E',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: form.dataset.confirmButton || 'Ya',
+                        cancelButtonText: form.dataset.cancelButton || 'Batal',
+                    };
+
+                    Swal.fire(confirmOptions).then((result) => {
+                        if (result.isConfirmed) {
+                            form.dataset.confirmed = 'true';
+                            form.submit();
+                        }
+                    });
+                });
+            });
+        }
     </script>
 
     @stack('scripts')

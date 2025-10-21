@@ -21,21 +21,6 @@
             </span>
         </div>
     </div>
-
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-end">
@@ -147,7 +132,10 @@
                                         <form
                                             action="{{ route('admin.laporan.penyalahgunaan.destroy', $report) }}"
                                             method="POST"
-                                            onsubmit="return confirm('Hapus laporan ini?')"
+                                            data-confirm="Hapus laporan ini?"
+                                            data-confirm-title="Hapus Laporan"
+                                            data-confirm-button="Ya, hapus"
+                                            data-cancel-button="Batal"
                                         >
                                             @csrf
                                             @method('DELETE')

@@ -17,21 +17,6 @@
             </a>
         </div>
     </div>
-
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <form class="row g-2 align-items-center mb-3" method="GET">
@@ -114,7 +99,10 @@
                                             </button>
                                         </form>
                                         <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-inline"
-                                            onsubmit="return confirm('Yakin ingin menghapus pengguna ini?');">
+                                            data-confirm="Yakin ingin menghapus pengguna ini?"
+                                            data-confirm-title="Hapus Pengguna"
+                                            data-confirm-button="Ya, hapus"
+                                            data-cancel-button="Batal">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger">
