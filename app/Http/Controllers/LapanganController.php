@@ -57,7 +57,7 @@ class LapanganController extends Controller
             'kategori' => ['required', 'string', 'max:255'],
             'lokasi' => ['required', 'string', 'max:500'],
             'harga_sewa' => ['required', 'numeric', 'min:0'],
-            'durasi_sewa' => ['required', 'integer', 'min:30', 'max:300'],
+            'durasi_sewa' => ['required', 'numeric', 'min:0.5', 'max:5'],
             'status' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
             'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
@@ -70,13 +70,15 @@ class LapanganController extends Controller
             }
         }
 
+        $durasiMenit = $this->convertJamKeMenit($request->durasi_sewa);
+
         Lapangan::create([
             'pemilik_id' => auth()->id(),
             'nama_lapangan' => $request->nama_lapangan,
             'kategori' => $request->kategori,
             'lokasi' => $request->lokasi,
             'harga_sewa' => $request->harga_sewa,
-            'durasi_sewa' => $request->durasi_sewa,
+            'durasi_sewa' => $durasiMenit,
             'status' => $request->status,
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPaths,
@@ -101,7 +103,7 @@ class LapanganController extends Controller
             'kategori' => ['required', 'string', 'max:255'],
             'lokasi' => ['required', 'string', 'max:500'],
             'harga_sewa' => ['required', 'numeric', 'min:0'],
-            'durasi_sewa' => ['required', 'integer', 'min:30', 'max:300'],
+            'durasi_sewa' => ['required', 'numeric', 'min:0.5', 'max:5'],
             'status' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
             'foto.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
@@ -124,12 +126,14 @@ class LapanganController extends Controller
             }
         }
 
+        $durasiMenit = $this->convertJamKeMenit($request->durasi_sewa);
+
         $lapangan->update([
             'nama_lapangan' => $request->nama_lapangan,
             'kategori' => $request->kategori,
             'lokasi' => $request->lokasi,
             'harga_sewa' => $request->harga_sewa,
-            'durasi_sewa' => $request->durasi_sewa,
+            'durasi_sewa' => $durasiMenit,
             'status' => $request->status,
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPaths,
@@ -246,5 +250,26 @@ class LapanganController extends Controller
         $jadwal->delete();
 
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus!');
+    }
+
+    private function convertJamKeMenit($input): int
+    {
+        if (is_null($input) || $input === '') {
+            return 60;
+        }
+
+        $numeric = (float) str_replace(',', '.', (string) $input);
+
+        if ($numeric <= 0) {
+            return 60;
+        }
+
+        if ($numeric > 24) {
+            $menit = (int) round($numeric);
+        } else {
+            $menit = (int) round($numeric * 60);
+        }
+
+        return max(30, min(300, $menit));
     }
 }
