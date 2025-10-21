@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Admin\LapanganController as AdminLapanganController;
 use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
 use App\Http\Controllers\Admin\LaporanPenyalahgunaanController;
@@ -57,6 +58,9 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
         Route::get('pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
         Route::put('pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('pembayaran.update');
+
+        Route::get('akun', [AdminAccountController::class, 'edit'])->name('account.edit');
+        Route::put('akun', [AdminAccountController::class, 'update'])->name('account.update');
 
         Route::prefix('laporan')->name('laporan.')->group(function () {
             Route::get('penyalahgunaan', [LaporanPenyalahgunaanController::class, 'index'])->name('penyalahgunaan.index');
