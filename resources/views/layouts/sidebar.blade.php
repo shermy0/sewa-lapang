@@ -9,10 +9,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
-
-  <style>
-
-  </style>
 </head>
 
 <body>
@@ -27,7 +23,12 @@
                 'route' => 'dashboard.pemilik',
                 'active_routes' => ['dashboard.pemilik'],
             ],
-            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
+            [
+                'label' => 'Data Lapangan',
+                'icon' => 'fa-solid fa-futbol',
+                'route' => 'lapangan.index',
+                'active_routes' => ['lapangan.index'],
+            ],
             ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
@@ -38,8 +39,12 @@
                 'route' => 'pemilik.scan',
                 'active_routes' => ['pemilik.scan'],
             ],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
+            [
+                'label' => 'Pengaturan Akun',
+                'icon' => 'fa-solid fa-user-gear',
+                'route' => 'profile.index',
+                'active_routes' => ['profile.index'],
+            ],
         ];
     } else {
         $menuItems = [
@@ -175,7 +180,23 @@
 <main class="main-content" id="mainContent">
   @yield('content')
 </main>
+    <!-- ⭐ PENTING: Bootstrap JS Bundle (termasuk Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script Sidebar Toggle -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleSidebar = document.getElementById('toggleSidebar');
 
+        toggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    </script>
+
+    <!-- Stack untuk script tambahan dari halaman child -->
+    @stack('scripts')
 <script>
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
