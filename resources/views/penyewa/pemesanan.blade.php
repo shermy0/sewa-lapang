@@ -9,15 +9,6 @@
 <div class="container py-4">
     <h1 class="fw-bold mb-3" style="color: var(--primary-green);">Pemesanan Saya</h1>
 
-    @foreach (['success', 'error'] as $flash)
-        @if (session($flash))
-            <div class="alert alert-{{ $flash === 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
-                {{ session($flash) }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-    @endforeach
-
     @if ($pemesanan->isEmpty())
         <div class="text-center py-5">
             <i class="fa-solid fa-clipboard-list text-success fs-1 mb-3"></i>
@@ -103,7 +94,7 @@
                         <h5 class="modal-title">Ulasan {{ $lapangan->nama_lapangan ?? 'Lapangan' }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form id="ulasanForm{{ $item->id }}" action="{{ route('penyewa.ulasan.store', $lapangan) }}" method="POST">
+                    <form id="ulasanForm{{ $item->id }}" action="{{ route('ulasan.simpan', $lapangan->id ?? $lapangan) }}" method="POST">
                         @csrf
                         <div class="modal-body">
                             <div class="mb-3">
@@ -126,8 +117,7 @@
                             @if ($ulasan)
                                 <button type="submit"
                                         form="hapusUlasanForm{{ $item->id }}"
-                                        class="btn btn-outline-danger"
-                                        onclick="return confirm('Hapus ulasan ini?')">
+                                        class="btn btn-outline-danger">
                                     Hapus
                                 </button>
                             @endif
@@ -138,7 +128,11 @@
                         </div>
                     </form>
                     @if ($ulasan)
-                        <form id="hapusUlasanForm{{ $item->id }}" action="{{ route('penyewa.ulasan.destroy', $ulasan) }}" method="POST" class="d-none">
+                        <form id="hapusUlasanForm{{ $item->id }}" action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-none"
+                              data-confirm="Hapus ulasan ini?"
+                              data-confirm-title="Hapus Ulasan"
+                              data-confirm-button="Ya, hapus"
+                              data-cancel-button="Batal">
                             @csrf
                             @method('DELETE')
                         </form>
@@ -150,9 +144,4 @@
 @endforeach
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    setTimeout(() => {
-        document.querySelectorAll('.alert').forEach(alert => alert.classList.add('d-none'));
-    }, 4000);
-</script>
 @endsection

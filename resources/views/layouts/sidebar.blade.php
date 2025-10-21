@@ -114,16 +114,95 @@
   @yield('content')
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
   const toggleSidebar = document.getElementById('toggleSidebar');
 
-  toggleSidebar.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('expanded');
-  });
+  if (toggleSidebar && sidebar && mainContent) {
+      toggleSidebar.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('expanded');
+      });
+  }
+
+  const sessionErrors = @json($errors->any() ? $errors->all() : []);
+
+  if (typeof Swal !== 'undefined') {
+      const flashMessages = {
+          error: @json(session('error')),
+          success: @json(session('success')),
+          status: @json(session('status')),
+          warning: @json(session('warning')),
+          info: @json(session('info')),
+      };
+
+      const flashTitles = {
+          error: 'Terjadi Kesalahan',
+          success: 'Berhasil',
+          status: 'Berhasil',
+          warning: 'Perhatian',
+          info: 'Informasi',
+      };
+
+      const flashOrder = ['error', 'success', 'status', 'warning', 'info'];
+
+      for (const type of flashOrder) {
+          const message = flashMessages[type];
+          if (!message) {
+              continue;
+          }
+
+          Swal.fire({
+              icon: type === 'status' ? 'success' : type,
+              title: flashTitles[type] ?? 'Informasi',
+              text: message,
+              confirmButtonColor: '#41A67E',
+          });
+
+          break;
+      }
+
+      if (sessionErrors.length) {
+          Swal.fire({
+              icon: 'error',
+              title: 'Validasi Gagal',
+              html: `<ul style="text-align:left;margin:0;padding-left:1rem;">${sessionErrors.map(error => `<li>${error}</li>`).join('')}</ul>`,
+              confirmButtonColor: '#41A67E',
+          });
+      }
+
+      document.querySelectorAll('form[data-confirm]').forEach((form) => {
+          form.addEventListener('submit', (event) => {
+              if (form.dataset.confirmed === 'true') {
+                  return;
+              }
+
+              event.preventDefault();
+
+              const confirmOptions = {
+                  title: form.dataset.confirmTitle || 'Apakah Anda yakin?',
+                  text: form.dataset.confirm || '',
+                  icon: form.dataset.confirmIcon || 'warning',
+                  showCancelButton: true,
+                  confirmButtonColor: '#41A67E',
+                  cancelButtonColor: '#d33',
+                  confirmButtonText: form.dataset.confirmButton || 'Ya',
+                  cancelButtonText: form.dataset.cancelButton || 'Batal',
+              };
+
+              Swal.fire(confirmOptions).then((result) => {
+                  if (result.isConfirmed) {
+                      form.dataset.confirmed = 'true';
+                      form.submit();
+                  }
+              });
+          });
+      });
+  }
 </script>
+@stack('scripts')
 
 </body>
 </html>

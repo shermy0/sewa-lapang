@@ -8,14 +8,6 @@
 
 <div class="detail-lapangan container py-4">
 
-    <!-- ALERT ERROR / SUCCESS -->
-    @if(session('error'))
-        <div id="alert-error" class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-    @if(session('success'))
-        <div id="alert-success" class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <div class="detail-lapangan container py-4">
     @php
     $favoritTableExists = \Illuminate\Support\Facades\Schema::hasTable('favorit_lapangan');
@@ -33,7 +25,7 @@
                  data-bs-ride="carousel" data-bs-interval="3000">
                 <div class="carousel-inner">
                     <div class="carousel-item active">
-                        <img src="{{ asset('poto/'.$lapangan->foto) }}" 
+                        <img src="{{ $lapangan->foto ? asset('poto/'.$lapangan->foto) : 'https://via.placeholder.com/640x360?text=Lapangan' }}" 
                              class="d-block w-100" alt="Foto Lapangan"
                              style="height: 350px; object-fit: cover;">
                     </div>
@@ -62,7 +54,7 @@
             <div class="mb-2">
                 <i class="fa-solid fa-tag text-success me-2"></i>
                 <span class="text-danger fw-semibold">
-                    Rp{{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}/jam
+                    Rp{{ number_format($lapangan->harga_display, 0, ',', '.') }}/jam
                 </span>
             </div>
 
@@ -96,7 +88,11 @@
 
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
                     @if ($isFavorit)
-                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
+                        <form action="{{ route('penyewa.favorit.destroy', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0"
+                            data-confirm="Hapus lapangan ini dari daftar favorit?"
+                            data-confirm-title="Hapus Favorit"
+                            data-confirm-button="Ya, hapus"
+                            data-cancel-button="Batal">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-outline-danger d-flex align-items-center justify-content-center">
@@ -104,7 +100,7 @@
                             </button>
                         </form>
                     @else
-                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
+                        <form action="{{ route('penyewa.favorit.store', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
                             @csrf
                             <button type="submit" class="btn btn-outline-danger d-flex align-items-center justify-content-center">
                                 <i class="fa-solid fa-heart me-1"></i>
@@ -139,7 +135,11 @@
                                                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUlasanModal{{ $ulasan->id }}">
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                     </button>
-                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline"
+                                                        data-confirm="Hapus ulasan ini?"
+                                                        data-confirm-title="Hapus Ulasan"
+                                                        data-confirm-button="Ya, hapus"
+                                                        data-cancel-button="Batal">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -255,11 +255,11 @@
             <div class="col-md-4 mb-4">
                 <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
                     <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ asset('poto/'.$item->foto) }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
+                        <img src="{{ $item->foto ? asset('poto/'.$item->foto) : 'https://via.placeholder.com/640x360?text=Lapangan' }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1"><i class="fa-solid fa-location-dot text-success me-1"></i>{{ $item->lokasi }}</p>
-                            <p class="fw-semibold text-success">Rp {{ number_format($item->harga_per_jam,0,',','.') }}/jam</p>
+                            <p class="fw-semibold text-success">Rp {{ number_format($item->harga_display,0,',','.') }}/jam</p>
                             <span class="badge bg-success">{{ $item->kategori }}</span>
                         </div>
                     </div>
@@ -272,15 +272,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    setTimeout(() => {
-        const alertError = document.getElementById('alert-error');
-        if(alertError) alertError.style.display = 'none';
-        const alertSuccess = document.getElementById('alert-success');
-        if(alertSuccess) alertSuccess.style.display = 'none';
-    }, 3000);
-</script>
-
 <!-- Script tambah ulasan -->
 <script>
     const stars = document.querySelectorAll('.star-rating i');

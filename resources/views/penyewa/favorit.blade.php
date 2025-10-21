@@ -8,16 +8,6 @@
 
 <div class="container py-4">
     <h1 class="fw-bold mb-4" style="color: var(--primary-green);">Lapangan Favorit</h1>
-
-    @foreach (['success', 'error'] as $flash)
-        @if (session($flash))
-            <div class="alert alert-{{ $flash === 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
-                {{ session($flash) }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-    @endforeach
-
     @if ($favoritLapangan->isEmpty())
         <div class="text-center py-5">
             <i class="fa-solid fa-heart-circle-plus text-success fs-1 mb-3"></i>
@@ -44,11 +34,14 @@
                                 <a href="{{ route('penyewa.detail', $lapangan->id) }}" class="btn btn-success flex-grow-1">
                                     Detail
                                 </a>
-                                <form action="{{ route('penyewa.favorit.destroy', $lapangan) }}" method="POST" class="d-inline">
+                                <form action="{{ route('penyewa.favorit.destroy', $lapangan) }}" method="POST" class="d-inline"
+                                      data-confirm="Hapus lapangan ini dari daftar favorit?"
+                                      data-confirm-title="Hapus Favorit"
+                                      data-confirm-button="Ya, hapus"
+                                      data-cancel-button="Batal">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger flex-grow-1"
-                                            onclick="return confirm('Hapus lapangan dari favorit?')">
+                                    <button type="submit" class="btn btn-outline-danger flex-grow-1">
                                         <i class="fa-solid fa-heart-crack me-1"></i> Hapus
                                     </button>
                                 </form>

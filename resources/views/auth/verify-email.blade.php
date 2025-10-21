@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head> 
+    <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Verifikasi Email</title>
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
             @vite(['resources/css/app.css', 'resources/js/app.js'])
         @endif
-    </head>
+    </head>  
     <body class="antialiased bg-gray-100">
         <div class="min-h-screen flex items-center justify-center px-4">
             <div class="w-full max-w-lg bg-white shadow rounded-lg p-6 space-y-6">

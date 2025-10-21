@@ -47,6 +47,12 @@ class BerandaController extends Controller
     {
         $lapangan = DB::table('lapangan')->where('id', $id)->first();
 
+        if (! $lapangan) {
+            abort(404);
+        }
+
+        $lapangan->harga_display = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? $lapangan->harga ?? 0;
+
         $ulasans = DB::table('ulasan')
             ->join('pemesanan', 'ulasan.pemesanan_id', '=', 'pemesanan.id')
             ->join('users', 'pemesanan.penyewa_id', '=', 'users.id')
@@ -66,7 +72,11 @@ class BerandaController extends Controller
             ->where('id', '!=', $id)
             ->orderBy('id', 'desc')
             ->take(6)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $item->harga_display = $item->harga_per_jam ?? $item->harga_sewa ?? $item->harga ?? 0;
+                return $item;
+            });
 
         return view('penyewa.detail', compact('lapangan', 'ulasans', 'lainnya', 'avgRating', 'totalUlasan'));
     }

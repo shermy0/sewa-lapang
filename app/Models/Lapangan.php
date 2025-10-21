@@ -23,4 +23,12 @@ class Lapangan extends Model
     {
         return $this->hasMany(Pemesanan::class, 'lapangan_id', 'id');
     }
+
+    /**
+     * Pemilik lapangan (relasi ke users).
+     */
+    public function pemilik()
+    {
+        return $this->belongsTo(User::class, 'pemilik_id');
+    }
 }

@@ -43,9 +43,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
 
     // FAVORIT PENYEWA
-    Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
-    Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
-    Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+    Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('penyewa.favorit.index');
+    Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('penyewa.favorit.store');
+    Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('penyewa.favorit.destroy');
 
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
