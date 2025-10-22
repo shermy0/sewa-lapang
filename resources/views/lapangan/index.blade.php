@@ -43,7 +43,6 @@
                             placeholder="Kategori...">
                     </div>
 
-
                     {{-- Tombol Aksi --}}
                     <div class="col-lg-4 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-lg w-100">
@@ -58,34 +57,6 @@
         </div>
     </div>
 
-    {{-- Alert Success --}}
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fa-solid fa-check-circle me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if ($errors->any())
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fa-solid fa-exclamation-triangle me-2"></i>
-        <strong>Terjadi kesalahan:</strong>
-        <ul class="mb-0 mt-1">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
-    @if (session('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fa-solid fa-exclamation-triangle me-2"></i> {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-
     {{-- Grid Layout Cards --}}
     <div class="row g-4">
         @foreach ($lapangan as $item)
@@ -95,7 +66,6 @@
                     $fotoArray = [];
                 }
                 $totalJadwal = $item->jadwal->count();
-                // Hitung harga rata-rata dari jadwal
                 $hargaRataRata = $item->jadwal->avg('harga_sewa');
             @endphp
 
@@ -211,13 +181,11 @@
                                 <i class="fa-solid fa-calendar me-1"></i> Jadwal
                             </button>
 
-                            <form action="{{ route('lapangan.destroy', $item->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Yakin hapus lapangan?')">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-outline-danger delete-lapangan-btn"
+                                data-id="{{ $item->id }}"
+                                data-nama="{{ $item->nama_lapangan }}">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -233,12 +201,11 @@
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <form action="{{ route('lapangan.update', $item->id) }}" method="POST" enctype="multipart/form-data">
+                        <form action="{{ route('lapangan.update', $item->id) }}" method="POST" enctype="multipart/form-data" class="form-submit-lapangan">
                             @csrf
                             @method('PUT')
                             <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
                                 <div class="row g-4">
-                                    {{-- Informasi Dasar --}}
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-tag me-1 text-success"></i> Nama Lapangan
@@ -269,7 +236,6 @@
                                             value="{{ $item->lokasi }}" required>
                                     </div>
 
-                                    {{-- Hidden fields --}}
                                     <input type="hidden" name="status" value="{{ $item->status }}">
                                     <input type="hidden" name="harga_sewa" value="{{ $item->harga_sewa }}">
                                     <input type="hidden" name="durasi_sewa" value="{{ $item->durasi_sewa }}">
@@ -286,10 +252,8 @@
                                             <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
                                         </label>
                                         <input type="file" name="foto[]" class="form-control form-control-lg foto-input" accept="image/*" multiple>
-
                                         <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
 
-                                        {{-- Tampilkan foto yang sudah ada --}}
                                         @if (!empty($item->foto))
                                             <div class="mt-3">
                                                 <small class="text-muted d-block mb-2">Foto saat ini:</small>
@@ -366,7 +330,7 @@
                                     </h6>
                                 </div>
                                 <div class="card-body">
-                                    <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST" id="formJadwal{{ $item->id }}">
+                                    <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST" class="form-submit-jadwal" id="formJadwal{{ $item->id }}">
                                         @csrf
                                         <div class="row g-3">
                                             <div class="col-md-3">
@@ -385,12 +349,10 @@
                                             </div>
                                             <div class="col-md-2">
                                                 @php
-                                                    $durasiInputDefault = old('durasi_sewa');
+                                                    $durasiInputDefault = old('durasi_sewa', 1);
                                                     if (!is_null($durasiInputDefault) && $durasiInputDefault !== '') {
                                                         $numericDefault = is_numeric($durasiInputDefault) ? (float) $durasiInputDefault : 0;
                                                         $durasiInputDefault = $numericDefault > 24 ? $numericDefault / 60 : $numericDefault;
-                                                    } else {
-                                                        $durasiInputDefault = 1;
                                                     }
                                                     $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
                                                 @endphp
@@ -399,7 +361,7 @@
                                                     min="0.25" max="24" step="0.25" placeholder="1" value="{{ $durasiInputDefault }}"
                                                     required data-durasi-jam-input>
                                                 <div class="form-text text-muted">
-                                                    <span data-durasi-jam-preview>{{ $durasiPreviewDisplay }}</span> jam — sesuaikan untuk mengatur jam selesai otomatis.
+                                                    <span data-durasi-jam-preview>{{ $durasiPreviewDisplay }}</span> jam
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
@@ -411,8 +373,7 @@
                                                     <span class="input-group-text bg-light text-muted">/ jam</span>
                                                 </div>
                                                 <div class="form-text text-muted">
-                                                    Total untuk durasi ini:
-                                                    <span class="fw-semibold text-success" data-harga-total-display>Rp 0</span>
+                                                    Total: <span class="fw-semibold text-success" data-harga-total-display>Rp 0</span>
                                                     (<span data-durasi-jam-display>{{ $durasiPreviewDisplay }}</span> jam)
                                                 </div>
                                             </div>
@@ -464,9 +425,7 @@
                                                 <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') }}</td>
                                                 <td>{{ $jamMulai->format('H:i') }}</td>
                                                 <td>{{ $jamSelesai->format('H:i') }}</td>
-                                                <td>
-                                                    {{ $durasiJamFormatted }} jam
-                                                </td>
+                                                <td>{{ $durasiJamFormatted }} jam</td>
                                                 <td>
                                                     <span class="fw-bold text-success d-block">
                                                         Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}
@@ -474,7 +433,6 @@
                                                     <small class="text-muted d-block">
                                                         Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam
                                                     </small>
-                                                    <small class="text-muted">untuk durasi {{ $durasiJamFormatted }} jam</small>
                                                 </td>
                                                 <td>
                                                     <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
@@ -488,15 +446,13 @@
                                                         data-bs-target="#editJadwalModal{{ $jadwal->id }}">
                                                         <i class="fa-solid fa-pen"></i>
                                                     </button>
-                                                    <form action="{{ route('lapangan.jadwal.destroy', [$item->id, $jadwal->id]) }}"
-                                                        method="POST" class="d-inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                            onclick="return confirm('Yakin hapus jadwal?')">
-                                                            <i class="fa-solid fa-trash"></i>
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger delete-jadwal-btn"
+                                                        data-lapangan-id="{{ $item->id }}"
+                                                        data-jadwal-id="{{ $jadwal->id }}"
+                                                        data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') }}"
+                                                        data-jam="{{ $jamMulai->format('H:i') }} - {{ $jamSelesai->format('H:i') }}">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         @empty
@@ -522,6 +478,7 @@
         @endforeach
     </div>
 
+    {{-- Edit Jadwal Modals --}}
     @foreach ($lapangan as $item)
         @foreach($item->jadwal->sortBy('tanggal')->sortBy('jam_mulai') as $jadwal)
             @php
@@ -549,7 +506,7 @@
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <form action="{{ route('lapangan.jadwal.update', [$item->id, $jadwal->id]) }}" method="POST">
+                        <form action="{{ route('lapangan.jadwal.update', [$item->id, $jadwal->id]) }}" method="POST" class="form-submit-jadwal">
                             @csrf
                             @method('PUT')
                             <div class="modal-body p-4">
@@ -576,7 +533,7 @@
                                             min="0.25" max="24" step="0.25" placeholder="1"
                                             value="{{ $durasiInputValue }}" data-durasi-jam-input>
                                         <div class="form-text text-muted">
-                                            <span data-durasi-jam-preview>{{ $durasiDisplayEdit }}</span> jam - sesuaikan untuk mengatur jam selesai otomatis.
+                                            <span data-durasi-jam-preview>{{ $durasiDisplayEdit }}</span> jam
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -589,8 +546,7 @@
                                             <span class="input-group-text bg-light text-muted">/ jam</span>
                                         </div>
                                         <div class="form-text text-muted">
-                                            Total untuk durasi ini:
-                                            <span class="fw-semibold text-success" data-harga-total-display>Rp {{ $hargaTotalEdit }}</span>
+                                            Total: <span class="fw-semibold text-success" data-harga-total-display>Rp {{ $hargaTotalEdit }}</span>
                                             (<span data-durasi-jam-display>{{ $durasiDisplayEdit }}</span> jam)
                                         </div>
                                     </div>
@@ -679,11 +635,10 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('lapangan.store') }}" method="POST" enctype="multipart/form-data" id="formTambah">
+            <form action="{{ route('lapangan.store') }}" method="POST" enctype="multipart/form-data" id="formTambah" class="form-submit-lapangan">
                 @csrf
                 <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
                     <div class="row g-4">
-                        {{-- Informasi Dasar --}}
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-tag me-1 text-success"></i> Nama Lapangan
@@ -701,44 +656,31 @@
   @endforeach
 </select>
 
-
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-location-dot me-1 text-success"></i> Alamat Lengkap
                             </label>
-                            <input type="text" name="lokasi" class="form-control form-control-lg" placeholder="Jl. Sudirman No.123, Jakarta Selatan" value="{{ old('lokasi') }}" required>
+                            <input type="text" name="lokasi" class="form-control form-control-lg" placeholder="Jl. Sudirman No.123, Jakarta" value="{{ old('lokasi') }}" required>
                         </div>
 
-                        {{-- Hidden fields dengan nilai default --}}
                         <input type="hidden" name="harga_sewa" value="0">
                         <input type="hidden" name="durasi_sewa" value="1">
                         <input type="hidden" name="status" value="{{ old('status', 'standard') }}">
                         <input type="hidden" name="tiket_tersedia" value="{{ old('tiket_tersedia', 0) }}">
 
-
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
                             </label>
-                            <textarea name="deskripsi" class="form-control" rows="4" placeholder="Jelaskan fasilitas lapangan seperti: AC, lighting, ruang ganti, kantin, dll...">{{ old('deskripsi') }}</textarea>
+                            <textarea name="deskripsi" class="form-control" rows="4" placeholder="Jelaskan fasilitas lapangan...">{{ old('deskripsi') }}</textarea>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
                             </label>
-
-                            <input
-                                type="file"
-                                name="foto[]"
-                                class="form-control form-control-lg foto-input"
-                                accept="image/*"
-                                multiple
-                                required
-                            >
-
+                            <input type="file" name="foto[]" class="form-control form-control-lg foto-input" accept="image/*" multiple required>
                             <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
-
                             <div class="form-text">
                                 <i class="fa-solid fa-circle-info me-1"></i> Bisa upload beberapa foto (JPG, PNG, JPEG) max 2MB/foto
                             </div>
@@ -758,7 +700,261 @@
     </div>
 </div>
 
+{{-- Hidden Forms untuk Delete --}}
+<form id="deleteLapanganForm" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
+
+<form id="deleteJadwalForm" method="POST" style="display: none;">
+    @csrf
+    @method('DELETE')
+</form>
+
+{{-- SweetAlert2 CDN --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{{-- Animate.css for smooth animations --}}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
 <script>
+    // ========== SWEETALERT CONFIGURATION ==========
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        showClass: {
+            popup: 'animate__animated animate__fadeInRight animate__faster'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutRight animate__faster'
+        },
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
+    // Custom Success Alert
+    const SuccessAlert = Swal.mixin({
+        icon: 'success',
+        confirmButtonColor: '#28a745',
+        confirmButtonText: '<i class="fa-solid fa-check me-2"></i>OK',
+        showClass: {
+            popup: 'animate__animated animate__zoomIn animate__faster'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__zoomOut animate__faster'
+        }
+    });
+
+    // ========== SHOW SUCCESS/ERROR MESSAGES ==========
+    @if (session('success'))
+        SuccessAlert.fire({
+            title: 'Berhasil!',
+            html: '<p class="mb-0" style="color: #545454;">{{ session('success') }}</p>',
+            timer: 2500,
+            timerProgressBar: true
+        });
+    @endif
+
+    @if (session('error'))
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: '{{ session('error') }}',
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: '<i class="fa-solid fa-times me-2"></i>Tutup',
+            showClass: {
+                popup: 'animate__animated animate__shakeX'
+            }
+        });
+    @endif
+
+    @if ($errors->any())
+        Swal.fire({
+            icon: 'error',
+            title: 'Terjadi Kesalahan!',
+            html: '<ul style="text-align: left; padding-left: 20px;">' +
+                @foreach ($errors->all() as $error)
+                    '<li>{{ $error }}</li>' +
+                @endforeach
+                '</ul>',
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: '<i class="fa-solid fa-times me-2"></i>Tutup',
+            showClass: {
+                popup: 'animate__animated animate__shakeX'
+            }
+        });
+    @endif
+
+    // ========== DELETE LAPANGAN WITH SWEETALERT ==========
+    document.querySelectorAll('.delete-lapangan-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const id = this.dataset.id;
+            const nama = this.dataset.nama;
+
+            Swal.fire({
+                title: 'Hapus Lapangan?',
+                html: `Apakah Anda yakin ingin menghapus<br><strong style="color: #dc3545;">${nama}</strong>?<br><br><small class="text-muted">Data ini tidak dapat dikembalikan!</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa-solid fa-trash me-2"></i>Ya, Hapus!',
+                cancelButtonText: '<i class="fa-solid fa-times me-2"></i>Batal',
+                reverseButtons: true,
+                showClass: {
+                    popup: 'animate__animated animate__zoomIn animate__faster'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__zoomOut animate__faster'
+                },
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            const form = document.getElementById('deleteLapanganForm');
+                            form.action = '{{ url("lapangan") }}/' + id;
+                            form.submit();
+                            resolve();
+                        }, 500);
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        html: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // ========== DELETE JADWAL WITH SWEETALERT ==========
+    document.querySelectorAll('.delete-jadwal-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const lapanganId = this.dataset.lapanganId;
+            const jadwalId = this.dataset.jadwalId;
+            const tanggal = this.dataset.tanggal;
+            const jam = this.dataset.jam;
+
+            Swal.fire({
+                title: 'Hapus Jadwal?',
+                html: `Apakah Anda yakin ingin menghapus jadwal:<br><strong style="color: #dc3545;">${tanggal}</strong><br><strong style="color: #dc3545;">${jam}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa-solid fa-trash me-2"></i>Ya, Hapus!',
+                cancelButtonText: '<i class="fa-solid fa-times me-2"></i>Batal',
+                reverseButtons: true,
+                showClass: {
+                    popup: 'animate__animated animate__zoomIn animate__faster'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__zoomOut animate__faster'
+                },
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            const form = document.getElementById('deleteJadwalForm');
+                            form.action = `{{ url('lapangan') }}/${lapanganId}/jadwal/${jadwalId}`;
+                            form.submit();
+                            resolve();
+                        }, 500);
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        html: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // ========== FORM SUBMIT WITH LOADING ==========
+    document.querySelectorAll('.form-submit-lapangan').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            Swal.fire({
+                title: 'Menyimpan Data...',
+                html: '<div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3 mb-0">Mohon tunggu sebentar</p>',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                showClass: {
+                    popup: 'animate__animated animate__fadeIn animate__faster'
+                }
+            });
+
+            setTimeout(() => {
+                this.submit();
+            }, 800);
+        });
+    });
+
+    document.querySelectorAll('.form-submit-jadwal').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const jamMulai = this.querySelector('input[name="jam_mulai"]');
+            const jamSelesai = this.querySelector('input[name="jam_selesai"]');
+
+            if (jamMulai && jamSelesai && jamMulai.value && jamSelesai.value) {
+                if (jamMulai.value >= jamSelesai.value) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validasi Gagal!',
+                        text: 'Jam selesai harus lebih besar dari jam mulai!',
+                        confirmButtonColor: '#dc3545',
+                        showClass: {
+                            popup: 'animate__animated animate__shakeX'
+                        }
+                    });
+                    return false;
+                }
+            }
+
+            e.preventDefault();
+
+            Swal.fire({
+                title: 'Menyimpan Jadwal...',
+                html: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3 mb-0">Mohon tunggu sebentar</p>',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                showClass: {
+                    popup: 'animate__animated animate__fadeIn animate__faster'
+                }
+            });
+
+            setTimeout(() => {
+                this.submit();
+            }, 800);
+        });
+    });
+
     // ========== PREVIEW MULTIPLE FOTO ==========
     document.querySelectorAll('.foto-input').forEach((fotoInput) => {
         const previewContainer = fotoInput.closest('.col-12').querySelector('.preview-container');
@@ -815,37 +1011,8 @@
         }
     });
 
-    // Validasi form jadwal sebelum submit
+    // ========== DYNAMIC PRICE CALCULATION ==========
     document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const jamMulai = form.querySelector('input[name="jam_mulai"]');
-            const jamSelesai = form.querySelector('input[name="jam_selesai"]');
-            const durasiJamField = form.querySelector('[data-durasi-jam-input]');
-
-            if (jamMulai && jamSelesai && jamMulai.value && jamSelesai.value) {
-                if (jamMulai.value >= jamSelesai.value) {
-                    e.preventDefault();
-                    alert('Jam selesai harus lebih besar dari jam mulai!');
-                    return false;
-                }
-
-                if (durasiJamField) {
-                    const [mulaiJam = '0', mulaiMenit = '0'] = jamMulai.value.split(':');
-                    const [selesaiJam = '0', selesaiMenit = '0'] = jamSelesai.value.split(':');
-                    const mulaiTotal = (parseInt(mulaiJam, 10) * 60) + parseInt(mulaiMenit, 10);
-                    const selesaiTotal = (parseInt(selesaiJam, 10) * 60) + parseInt(selesaiMenit, 10);
-                    const selisihJam = (selesaiTotal - mulaiTotal) / 60;
-                    const durasiJam = parseFloat(String(durasiJamField.value ?? '0').replace(',', '.'));
-
-                    if (!Number.isFinite(durasiJam) || durasiJam <= 0 || Math.abs(selisihJam - durasiJam) > 0.01) {
-                        e.preventDefault();
-                        alert('Durasi harus sama dengan selisih jam mulai dan jam selesai.');
-                        return false;
-                    }
-                }
-            }
-        });
-
         const hargaPerJamInput = form.querySelector('[data-harga-per-jam-input]');
         const durasiInput = form.querySelector('[data-durasi-jam-input]');
         const jamMulaiInput = form.querySelector('[data-jam-mulai-input]');
@@ -860,6 +1027,7 @@
                 const nominal = Math.max(0, Math.round(safeValue));
                 return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(nominal);
             };
+
             const formatJam = (value) => {
                 if (!Number.isFinite(value) || value <= 0) {
                     return '0';
@@ -1015,29 +1183,6 @@
             updateTotalHarga();
         }
     });
-
-    // Auto close alert setelah 5 detik
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        }, 5000);
-    });
-
-    // Refresh modal jadwal setelah berhasil tambah jadwal
-    @if(session('success') && str_contains(session('success'), 'Jadwal'))
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cari modal jadwal yang aktif
-            const activeModal = document.querySelector('.modal.show');
-            if (activeModal && activeModal.id.includes('kelolaJadwalModal')) {
-                // Refresh halaman setelah 1 detik untuk update data
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            }
-        });
-    @endif
 </script>
 
 <style>
@@ -1075,6 +1220,163 @@
     }
     .modal-body::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8;
+    }
+
+    /* SweetAlert2 Custom Styling */
+    .swal2-popup {
+        font-family: inherit;
+        border-radius: 20px;
+    }
+    .swal2-title {
+        font-weight: 600;
+        font-size: 1.5rem;
+        color: #545454;
+    }
+    .swal2-html-container {
+        font-size: 1rem;
+    }
+
+    /* Custom Success Checkmark Animation */
+    .swal2-success {
+        border-color: #a5dc86 !important;
+        animation: successPulse 0.75s ease-in-out;
+    }
+
+    .swal2-success .swal2-success-ring {
+        border: 4px solid rgba(165, 220, 134, 0.2) !important;
+        animation: ringPulse 0.75s ease-in-out;
+    }
+
+    .swal2-success .swal2-success-fix {
+        background-color: #fff !important;
+    }
+
+    .swal2-icon.swal2-success [class^='swal2-success-line'] {
+        background-color: #a5dc86 !important;
+        border-radius: 2px;
+    }
+
+    .swal2-icon.swal2-success .swal2-success-line-tip {
+        width: 25px !important;
+        left: 14px !important;
+        top: 46px !important;
+        animation: checkmarkTip 0.75s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .swal2-icon.swal2-success .swal2-success-line-long {
+        width: 47px !important;
+        right: 8px !important;
+        top: 38px !important;
+        animation: checkmarkLong 0.75s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.15s;
+    }
+
+    /* Smooth Animation */
+    .swal2-icon.swal2-success {
+        animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes scaleIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.15);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes successPulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    @keyframes ringPulse {
+        0% {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+        50% {
+            opacity: 0.5;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes checkmarkTip {
+        0% {
+            width: 0;
+            left: 1px;
+            top: 19px;
+        }
+        54% {
+            width: 0;
+            left: 1px;
+            top: 19px;
+        }
+        70% {
+            width: 50px;
+            left: -8px;
+            top: 37px;
+        }
+        84% {
+            width: 17px;
+            left: 21px;
+            top: 48px;
+        }
+        100% {
+            width: 35px;
+            left: 14px;
+            top: 46px;
+        }
+    }
+
+    @keyframes checkmarkLong {
+        0% {
+            width: 0;
+            right: 46px;
+            top: 54px;
+        }
+        65% {
+            width: 0;
+            right: 46px;
+            top: 54px;
+        }
+        84% {
+            width: 55px;
+            right: 0;
+            top: 35px;
+        }
+        100% {
+            width: 60px;
+            right: 8px;
+            top: 38px;
+        }
+    }
+
+    /* Toast Success Icon */
+    .swal2-toast .swal2-success {
+        width: 2em !important;
+        height: 2em !important;
+    }
+
+    /* Warning Icon Custom */
+    .swal2-warning {
+        border-color: #facea8 !important;
+    }
+
+    /* Error Icon Custom */
+    .swal2-error {
+        border-color: #f27474 !important;
     }
 </style>
 @endsection
