@@ -250,8 +250,16 @@
                                         <label class="form-label fw-semibold text-dark">
                                             <i class="fa-solid fa-layer-group me-1 text-success"></i> Jenis Olahraga / Kategori
                                         </label>
-                                        <input type="text" name="kategori" class="form-control form-control-lg"
-                                            value="{{ $item->kategori }}" required>
+                                        <select name="kategori" class="form-select form-select-lg" required>
+    <option value="" disabled>Pilih Kategori</option>
+    @foreach ($kategori as $kat)
+        <option value="{{ $kat->nama_kategori }}" 
+            {{ $item->kategori == $kat->nama_kategori ? 'selected' : '' }}>
+            {{ $kat->nama_kategori }}
+        </option>
+    @endforeach
+</select>
+
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label fw-semibold text-dark">
@@ -686,9 +694,14 @@
                             <label class="form-label fw-semibold text-dark">
                                 <i class="fa-solid fa-layer-group me-1 text-success"></i> Jenis Olahraga / Kategori
                             </label>
-                            <input type="text" name="kategori" class="form-control form-control-lg"
-                                placeholder="Contoh: Futsal Indoor, Badminton, Basket Outdoor"
-                                value="{{ old('kategori') }}" required>
+<select name="id_kategori" class="form-select form-select-lg" required>
+  <option value="" disabled selected>Pilih Kategori</option>
+  @foreach ($kategori as $kat)
+    <option value="{{ $kat->id }}">{{ $kat->nama_kategori }}</option>
+  @endforeach
+</select>
+
+
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold text-dark">

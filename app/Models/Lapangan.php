@@ -10,17 +10,18 @@ class Lapangan extends Model
     use HasFactory;
 
     protected $table = 'lapangan';
-    protected $fillable = [
-        'pemilik_id',
-        'nama_lapangan',
-        'deskripsi',
-        'lokasi',
-        'harga_sewa',
-        'foto',
-        'kategori',
-        'status'
-        // harga_sewa dan durasi_sewa dihapus
-    ];
+protected $fillable = [
+    'pemilik_id',
+    'id_kategori',   // ⬅️ ini wajib ada
+    'nama_lapangan',
+    'kategori',
+    'tiket_tersedia',
+    'deskripsi',
+    'lokasi',
+    'rating',
+    'foto',
+    'status',
+];
 
     public function kategori()
     {

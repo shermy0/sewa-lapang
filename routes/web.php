@@ -17,6 +17,8 @@ use App\Http\Controllers\ScanTiketController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
+use App\Http\Controllers\KategoriController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -135,6 +137,13 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::middleware(['auth'])->group(function () {
+    // CRUD Kategori
+    Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
+    Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
+    Route::get('/kategori/{id}', [KategoriController::class, 'show'])->name('kategori.show');
+    Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
+    Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
+
     // CRUD Lapangan
     Route::get('/lapangan', [LapanganController::class, 'index'])->name('lapangan.index');
     Route::post('/lapangan', [LapanganController::class, 'store'])->name('lapangan.store');

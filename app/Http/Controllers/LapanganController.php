@@ -4,74 +4,84 @@ namespace App\Http\Controllers;
 
 use App\Models\JadwalLapangan;
 use App\Models\Lapangan;
+use App\Models\Kategori;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class LapanganController extends Controller
 {
-    public function index(Request $request)
-    {
-        $lapangan = Lapangan::query()
-            ->with('jadwal')
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('nama_lapangan', 'like', '%' . $request->search . '%')
-                        ->orWhere('lokasi', 'like', '%' . $request->search . '%');
-                });
-            })
-            ->when($request->filled('kategori'), function ($query) use ($request) {
-                $query->where('kategori', 'like', '%' . $request->kategori . '%');
-            })
-            ->when($request->filled('status'), function ($query) use ($request) {
-                $query->where('status', $request->status);
-            })
-            ->when($request->filled('tiket_tersedia'), function ($query) use ($request) {
-                if ($request->tiket_tersedia === 'tersedia') {
-                    $query->where('tiket_tersedia', '>', 0);
-                } elseif ($request->tiket_tersedia === 'habis') {
-                    $query->where('tiket_tersedia', '<=', 0);
-                } 
-            })
-            ->latest()
-            ->paginate(6)
-            ->appends($request->query());
+public function index(Request $request)
+{
+    $lapangan = Lapangan::query()
+        ->with('jadwal')
+        ->when($request->filled('search'), function ($query) use ($request) {
+            $query->where(function ($q) use ($request) {
+                $q->where('nama_lapangan', 'like', '%' . $request->search . '%')
+                    ->orWhere('lokasi', 'like', '%' . $request->search . '%');
+            });
+        })
+        ->when($request->filled('kategori'), function ($query) use ($request) {
+            $query->where('kategori', 'like', '%' . $request->kategori . '%');
+        })
+        ->when($request->filled('status'), function ($query) use ($request) {
+            $query->where('status', $request->status);
+        })
+        ->when($request->filled('tiket_tersedia'), function ($query) use ($request) {
+            if ($request->tiket_tersedia === 'tersedia') {
+                $query->where('tiket_tersedia', '>', 0);
+            } elseif ($request->tiket_tersedia === 'habis') {
+                $query->where('tiket_tersedia', '<=', 0);
+            } 
+        })
+        ->latest()
+        ->paginate(6)
+        ->appends($request->query());
 
-        return view('lapangan.index', compact('lapangan'));
-    }
+    $kategori = Kategori::orderBy('nama_kategori')->get();
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nama_lapangan' => ['required', 'string', 'max:255'],
-            'kategori' => ['required', 'string', 'max:255'],
-            'lokasi' => ['required', 'string', 'max:255'],
-            'deskripsi' => ['nullable', 'string'],
-            'tiket_tersedia' => ['required', 'integer', 'min:0'],
-            'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
-        ]);
+    return view('lapangan.index', compact('lapangan', 'kategori'));
+}
 
-        $fotoPaths = [];
-        if ($request->hasFile('foto')) {
-            foreach ($request->file('foto') as $foto) {
-                $fotoPaths[] = $foto->store('lapangan', 'public');
-            }
+
+public function store(Request $request)
+{
+    $request->validate([
+        'nama_lapangan' => ['required', 'string', 'max:255'],
+        'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
+        'lokasi' => ['required', 'string', 'max:255'],
+        'deskripsi' => ['nullable', 'string'],
+        'tiket_tersedia' => ['required', 'integer', 'min:0'],
+        'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+    ]);
+
+    $fotoPaths = [];
+    if ($request->hasFile('foto')) {
+        foreach ($request->file('foto') as $foto) {
+            $fotoPaths[] = $foto->store('lapangan', 'public');
         }
-
-        Lapangan::create([
-            'pemilik_id' => auth()->id(),
-            'nama_lapangan' => $request->nama_lapangan,
-            'kategori' => $request->kategori,
-            'lokasi' => $request->lokasi,
-            'deskripsi' => $request->deskripsi,
-            'tiket_tersedia' => $request->tiket_tersedia,
-            'status' => $request->input('status', 'standard'),
-            'is_verified' => false,
-            'foto' => $fotoPaths, // Laravel akan otomatis convert ke JSON
-        ]);
-
-        return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
     }
+
+    $kategori = \App\Models\Kategori::find($request->id_kategori);
+
+    Lapangan::create([
+        'pemilik_id' => auth()->id(),
+        'id_kategori' => $request->id_kategori,
+        'nama_lapangan' => $request->nama_lapangan,
+        'kategori' => $kategori?->nama_kategori, // opsional
+        'lokasi' => $request->lokasi,
+        'deskripsi' => $request->deskripsi,
+        'tiket_tersedia' => $request->tiket_tersedia,
+        'status' => $request->input('status', 'standard'),
+        'is_verified' => false,
+        'foto' => $fotoPaths,
+    ]);
+
+    return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
+}
+
+
+
 
     public function show($id)
     {
