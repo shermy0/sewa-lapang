@@ -22,6 +22,11 @@ class Lapangan extends Model
         // harga_sewa dan durasi_sewa dihapus
     ];
 
+    public function kategori()
+    {
+        return $this->belongsTo(Kategori::class, 'id_kategori');
+    }
+
     public function pemilik()
     {
         return $this->belongsTo(User::class, 'pemilik_id');
