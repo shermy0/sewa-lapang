@@ -5,23 +5,6 @@
 @section('content')
 <div class="container py-4">
     <h2 class="fw-bold mb-4 text-success">Riwayat Pemesanan</h2>
-
-    {{-- Belum Dibayar --}}
-    <h4 class="mt-4">Belum Dibayar</h4>
-    <div class="row">
-        @foreach($belumDibayar as $p)
-        <div class="col-md-4 mb-3">
-            <div class="card p-3 border-warning">
-                <p><strong>Lapangan:</strong> {{ $p->lapangan->nama_lapangan }}</p>
-                <p><strong>Jadwal:</strong> {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}
-                   ({{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }})</p>
-                <p>Status: <span class="badge bg-warning text-dark">Belum Dibayar</span></p>
-                <button class="btn btn-success btn-pay-again mt-2" data-id="{{ $p->id }}">Bayar</button>
-            </div>
-        </div>
-        @endforeach
-    </div>
-
     {{-- Sudah Dibayar --}}
     <h4 class="mt-4">Sudah Dibayar</h4>
     <div class="row">
@@ -30,7 +13,7 @@
             <div class="card p-3 border-success">
                 <p><strong>Lapangan:</strong> {{ $p->lapangan->nama_lapangan }}</p>
                 <p><strong>Jadwal:</strong> {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}
-                   ({{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }})</p>
+                ({{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }})</p>
                 <p>Status: <span class="badge bg-success">Dibayar</span></p>
                 <p><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
                 <div class="mt-2 text-center">

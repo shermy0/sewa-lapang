@@ -12,9 +12,8 @@ use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\ScanTiketController;
-use App\Http\Controllers\RiwayatController;
-use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -47,14 +46,23 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware('auth')->group(function () {
     
+    
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 
+    Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+
+    Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
+Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
+
+    Route::get('penyewa/tiket', [PemesananController::class, 'riwayatTiket'])->name('penyewa.tiket');
+Route::get('penyewa/pembayaran', [PemesananController::class, 'riwayatBelum'])->name('penyewa.pembayaran');
+Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->name('penyewa.riwayat');
 
     // BERANDA PENYEWA
     Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
@@ -70,6 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
     Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
     Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+
 
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
@@ -111,14 +120,23 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/kelola-rekening', [KelolaRekeningController::class, 'index'])->name('rekening.index');
+    Route::post('/kelola-rekening', [KelolaRekeningController::class, 'update'])->name('rekening.update');
+     Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');
+    Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+});
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
-    Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
-    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);    
 });

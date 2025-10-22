@@ -29,3 +29,4 @@ class JadwalLapangan extends Model
         return $this->hasOne(Pemesanan::class, 'jadwal_id');
     }
 }
+
