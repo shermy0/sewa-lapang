@@ -60,10 +60,13 @@
                     {{ $lapangan->lokasi }}
                 </a>
             </div>
+            @php
+                $hargaPerJam = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? 0;
+            @endphp
             <div class="mb-2">
                 <i class="fa-solid fa-tag text-success me-2"></i>
                 <span class="text-danger fw-semibold">
-                    Rp{{ number_format($lapangan->harga_sewa, 0, ',', '.') }}/jam
+                    Rp{{ number_format($hargaPerJam, 0, ',', '.') }}/jam
                 </span>
             </div>
 
@@ -172,7 +175,13 @@
                     @php
                         $bolehUlas = \App\Models\Pemesanan::where('penyewa_id', Auth::id() ?? 0)
                             ->where('lapangan_id', $lapangan->id)
-                            ->where('status_scan', 'sudah_scan')
+                            ->where(function ($query) {
+                                if (Schema::hasColumn('pemesanan', 'status_scan')) {
+                                    $query->where('status_scan', 'sudah_scan');
+                                } else {
+                                    $query->where('is_scanned', true);
+                                }
+                            })
                             ->exists();
                     @endphp
 
@@ -273,7 +282,10 @@
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1"><i class="fa-solid fa-location-dot text-success me-1"></i>{{ $item->lokasi }}</p>
-                            <p class="fw-semibold text-success">Rp {{ number_format($item->harga_sewa,0,',','.') }}/jam</p>
+                                @php
+                                    $hargaItem = $item->harga_per_jam ?? $item->harga_sewa ?? 0;
+                                @endphp
+                                <p class="fw-semibold text-success">Rp {{ number_format($hargaItem,0,',','.') }}/jam</p>
                             <span class="badge bg-success">{{ $item->kategori }}</span>
                         </div>
                     </div>

@@ -303,5 +303,38 @@ function hapusKategori(id) {
     }
   });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const flashSuccess = @json(session('success'));
+  const flashError = @json(session('error'));
+  const validationErrors = @json($errors->all());
+
+  if (flashSuccess) {
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil',
+      text: flashSuccess,
+      confirmButtonColor: '#41A67E'
+    });
+  }
+
+  if (flashError) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Terjadi Kesalahan',
+      text: flashError,
+      confirmButtonColor: '#41A67E'
+    });
+  }
+
+  if (validationErrors.length) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Validasi Gagal',
+      html: `<ul style="text-align:left;margin:0;padding-left:18px;">${validationErrors.map((msg) => `<li>${msg}</li>`).join('')}</ul>`,
+      confirmButtonColor: '#41A67E'
+    });
+  }
+});
 </script>
 @endsection
