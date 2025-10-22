@@ -43,27 +43,30 @@ class SampleDataSeeder extends Seeder
                 'nama_lapangan' => 'Arena Futsal Premium',
                 'kategori' => 'Futsal',
                 'lokasi' => 'Jakarta Selatan',
-                'harga_sewa' => 150000,
+                'harga_per_jam' => 150000,
                 'status' => 'promo',
                 'is_verified' => true,
+                'rating' => 4.7,
                 'deskripsi' => 'Lapangan futsal dengan rumput sintetis berkualitas tinggi dan fasilitas lengkap.',
             ],
             [
                 'nama_lapangan' => 'Lapangan Badminton Elite',
                 'kategori' => 'Badminton',
                 'lokasi' => 'Bandung',
-                'harga_sewa' => 120000,
+                'harga_per_jam' => 120000,
                 'status' => 'standard',
                 'is_verified' => true,
+                'rating' => 4.5,
                 'deskripsi' => 'Lapangan indoor berstandar nasional dengan pencahayaan yang nyaman.',
             ],
             [
                 'nama_lapangan' => 'Arena Basket Street',
                 'kategori' => 'Basket',
                 'lokasi' => 'Surabaya',
-                'harga_sewa' => 180000,
+                'harga_per_jam' => 180000,
                 'status' => 'pending',
                 'is_verified' => false,
+                'rating' => 4.2,
                 'deskripsi' => 'Lapangan basket outdoor dengan vibes streetball dan mural menarik.',
             ],
         ];
@@ -76,7 +79,7 @@ class SampleDataSeeder extends Seeder
                 ],
                 array_merge($data, [
                     'pemilik_id' => $pemilik->id,
-                    'foto' => ['examples/lapangan-1.jpg'],
+                    'foto' => json_encode(['examples/lapangan-1.jpg']),
                 ])
             );
         });
@@ -143,7 +146,7 @@ class SampleDataSeeder extends Seeder
             [
                 'pemesanan_id' => $pemesanan->id,
                 'metode' => 'qris',
-                'jumlah' => 2 * $lapanganFutsal->harga_sewa,
+                'jumlah' => 2 * $lapanganFutsal->harga_per_jam,
                 'status' => 'berhasil',
                 'payment_url' => 'https://payments.example.com/mock',
                 'tanggal_pembayaran' => Carbon::now()->subDay(),
