@@ -25,7 +25,7 @@ class Lapangan extends Model
     public function pemilik()
     {
         return $this->belongsTo(User::class, 'pemilik_id');
-    }    
+    }
 
     public function jadwal()
     {
