@@ -34,8 +34,8 @@
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
             [
-                'label' => 'Scan', 
-                'icon' => 'fa-solid fa-qrcode', 
+                'label' => 'Scan',
+                'icon' => 'fa-solid fa-qrcode',
                 'route' => 'pemilik.scan',
                 'active_routes' => ['pemilik.scan'],
             ],
@@ -107,7 +107,7 @@
   <div class="user-info">
   @php
       $user = Auth::user();
-      $avatarUrl = $user->foto_profil 
+      $avatarUrl = $user->foto_profil
           ? asset('storage/' . $user->foto_profil)
           :'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
   @endphp
@@ -182,7 +182,7 @@
 </main>
     <!-- ⭐ PENTING: Bootstrap JS Bundle (termasuk Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Script Sidebar Toggle -->
     <script>
         const sidebar = document.getElementById('sidebar');
