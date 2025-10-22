@@ -9,10 +9,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
-
-  <style>
-
-  </style>
 </head>
 
 <body>
@@ -28,8 +24,8 @@
                 'active_routes' => ['dashboard.pemilik'],
             ],
             [
-                'label' => 'Data Lapangan', 
-                'icon' => 'fa-solid fa-futbol', 
+                'label' => 'Data Lapangan',
+                'icon' => 'fa-solid fa-futbol',
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
             ],
@@ -37,19 +33,18 @@
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
-                        [
-                'label' => 'Kelola Rekening', 
-                'icon' => 'fa-solid fa-qrcode', 
-                'route' => 'rekening.index',
-                'active_routes' => ['rekening.index'],
-            ],
             [
                 'label' => 'Scan', 
                 'icon' => 'fa-solid fa-qrcode', 
                 'route' => 'pemilik.scan',
                 'active_routes' => ['pemilik.scan'],
             ],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
+            [
+                'label' => 'Pengaturan Akun',
+                'icon' => 'fa-solid fa-user-gear',
+                'route' => 'profile.index',
+                'active_routes' => ['profile.index'],
+            ],
         ];
     } else {
         $menuItems = [
@@ -173,43 +168,35 @@
     @endforeach
   </nav>
 
-
-  <!-- Tambahkan CDN SweetAlert2 di head -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <form id="logout-form" action="{{ route('logout') }}" method="POST">
-      @csrf
-      <button type="button" id="logout-button" class="logout-btn">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          <span class="logout-text">Keluar</span>
-      </button>
+  <form action="{{ route('logout') }}" method="POST">
+    @csrf
+    <button type="submit" class="logout-btn">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      <span class="logout-text">Keluar</span>
+    </button>
   </form>
-
-  <script>
-  document.getElementById('logout-button').addEventListener('click', function() {
-      Swal.fire({
-          title: 'Yakin ingin keluar?',
-          text: "Kamu akan logout dari akun ini",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6', // biru
-          cancelButtonColor: '#d33',     // merah
-          confirmButtonText: 'Ya, keluar!',
-          cancelButtonText: 'Batal'
-      }).then((result) => {
-          if (result.isConfirmed) {
-              document.getElementById('logout-form').submit(); // submit form logout
-          }
-      });
-  });
-  </script>
-
 </aside>
 
 <main class="main-content" id="mainContent">
   @yield('content')
 </main>
+    <!-- ⭐ PENTING: Bootstrap JS Bundle (termasuk Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script Sidebar Toggle -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleSidebar = document.getElementById('toggleSidebar');
 
+        toggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    </script>
+
+    <!-- Stack untuk script tambahan dari halaman child -->
+    @stack('scripts')
 <script>
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');

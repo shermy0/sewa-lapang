@@ -4,72 +4,29 @@
 
 @section('content')
 <div class="container py-4">
-    <h2 class="fw-bold mb-4 text-success">Riwayat Pemesanan</h2>
-    {{-- Sudah Dibayar --}}
-    <h4 class="mt-4">Sudah Dibayar</h4>
+    <h2 class="fw-bold mb-4 text-secondary">Riwayat Pemesanan</h2>
+
     <div class="row">
-        @foreach($sudahDibayar as $p)
+        @forelse($dibatalkan as $p)
         <div class="col-md-4 mb-3">
-            <div class="card p-3 border-success">
+            <div class="card p-3 border-secondary">
                 <p><strong>Lapangan:</strong> {{ $p->lapangan->nama_lapangan }}</p>
-                <p><strong>Jadwal:</strong> {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}
-                ({{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }})</p>
-                <p>Status: <span class="badge bg-success">Dibayar</span></p>
-                <p><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
-                <div class="mt-2 text-center">
-                    {!! DNS1D::getBarcodeHTML($p->kode_tiket, 'C128', 2, 60) !!}
-                </div>
+                <p><strong>Jadwal:</strong> 
+                    {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}
+                    ({{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }})
+                </p>
+                <p><strong>Status:</strong> 
+                    @if($p->status == 'batal')
+                        <span class="badge bg-danger">Dibatalkan</span>
+                    @elseif($p->status == 'di-scan')
+                        <span class="badge bg-primary">Sudah Discanned</span>
+                    @endif
+                </p>
             </div>
         </div>
-        @endforeach
+        @empty
+        <p class="text-muted">Belum ada riwayat pemesanan dibatalkan atau discan.</p>
+        @endforelse
     </div>
 </div>
-
-{{-- MIDTRANS SNAP --}}
-<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.btn-pay-again').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const pemesananId = this.dataset.id;
-
-            fetch('/midtrans/token-again/' + pemesananId)
-            .then(res => res.json())
-            .then(data => {
-                if(data.error){
-                    alert("Error: " + data.error);
-                    return;
-                }
-
-                snap.pay(data.snap_token, { 
-                    onSuccess: function(result){
-                        fetch('/pemesanan/success/' + data.pemesanan_id, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ result })
-                        })
-                        .then(() => window.location.reload())
-                        .catch(err => console.error(err));
-                    },
-                    onPending: function(result){
-                        alert("Menunggu pembayaran...");
-                        window.location.reload();
-                    },
-                    onError: function(result){
-                        alert("Pembayaran gagal!");
-                        console.error(result);
-                    }
-                });
-            })
-            .catch(err => {
-                console.error(err);
-                alert("Terjadi kesalahan saat memproses pembayaran.");
-            });
-        });
-    });
-});
-</script>
 @endsection

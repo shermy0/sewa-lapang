@@ -9,23 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::table('lapangan', function (Blueprint $table) {
-            if (!Schema::hasColumn('lapangan', 'kategori')) {
-                $table->string('kategori')->nullable()->after('nama_lapangan');
-            }
+            $table->dropColumn(['harga_sewa', 'durasi_sewa']);
         });
     }
-    /** 
+
+    /**
      * Reverse the migrations.
      */
-    public function down(): void
+    public function down()
     {
         Schema::table('lapangan', function (Blueprint $table) {
-            if (Schema::hasColumn('lapangan', 'kategori')) {
-                $table->dropColumn('kategori');
-            }
+            $table->decimal('harga_sewa', 12, 2)->default(0);
+            $table->integer('durasi_sewa')->default(60);
         });
     }
 };

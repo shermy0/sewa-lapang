@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('pemilik_id')->constrained('users')->onDelete('cascade');
             $table->string('nama_lapangan');
-            $table->enum('kategori', ['Badminton', 'Futsal', 'Padel', 'Basket', 'Voli', 'Sepak Bola', 'Lainnya'])->default('Lainnya');
             $table->text('deskripsi')->nullable();
             $table->string('lokasi');
             $table->string('kategori');
@@ -23,10 +22,12 @@ return new class extends Migration
         });
     }
 
-
+<<<<<<<<< Temporary merge branch 1
+=========
     /**
      * Reverse the migrations.
      */
+>>>>>>>>> Temporary merge branch 2
     public function down(): void
     {
         Schema::dropIfExists('lapangan');
