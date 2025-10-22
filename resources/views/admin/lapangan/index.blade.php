@@ -15,26 +15,16 @@
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <form class="row g-2 align-items-center mb-3" method="GET">
-                <div class="col-xl-4 col-lg-5 col-md-6">
+                <div class="col-xl-5 col-lg-6 col-md-7">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fa-solid fa-search"></i></span>
                         <input type="text" name="search" value="{{ request('search') }}" class="form-control"
                             placeholder="Cari nama lapangan atau lokasi">
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-4">
-                    <select name="status" class="form-select">
-                        <option value="">Semua Status</option>
-                        @foreach ($statuses as $status)
-                            <option value="{{ $status }}" @selected(request('status') === $status)>
-                                {{ ucfirst($status) }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
                 <div class="col-md-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fa-solid fa-filter me-1"></i> Terapkan
+                        <i class="fa-solid fa-filter me-1"></i> Cari
                     </button>
                     <a href="{{ route('admin.lapangan.index') }}" class="btn btn-light border">
                         <i class="fa-solid fa-rotate me-1"></i> Reset
@@ -50,8 +40,6 @@
                             <th>Pemilik</th>
                             <th>Kategori</th>
                             <th>Harga/Jam</th>
-                            <th>Rating</th>
-                            <th>Status</th>
                             <th class="text-end">Aksi</th>
                         </tr>
                     </thead>
@@ -61,21 +49,10 @@
                                 <td class="fw-semibold">{{ $item->nama_lapangan }}</td>
                                 <td>{{ $item->pemilik?->name ?? '-' }}</td>
                                 <td>{{ $item->kategori ?? '-' }}</td>
-                                <td>Rp {{ number_format($item->harga_per_jam ?? 0, 0, ',', '.') }}</td>
-                                <td>
-                                    <span class="badge bg-light text-dark">
-                                        <i class="fa-solid fa-star text-warning me-1"></i>{{ number_format($item->rating ?? 0, 1) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge text-uppercase
-                                        @if ($item->status === 'promo') bg-info
-                                        @elseif ($item->status === 'standard') bg-secondary
-                                        @elseif ($item->status === 'nonaktif') bg-danger
-                                        @else bg-warning text-dark @endif">
-                                        {{ $item->status }}
-                                    </span>
-                                </td>
+                                @php
+                                    $harga = $item->harga_per_jam ?? $item->harga_sewa ?? 0;
+                                @endphp
+                                <td>Rp {{ number_format($harga, 0, ',', '.') }}</td>
                                 <td class="text-end">
                                     <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                                         data-bs-target="#modalPreviewLapangan{{ $item->id }}">
@@ -111,11 +88,7 @@
                                                         </div>
                                                         <div>
                                                             <small class="text-muted d-block">Harga / Jam</small>
-                                                            <span class="fw-semibold">Rp {{ number_format($item->harga_per_jam ?? 0, 0, ',', '.') }}</span>
-                                                        </div>
-                                                        <div>
-                                                            <small class="text-muted d-block">Rating</small>
-                                                            <span class="fw-semibold"><i class="fa-solid fa-star text-warning me-1"></i>{{ number_format($item->rating ?? 0, 1) }}</span>
+                                                            <span class="fw-semibold">Rp {{ number_format($harga, 0, ',', '.') }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -130,7 +103,7 @@
 
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">Belum ada data lapangan.</td>
+                                <td colspan="5" class="text-center text-muted py-4">Belum ada data lapangan.</td>
                             </tr>
                         @endforelse
                     </tbody>
