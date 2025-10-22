@@ -29,7 +29,12 @@
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
             ],
-            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
+            [
+                'label' => 'Kelola Kategori',
+                'icon' => 'fa-solid fa-futbol',
+                'route' => 'kategori.index',
+                'active_routes' => ['kategori.index'],
+            ],            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
