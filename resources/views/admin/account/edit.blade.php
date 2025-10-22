@@ -6,11 +6,19 @@
     use Illuminate\Support\Facades\Storage;
 
     $placeholderAvatar = 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
-    $photoUrl = $user->foto_profil
-        ? (filter_var($user->foto_profil, FILTER_VALIDATE_URL)
-            ? $user->foto_profil
-            : Storage::disk('public')->url($user->foto_profil))
-        : $placeholderAvatar;
+
+    $hasStoredPhoto = false;
+    $photoUrl = $placeholderAvatar;
+
+    if ($user->foto_profil) {
+        if (filter_var($user->foto_profil, FILTER_VALIDATE_URL)) {
+            $photoUrl = $user->foto_profil;
+            $hasStoredPhoto = true;
+        } elseif (Storage::disk('public')->exists($user->foto_profil)) {
+            $photoUrl = asset('storage/' . ltrim(str_replace('\\', '/', $user->foto_profil), '/'));
+            $hasStoredPhoto = true;
+        }
+    }
 @endphp
 
 @section('content')
@@ -43,6 +51,7 @@
                     src="{{ $photoUrl }}"
                     data-original="{{ $photoUrl }}"
                     data-placeholder="{{ $placeholderAvatar }}"
+                    onerror="this.onerror=null;this.src=this.dataset.placeholder;"
                     alt="Foto Profil"
                     class="rounded-circle border border-3 border-primary-custom shadow-sm object-fit-cover"
                     width="130"
@@ -56,7 +65,7 @@
                 </label>
                 <input type="file" id="foto_profil" name="foto_profil" accept="image/*" class="d-none">
 
-                @if ($user->foto_profil)
+                @if ($hasStoredPhoto)
                     <button type="button" id="removePhotoBtn" class="btn btn-outline-danger ms-2 px-3 py-2">
                         <i class="fa-solid fa-trash-can me-1"></i> Hapus Foto
                     </button>
@@ -182,6 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const removePhotoInput = document.getElementById('remove_photo');
     const placeholder = previewImg ? previewImg.dataset.placeholder : '';
     const original = previewImg ? previewImg.dataset.original : placeholder;
+
+    if (!removePhotoBtn && removePhotoInput) {
+        removePhotoInput.value = '0';
+    }
 
     if (photoInput) {
         photoInput.addEventListener('change', (event) => {

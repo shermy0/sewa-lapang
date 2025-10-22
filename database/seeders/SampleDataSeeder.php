@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 class SampleDataSeeder extends Seeder
-{
+{ 
     public function run(): void
     {
         $pemilik = User::updateOrCreate(
