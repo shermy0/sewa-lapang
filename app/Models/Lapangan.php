@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Lapangan extends Model
 {
@@ -94,5 +95,75 @@ protected $fillable = [
         }
 
         $this->attributes['foto'] = json_encode([$value]);
+    }
+
+    /**
+     * Get an array of public URLs for the stored photos.
+     */
+    public function getFotoUrlsAttribute(): array
+    {
+        $raw = $this->getRawOriginal('foto');
+
+        if (is_null($raw) || $raw === '') {
+            return [];
+        }
+
+        if (is_array($raw)) {
+            $files = $raw;
+        } else {
+            $files = json_decode($raw, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $files = [$raw];
+            }
+        }
+
+        if (!is_array($files)) {
+            $files = [$files];
+        }
+
+        return collect($files)
+            ->map(function ($file) {
+                if (empty($file)) {
+                    return null;
+                }
+
+                if (filter_var($file, FILTER_VALIDATE_URL)) {
+                    return $file;
+                }
+
+                if (Str::startsWith($file, ['http://', 'https://'])) {
+                    return $file;
+                }
+
+                if (Str::startsWith($file, ['poto/', 'storage/'])) {
+                    return asset($file);
+                }
+
+                if (Str::startsWith($file, ['/'])) {
+                    return asset(ltrim($file, '/'));
+                }
+
+                if (file_exists(public_path('poto/'.$file))) {
+                    return asset('poto/'.$file);
+                }
+
+                if (file_exists(public_path($file))) {
+                    return asset($file);
+                }
+
+                return asset('storage/'.$file);
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Convenience accessor for the first photo URL.
+     */
+    public function getFotoUtamaAttribute(): ?string
+    {
+        return $this->foto_urls[0] ?? null;
     }
 }

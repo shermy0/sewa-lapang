@@ -73,7 +73,7 @@
                                             <div class="row g-3">
                                                 <div class="col-md-5">
                                                     @php
-                                                        $foto = $item->foto_urls[0] ?? 'https://via.placeholder.com/640x360?text=Lapangan';
+                                                        $foto = $item->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
                                                     @endphp
                                                     <img src="{{ $foto }}" alt="Foto Lapangan" class="img-fluid rounded shadow-sm">
                                                 </div>

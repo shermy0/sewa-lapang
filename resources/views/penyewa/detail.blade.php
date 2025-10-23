@@ -33,8 +33,11 @@
             <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden" 
                  data-bs-ride="carousel" data-bs-interval="3000">
                 <div class="carousel-inner">
+                    @php
+                        $fotoUtama = $lapangan->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
+                    @endphp
                     <div class="carousel-item active">
-                        <img src="{{ asset('poto/'.$lapangan->foto) }}" 
+                        <img src="{{ $fotoUtama }}" 
                              class="d-block w-100" alt="Foto Lapangan"
                              style="height: 350px; object-fit: cover;">
                     </div>
@@ -278,7 +281,10 @@
             <div class="col-md-4 mb-4">
                 <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
                     <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ asset('poto/'.$item->foto) }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
+                        @php
+                            $fotoRekomendasi = $item->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
+                        @endphp
+                        <img src="{{ $fotoRekomendasi }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1"><i class="fa-solid fa-location-dot text-success me-1"></i>{{ $item->lokasi }}</p>
