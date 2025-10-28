@@ -29,7 +29,10 @@
             @foreach ($favoritLapangan as $lapangan)
                 <div class="col-md-4 mb-4">
                     <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ asset('poto/'.$lapangan->foto) }}" class="card-img-top"
+                        @php
+                            $fotoFavorit = $lapangan->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
+                        @endphp
+                        <img src="{{ $fotoFavorit }}" class="card-img-top"
                              alt="Foto {{ $lapangan->nama_lapangan }}" style="height: 200px; object-fit: cover;">
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">{{ $lapangan->nama_lapangan }}</h5>

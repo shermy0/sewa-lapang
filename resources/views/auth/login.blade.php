@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Login</title>
+        <title>Masuk</title>
         <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
 
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
@@ -12,7 +12,7 @@
     </head>
     <body class="antialiased bg-gray-100">
         <div class="auth-container">
-                <h1 class="text-2xl font-semibold text-center mb-6">Log in to your account</h1>
+                <h1 class="text-2xl font-semibold text-center mb-6">Masuk ke akun Anda</h1>
                 @if (session('status'))
                     <div class="mb-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
                         {{ session('status') }}
@@ -38,7 +38,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="password">Password</label>
+                        <label class="block text-sm font-medium text-gray-700" for="password">Kata sandi</label>
                         <input
                             id="password"
                             type="password"
@@ -59,21 +59,26 @@
                                 class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                 {{ old('remember') ? 'checked' : '' }}
                             >
-                            <span class="ml-2">Remember me</span>
+                            <span class="ml-2">Ingat saya</span>
                         </label>
+                        @if (Route::has('password.request'))
+                            <a href="{{ route('password.request') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                                Lupa kata sandi?
+                            </a>
+                        @endif
                     </div>
 
                     <button
                         type="submit"
                         class="w-full py-2 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        Log in
+                        Masuk
                     </button>
                 </form>
 
                 <p class="mt-6 text-center text-sm text-gray-600">
-                    Need an account?
-                    <a href="{{ route('register') }}" class="font-medium text-indigo-600 hover:text-indigo-500">Register</a>
+                    Belum punya akun?
+                    <a href="{{ route('register') }}" class="font-medium text-indigo-600 hover:text-indigo-500">Daftar</a>
                 </p>
             </div>
         </div>

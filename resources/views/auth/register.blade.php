@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Register</title>
+        <title>Daftar</title>
                 <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
 
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
@@ -13,7 +13,7 @@
     <body class="antialiased bg-gray-100">
                 <div class="auth-container">
 
-                <h1 class="text-2xl font-semibold text-center mb-6">Create an account</h1>
+                <h1 class="text-2xl font-semibold text-center mb-6">Buat akun baru</h1>
                 @if (session('status'))
                     <div class="mb-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
                         {{ session('status') }}
@@ -37,7 +37,7 @@
                     @csrf
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="name">Name</label>
+                        <label class="block text-sm font-medium text-gray-700" for="name">Nama lengkap</label>
                         <input
                             id="name"
                             type="text"
@@ -68,7 +68,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="password">Password</label>
+                        <label class="block text-sm font-medium text-gray-700" for="password">Kata sandi</label>
                         <input
                             id="password"
                             type="password"
@@ -82,7 +82,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="password_confirmation">Confirm Password</label>
+                        <label class="block text-sm font-medium text-gray-700" for="password_confirmation">Konfirmasi kata sandi</label>
                         <input
                             id="password_confirmation"
                             type="password"
@@ -93,7 +93,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700" for="role">Role</label>
+                        <label class="block text-sm font-medium text-gray-700" for="role">Peran</label>
                         <select
                             id="role"
                             name="role"
@@ -115,13 +115,13 @@
                         type="submit"
                         class="w-full py-2 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        Register
+                        Daftar
                     </button>
                 </form>
 
                 <p class="mt-6 text-center text-sm text-gray-600">
-                    Already have an account?
-                    <a href="{{ route('login') }}" class="font-medium text-indigo-600 hover:text-indigo-500">Log in</a>
+                    Sudah punya akun?
+                    <a href="{{ route('login') }}" class="font-medium text-indigo-600 hover:text-indigo-500">Masuk</a>
                 </p>
             </div>
         </div>

@@ -8,15 +8,9 @@ use Illuminate\Http\Request;
 
 class LapanganController extends Controller
 {
-    private const STATUSES = ['pending', 'standard', 'promo', 'nonaktif'];
-
     public function index(Request $request)
     {
         $query = Lapangan::with('pemilik')->latest();
-
-        if ($status = $request->input('status')) {
-            $query->where('status', $status);
-        }
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -29,7 +23,6 @@ class LapanganController extends Controller
 
         return view('admin.lapangan.index', [
             'lapangan' => $lapangan,
-            'statuses' => self::STATUSES,
         ]);
     }
 }
