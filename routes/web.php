@@ -1,7 +1,16 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountController as AdminAccountController;
+use App\Http\Controllers\Admin\LapanganController as AdminLapanganController;
+use App\Http\Controllers\Admin\LaporanPenyalahgunaanController as AdminLaporanPenyalahgunaanController;
+use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\DisbursementController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\PembayaranController;
@@ -27,7 +36,7 @@ Route::get('/test-log', function () {
 
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::middleware('guest')->group(function () {
@@ -36,6 +45,11 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
 
@@ -117,7 +131,25 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
         return back()->with('status', __('Email verifikasi baru telah dikirim.'));
     })->middleware(['throttle:6,1'])->name('verification.send');
 
-    Route::get('/verifikasi-berhasil', function () {
+    Route::get('/verifikasi-berhasil', function (Request $request) {
+        $user = $request->user();
+
+        if (! $user) {
+            return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
+        }
+
+        if ($user->role === 'penyewa') {
+            return redirect()->route('penyewa.beranda')->with('status', __('Akun berhasil diverifikasi.'));
+        }
+
+        if ($user->role === 'pemilik') {
+            return redirect()->route('dashboard.pemilik')->with('status', __('Akun berhasil diverifikasi.'));
+        }
+
+        if ($user->role === 'admin') {
+            return redirect()->route('dashboard.admin');
+        }
+
         return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
     })->name('verification.success');
 });
@@ -175,4 +207,32 @@ Route::middleware(['auth'])->group(function () {
     // API Tiket (optional)
     Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
     Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/dashboard/admin', [AdminDashboardController::class, 'index'])->name('dashboard.admin');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/lapangan', [AdminLapanganController::class, 'index'])->name('lapangan.index');
+
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('users.update-status');
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('/pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
+        Route::put('/pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('pembayaran.update');
+
+        Route::get('/laporan/penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('laporan.penyalahgunaan.index');
+        Route::get('/laporan/penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('laporan.penyalahgunaan.show');
+        Route::patch('/laporan/penyalahgunaan/{laporanPenyalahgunaan}/status', [AdminLaporanPenyalahgunaanController::class, 'updateStatus'])->name('laporan.penyalahgunaan.update-status');
+        Route::delete('/laporan/penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'destroy'])->name('laporan.penyalahgunaan.destroy');
+
+        Route::get('/account', [AdminAccountController::class, 'edit'])->name('account.edit');
+        Route::put('/account', [AdminAccountController::class, 'update'])->name('account.update');
+    });
 });

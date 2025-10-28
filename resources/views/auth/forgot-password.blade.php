@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Atur Ulang Kata Sandi</title>
+        <title>Lupa Kata Sandi</title>
         <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
 
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
@@ -14,10 +14,14 @@
         <div class="auth-container">
             <h1 class="text-2xl font-semibold text-center mb-6">Atur ulang kata sandi</h1>
 
-            <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
-                @csrf
+            @if (session('status'))
+                <div class="mb-4 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
+                    {{ session('status') }}
+                </div>
+            @endif
 
-                <input type="hidden" name="token" value="{{ $token }}">
+            <form method="POST" action="{{ route('password.email') }}" class="space-y-4">
+                @csrf
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700" for="email">Email</label>
@@ -25,7 +29,7 @@
                         id="email"
                         type="email"
                         name="email"
-                        value="{{ $email ?? old('email') }}"
+                        value="{{ old('email') }}"
                         required
                         autofocus
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -35,38 +39,18 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700" for="password">Kata sandi baru</label>
-                    <input
-                        id="password"
-                        type="password"
-                        name="password"
-                        required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                    @error('password')
-                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700" for="password_confirmation">Konfirmasi kata sandi</label>
-                    <input
-                        id="password_confirmation"
-                        type="password"
-                        name="password_confirmation"
-                        required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                </div>
-
                 <button
                     type="submit"
                     class="w-full py-2 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 >
-                    Atur ulang kata sandi
+                    Kirim tautan reset
                 </button>
             </form>
+
+            <p class="mt-6 text-center text-sm text-gray-600">
+                Sudah ingat kata sandi?
+                <a href="{{ route('login') }}" class="font-medium text-indigo-600 hover:text-indigo-500">Kembali ke halaman masuk</a>
+            </p>
         </div>
     </body>
 </html>
