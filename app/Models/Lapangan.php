@@ -10,83 +10,75 @@ class Lapangan extends Model
     use HasFactory;
 
     protected $table = 'lapangan';
+
     protected $fillable = [
         'pemilik_id',
+        'id_kategori',   // relasi kategori
         'nama_lapangan',
+        'tiket_tersedia',
         'deskripsi',
         'lokasi',
-        'harga_sewa',
+        'rating',
         'foto',
-        'kategori',
-        'status'
-        // harga_sewa dan durasi_sewa dihapus
+        'status',
     ];
 
+    // 🔗 Relasi ke Kategori
+    public function kategori()
+    {
+        return $this->belongsTo(Kategori::class, 'id_kategori');
+    }
+
+    // 🔗 Relasi ke Pemilik (User)
     public function pemilik()
     {
         return $this->belongsTo(User::class, 'pemilik_id');
     }
 
+    // 🔗 Relasi ke Jadwal Lapangan
     public function jadwal()
     {
         return $this->hasMany(JadwalLapangan::class, 'lapangan_id');
     }
+
+    // 🔗 Relasi ke Pemesanan
     public function pemesanan()
     {
         return $this->hasMany(Pemesanan::class, 'lapangan_id');
     }
-    protected $guarded = [];
 
-    // Relasi ke ulasan
+    // 🔗 Relasi ke Ulasan
     public function ulasans()
     {
-        return $this->hasMany(Ulasan::class, 'lapangan_id', 'id');
+        return $this->hasMany(Ulasan::class, 'lapangan_id');
     }
 
-    // Relasi ke pemesanan (opsional)
-    public function pemesanans()
-    {
-        return $this->hasMany(Pemesanan::class, 'lapangan_id', 'id');
-    }
-
+    // 🔗 Relasi ke Favorit (Many to Many)
     public function favoritedBy()
     {
         return $this->belongsToMany(User::class, 'favorit_lapangan', 'lapangan_id', 'penyewa_id')
                     ->withTimestamps();
     }
 
+    // 🖼️ Mutator: handle foto dalam format JSON
     public function getFotoAttribute($value)
     {
         if (empty($value)) {
             return [];
         }
 
-        if (is_array($value)) {
-            return $value;
-        }
-
         $decoded = json_decode($value, true);
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return $decoded;
-        }
-
-        return [$value];
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : [$value];
     }
 
     public function setFotoAttribute($value)
     {
         if (is_null($value)) {
             $this->attributes['foto'] = null;
-            return;
+        } elseif (is_array($value)) {
+            $this->attributes['foto'] = json_encode(array_values(array_filter($value)));
+        } else {
+            $this->attributes['foto'] = json_encode([$value]);
         }
-
-        if (is_array($value)) {
-            $cleaned = array_values(array_filter($value, fn ($item) => !is_null($item) && $item !== ''));
-            $this->attributes['foto'] = $cleaned ? json_encode($cleaned) : null;
-            return;
-        }
-
-        $this->attributes['foto'] = json_encode([$value]);
     }
 }

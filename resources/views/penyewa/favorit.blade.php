@@ -20,7 +20,9 @@
 
     @if ($favoritLapangan->isEmpty())
         <div class="text-center py-5">
-            <i class="fa-solid fa-heart-circle-plus text-success fs-1 mb-3"></i>
+            <a href="{{ route('penyewa.beranda') }}">
+                <i class="fa-solid fa-heart-circle-plus text-success fs-1 mb-3"></i>
+            </a>
             <h5 class="fw-semibold">Belum ada lapangan favorit.</h5>
             <p class="text-muted mb-0">Tambahkan lapangan ke favorit dari halaman detail untuk memudahkan akses.</p>
         </div>

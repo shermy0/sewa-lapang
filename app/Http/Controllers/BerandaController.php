@@ -7,46 +7,61 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Ulasan;
 use App\Models\Pemesanan;
 use App\Models\User;
+use App\Models\Kategori;
+
 
 class BerandaController extends Controller
 {
+
     public function index(Request $request)
     {
         $keyword = $request->input('search');
         $kategori = $request->input('kategori');
 
-        // Ambil semua nilai enum kategori dari tabel lapangan
-        $enumQuery = DB::select("SHOW COLUMNS FROM lapangan LIKE 'kategori'");
-        preg_match("/^enum\('(.*)'\)$/", $enumQuery[0]->Type, $matches);
-        $kategoris = explode("','", $matches[1]);
+        // Ambil semua kategori dari tabel kategori
+        $kategoris = Kategori::all();
 
-        // Query data lapangan
-        $lapangan = DB::table('jadwal_lapangan')
-            ->join('lapangan', 'jadwal_lapangan.lapangan_id', '=', 'lapangan.id')
+        // Ambil data lapangan + kategori + jadwal
+        $lapangan = DB::table('lapangan')
+            ->leftJoin('kategori', 'lapangan.id_kategori', '=', 'kategori.id')
+            ->leftJoin('jadwal_lapangan', 'lapangan.id', '=', 'jadwal_lapangan.lapangan_id')
             ->select(
                 'lapangan.id as lapangan_id',
                 'lapangan.nama_lapangan',
                 'lapangan.lokasi',
-                'lapangan.kategori',
                 'lapangan.foto',
+                'lapangan.id_kategori',
+                'kategori.nama_kategori',
                 'jadwal_lapangan.id as jadwal_id',
                 'jadwal_lapangan.tanggal',
                 'jadwal_lapangan.jam_mulai',
                 'jadwal_lapangan.jam_selesai',
-                'jadwal_lapangan.harga_per_jam',
+                'jadwal_lapangan.harga_sewa',
                 'jadwal_lapangan.tersedia'
             )
-            ->where('jadwal_lapangan.tersedia', 1)
-            ->orderBy('jadwal_lapangan.tanggal', 'asc')
+            ->when($keyword, function ($query) use ($keyword) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('lapangan.nama_lapangan', 'like', "%{$keyword}%")
+                      ->orWhere('lapangan.lokasi', 'like', "%{$keyword}%");
+                });
+            })
+            ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
+                $query->where('lapangan.id_kategori', $kategori);
+            })
+            ->orderBy('lapangan.id', 'asc')
             ->limit(12)
             ->get();
-    
+
         return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris'));
     }
 
     public function detail($id)
     {
-        $lapangan = DB::table('lapangan')->where('id', $id)->first();
+        $lapangan = DB::table('lapangan')
+            ->leftJoin('kategori', 'lapangan.id_kategori', '=', 'kategori.id')
+            ->select('lapangan.*', 'kategori.nama_kategori')
+            ->where('lapangan.id', $id)
+            ->first();
 
         $ulasans = DB::table('ulasan')
             ->join('pemesanan', 'ulasan.pemesanan_id', '=', 'pemesanan.id')
@@ -58,7 +73,7 @@ class BerandaController extends Controller
                 'users.foto_profil as user_foto',
                 'pemesanan.penyewa_id as user_id'
             )
-            ->get();    
+            ->get();
 
         $avgRating = $ulasans->avg('rating');
         $totalUlasan = $ulasans->count();

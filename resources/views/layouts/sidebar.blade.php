@@ -29,10 +29,14 @@
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
             ],
+            [
+                'label' => 'Kelola Kategori',
+                'icon' => 'fa-solid fa-list',
+                'route' => 'kategori.index',
+                'active_routes' => ['kategori.index'],
+            ],         
             ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
-            ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
             [
                 'label' => 'Scan',
                 'icon' => 'fa-solid fa-qrcode',
@@ -168,13 +172,14 @@
     @endforeach
   </nav>
 
-  <form action="{{ route('logout') }}" method="POST">
-    @csrf
-    <button type="submit" class="logout-btn">
-      <i class="fa-solid fa-right-from-bracket"></i>
-      <span class="logout-text">Keluar</span>
-    </button>
+  <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+      @csrf
   </form>
+
+  <button id="logout-button" class="logout-btn">
+    <i class="fa-solid fa-right-from-bracket"></i>
+    <span class="logout-text">Keluar</span>
+  </button>
 </aside>
 
 <main class="main-content" id="mainContent">
@@ -222,6 +227,25 @@
     });
   });
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.getElementById('logout-button').addEventListener('click', function(e) {
+    e.preventDefault();
+    Swal.fire({
+        title: 'Yakin ingin keluar?',
+        text: "Kamu akan diarahkan ke halaman login.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, keluar!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('logout-form').submit();
+        }
+    });
+});
+</script>
 </body>
 </html>

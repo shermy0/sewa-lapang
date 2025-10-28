@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Kategori;
 use App\Models\Lapangan;
 use App\Models\Pembayaran;
 use App\Models\Pemesanan;
@@ -11,9 +12,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-
 class SampleDataSeeder extends Seeder
-{
+{ 
     public function run(): void
     {
         $pemilik = User::updateOrCreate(
@@ -38,12 +38,20 @@ class SampleDataSeeder extends Seeder
             ]
         );
 
+        $hargaColumn = null;
+
+        if (Schema::hasColumn('lapangan', 'harga_per_jam')) {
+            $hargaColumn = 'harga_per_jam';
+        } elseif (Schema::hasColumn('lapangan', 'harga_sewa')) {
+            $hargaColumn = 'harga_sewa';
+        }
+
         $lapanganData = [
             [
                 'nama_lapangan' => 'Arena Futsal Premium',
                 'kategori' => 'Futsal',
                 'lokasi' => 'Jakarta Selatan',
-                'harga_per_jam' => 150000,
+                'harga' => 150000,
                 'status' => 'promo',
                 'is_verified' => true,
                 'rating' => 4.7,
@@ -53,7 +61,7 @@ class SampleDataSeeder extends Seeder
                 'nama_lapangan' => 'Lapangan Badminton Elite',
                 'kategori' => 'Badminton',
                 'lokasi' => 'Bandung',
-                'harga_per_jam' => 120000,
+                'harga' => 120000,
                 'status' => 'standard',
                 'is_verified' => true,
                 'rating' => 4.5,
@@ -63,7 +71,7 @@ class SampleDataSeeder extends Seeder
                 'nama_lapangan' => 'Arena Basket Street',
                 'kategori' => 'Basket',
                 'lokasi' => 'Surabaya',
-                'harga_per_jam' => 180000,
+                'harga' => 180000,
                 'status' => 'pending',
                 'is_verified' => false,
                 'rating' => 4.2,
@@ -71,16 +79,32 @@ class SampleDataSeeder extends Seeder
             ],
         ];
 
-        $lapanganRecords = collect($lapanganData)->map(function (array $data) use ($pemilik) {
+        $lapanganRecords = collect($lapanganData)->map(function (array $data) use ($pemilik, $hargaColumn) {
+            $harga = $data['harga'];
+            $kategoriNama = $data['kategori'];
+            unset($data['harga']);
+
+            $kategori = Kategori::firstOrCreate(
+                ['nama_kategori' => $kategoriNama],
+                ['deskripsi' => $kategoriNama . ' unggulan']
+            );
+
+            $payload = array_merge($data, [
+                'pemilik_id' => $pemilik->id,
+                'id_kategori' => $kategori->id,
+                'foto' => ['examples/lapangan-1.jpg'],
+            ]);
+
+            if ($hargaColumn) {
+                $payload[$hargaColumn] = $harga;
+            }
+
             return Lapangan::updateOrCreate(
                 [
                     'nama_lapangan' => $data['nama_lapangan'],
                     'pemilik_id' => $pemilik->id,
                 ],
-                array_merge($data, [
-                    'pemilik_id' => $pemilik->id,
-                    'foto' => json_encode(['examples/lapangan-1.jpg']),
-                ])
+                $payload
             );
         });
 
@@ -139,6 +163,9 @@ class SampleDataSeeder extends Seeder
             $pemesananValues
         );
 
+        $hargaLapangan = $hargaColumn ? (float) ($lapanganFutsal->getAttribute($hargaColumn) ?? 0) : 0;
+        $totalPembayaran = max($hargaLapangan * 2, 0);
+
         Pembayaran::updateOrCreate(
             [
                 'order_id' => 'INV-' . strtoupper(Str::random(8)),
@@ -146,7 +173,7 @@ class SampleDataSeeder extends Seeder
             [
                 'pemesanan_id' => $pemesanan->id,
                 'metode' => 'qris',
-                'jumlah' => 2 * $lapanganFutsal->harga_per_jam,
+                'jumlah' => $totalPembayaran,
                 'status' => 'berhasil',
                 'payment_url' => 'https://payments.example.com/mock',
                 'tanggal_pembayaran' => Carbon::now()->subDay(),

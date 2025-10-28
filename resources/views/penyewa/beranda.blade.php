@@ -39,7 +39,6 @@
                     class="d-block w-100"
                     alt="Lapangan Basket">
             </div>
-
         </div>
     </div>
     
@@ -51,56 +50,57 @@
         </a>
 
         @foreach($kategoris as $k)
-            <a href="{{ route('penyewa.beranda', ['kategori' => $k]) }}" 
-               class="btn {{ $kategori == $k ? 'btn-success' : 'btn-outline-success' }}">
-               {{ $k }}
+            <a href="{{ route('penyewa.beranda', ['kategori' => $k->id]) }}" 
+               class="btn {{ $kategori == $k->id ? 'btn-success' : 'btn-outline-success' }}">
+               {{ $k->nama_kategori }}
             </a>
         @endforeach
     </div>
 
-    <!-- DAFTAR LAPANGAN -->
-<div class="row">
-    @forelse($lapangan as $item)
-        <div class="col-md-4 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                @php
-                    $foto = is_array(json_decode($item->foto)) 
-                        ? json_decode($item->foto)[0] 
-                        : $item->foto;
-                @endphp
-                <img src="{{ asset('storage/' . $foto) }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded-top">
 
-                <div class="card-body">
-                    <h5 class="card-title fw-bold">{{ $item->nama_lapangan }}</h5>
-                    <p class="text-muted mb-1">
-                        <i class="fa-solid fa-location-dot text-success me-1"></i>
-                        {{ $item->lokasi }}
-                    </p>
-                    <p class="text-success fw-semibold mb-2">
-                        Rp {{ number_format($item->harga_sewa, 0, ',', '.') }}
-                        <span class="text-muted">/ {{ $item->durasi_sewa ?? 60 }} menit</span>
-                    </p>
-                    <p class="small mb-1">
-                        <i class="fa-regular fa-calendar me-1"></i>
-                        {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
-                    </p>
-                    <p class="small mb-3">
-                        <i class="fa-regular fa-clock me-1"></i>
-                        {{ substr($item->jam_mulai, 0, 5) }} - {{ substr($item->jam_selesai, 0, 5) }}
-                    </p>
-                    <span class="badge bg-success">{{ ucfirst($item->kategori) }}</span>
-                    <a href="{{ route('penyewa.detail', $item->lapangan_id) }}" class="btn btn-outline-success w-100 mt-3">
-                        Lihat Detail
-                    </a>
+    <!-- DAFTAR LAPANGAN -->
+    <div class="row">
+        @forelse($lapangan as $item)
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    @php
+                        $foto = is_array(json_decode($item->foto)) 
+                            ? json_decode($item->foto)[0] 
+                            : $item->foto;
+                    @endphp
+                    <img src="{{ asset('storage/' . $foto) }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded-top">
+
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">{{ $item->nama_lapangan }}</h5>
+                        <p class="text-muted mb-1">
+                            <i class="fa-solid fa-location-dot text-success me-1"></i>
+                            {{ $item->lokasi }}
+                        </p>
+                        <p class="text-success fw-semibold mb-2">
+                            Rp {{ number_format($item->harga_sewa, 0, ',', '.') }}
+                            <span class="text-muted">/ {{ $item->durasi_sewa ?? 60 }} menit</span>
+                        </p>
+                        <p class="small mb-1">
+                            <i class="fa-regular fa-calendar me-1"></i>
+                            {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
+                        </p>
+                        <p class="small mb-3">
+                            <i class="fa-regular fa-clock me-1"></i>
+                            {{ substr($item->jam_mulai, 0, 5) }} - {{ substr($item->jam_selesai, 0, 5) }}
+                        </p>
+                        {{-- 🔽 Perbaikan bagian kategori --}}
+                        <span class="badge bg-success">{{ $item->nama_kategori ?? 'Tanpa Kategori' }}</span>
+                        
+                        <a href="{{ route('penyewa.detail', $item->lapangan_id) }}" class="btn btn-outline-success w-100 mt-3">
+                            Lihat Detail
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
-    @empty
-        <p class="text-center text-muted mt-4">Tidak ada jadwal lapangan tersedia.</p>
-    @endforelse
-</div>
-
-
+        @empty
+            <p class="text-center text-muted mt-4">Tidak ada jadwal lapangan tersedia.</p>
+        @endforelse
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

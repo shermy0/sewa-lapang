@@ -1,7 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountController as AdminAccountController;
+use App\Http\Controllers\Admin\LapanganController as AdminLapanganController;
+use App\Http\Controllers\Admin\LaporanPenyalahgunaanController as AdminLaporanPenyalahgunaanController;
+use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\DisbursementController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\PembayaranController;
@@ -17,6 +24,8 @@ use App\Http\Controllers\ScanTiketController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
+use App\Http\Controllers\KategoriController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -99,7 +108,25 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
         return back()->with('status', __('Email verifikasi baru telah dikirim.'));
     })->middleware(['throttle:6,1'])->name('verification.send');
 
-    Route::get('/verifikasi-berhasil', function () {
+    Route::get('/verifikasi-berhasil', function (Request $request) {
+        $user = $request->user();
+
+        if (! $user) {
+            return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
+        }
+
+        if ($user->role === 'penyewa') {
+            return redirect()->route('penyewa.beranda')->with('status', __('Akun berhasil diverifikasi.'));
+        }
+
+        if ($user->role === 'pemilik') {
+            return redirect()->route('dashboard.pemilik')->with('status', __('Akun berhasil diverifikasi.'));
+        }
+
+        if ($user->role === 'admin') {
+            return redirect()->route('dashboard.admin');
+        }
+
         return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
     })->name('verification.success');
 });
@@ -135,6 +162,13 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::middleware(['auth'])->group(function () {
+    // CRUD Kategori
+    Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
+    Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
+    Route::get('/kategori/{id}', [KategoriController::class, 'show'])->name('kategori.show');
+    Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
+    Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
+
     // CRUD Lapangan
     Route::get('/lapangan', [LapanganController::class, 'index'])->name('lapangan.index');
     Route::post('/lapangan', [LapanganController::class, 'store'])->name('lapangan.store');

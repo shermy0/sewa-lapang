@@ -55,7 +55,8 @@ class AccountController extends Controller
 
         if ($request->hasFile('foto_profil')) {
             $this->deleteProfilePhoto($user->foto_profil);
-            $data['foto_profil'] = $request->file('foto_profil')->store('profile_photos', 'public');
+            $storedPath = $request->file('foto_profil')->store('profile_photos', 'public');
+            $data['foto_profil'] = str_replace('\\', '/', $storedPath);
         }
 
         $user->update($data);
@@ -71,6 +72,6 @@ class AccountController extends Controller
             return;
         }
 
-        Storage::disk('public')->delete($path);
+        Storage::disk('public')->delete(str_replace('\\', '/', $path));
     }
 }
