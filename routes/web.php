@@ -27,13 +27,6 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
-use Illuminate\Support\Facades\Log;
-
-Route::get('/test-log', function () {
-    Log::info('Tes log Laravel berhasil!');
-    return 'Silakan cek storage/logs/laravel.log';
-});
-
 
 Route::get('/', function () {
     return redirect()->route('login');
