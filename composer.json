@@ -10,15 +10,9 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-<<<<<<< HEAD
-        "midtrans/midtrans-php": "*",
-        "milon/barcode": "^12.0",
-        "spatie/browsershot": "^5.0"
-=======
         "laravel/ui": "^4.6",
         "midtrans/midtrans-php": "^2.6",
         "milon/barcode": "^12.0"
->>>>>>> origin/tiket-scan
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

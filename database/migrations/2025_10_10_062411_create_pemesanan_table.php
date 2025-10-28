@@ -17,9 +17,9 @@ return new class extends Migration
             $table->foreignId('lapangan_id')->constrained('lapangan')->onDelete('cascade');
             $table->foreignId('jadwal_id')->constrained('jadwal_lapangan')->onDelete('cascade');
             $table->enum('status', ['menunggu', 'dibayar', 'selesai', 'batal'])->default('menunggu');
-            $table->boolean('is_scanned')->default(false);
-            $table->timestamp('scan_time')->nullable();
-            $table->string('kode_tiket')->nullable();
+            $table->string('kode_tiket')->nullable()->comment('Kode unik untuk tiket/barcode');
+            $table->enum('status_scan', ['belum_scan', 'sudah_scan'])->default('belum_scan');
+            $table->dateTime('waktu_scan')->nullable();
             $table->timestamps();
         });
     }
@@ -28,8 +28,7 @@ return new class extends Migration
      * Reverse the migrations.
      */
     public function down(): void
-    {           
-         $table->dropColumn(['is_scanned', 'scan_time', 'kode_tiket']);
+    {
         Schema::dropIfExists('pemesanan');
     }
 };

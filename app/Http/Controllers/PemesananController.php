@@ -92,23 +92,40 @@ class PemesananController extends Controller
                 'status' => 'menunggu'
             ]
         );
+        
 
-        $snapToken = Snap::getSnapToken([
-            'transaction_details' => [
-                'order_id' => 'ORDER-' . $pemesanan->id,
-                'gross_amount' => $lapangan->harga_sewa,
-            ],
-            'customer_details' => [
-                'first_name' => Auth::user()->name,
-                'email' => Auth::user()->email,
-            ],
-        ]);
+try {
+    $snapToken = \Midtrans\Snap::getSnapToken([
+        'transaction_details' => [
+            'order_id' => 'ORDER-' . $pemesanan->id . '-' . time(),
+            'gross_amount' => $jadwal->harga_sewa,
+        ],
+        'customer_details' => [
+            'first_name' => Auth::user()->name,
+            'email' => Auth::user()->email,
+        ],
+    ]);
+} catch (\Throwable $e) {
+    \Log::error('Gagal membuat Snap Token: ' . $e->getMessage(), [
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'trace' => $e->getTraceAsString()
+    ]);
+
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Gagal membuat token Midtrans, coba beberapa saat lagi.',
+        'debug' => $e->getMessage(), // boleh dihapus kalau sudah stabil
+    ], 200); // <– ubah ke 200 supaya JS tidak masuk ke catch()
+}
+
+
 
         Pembayaran::updateOrCreate(
             ['pemesanan_id' => $pemesanan->id],
             [
                 'metode' => 'midtrans',
-                'jumlah' => $lapangan->harga_sewa,
+'jumlah' => $jadwal->harga_sewa,
                 'status' => 'pending',
                 'order_id' => 'ORDER-' . $pemesanan->id,
                 'snap_token' => $snapToken,
@@ -216,7 +233,7 @@ class PemesananController extends Controller
         Pembayaran::create([
             'pemesanan_id' => $pemesanan->id,
             'metode' => 'midtrans',
-            'jumlah' => $lapangan->harga_sewa,
+            'jumlah' => $jadwal->harga_sewa,
             'status' => 'pending',
             'order_id' => 'ORDER-' . time(),
             'snap_token' => $request->snap_token,

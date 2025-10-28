@@ -62,9 +62,9 @@
             </div>
             <div class="mb-2">
                 <i class="fa-solid fa-tag text-success me-2"></i>
-                <span class="text-danger fw-semibold">
+                {{-- <span class="text-danger fw-semibold">
                     Rp{{ number_format($lapangan->harga_sewa, 0, ',', '.') }}/jam
-                </span>
+                </span> --}}
             </div>
 
             <!-- RATA-RATA ULASAN -->
@@ -273,7 +273,7 @@
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1"><i class="fa-solid fa-location-dot text-success me-1"></i>{{ $item->lokasi }}</p>
-                            <p class="fw-semibold text-success">Rp {{ number_format($item->harga_sewa,0,',','.') }}/jam</p>
+                            {{-- <p class="fw-semibold text-success">Rp {{ number_format($item->harga_sewa,0,',','.') }}/jam</p> --}}
                             <span class="badge bg-success">{{ $item->kategori }}</span>
                         </div>
                     </div>

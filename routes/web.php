@@ -18,6 +18,12 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
+use Illuminate\Support\Facades\Log;
+
+Route::get('/test-log', function () {
+    Log::info('Tes log Laravel berhasil!');
+    return 'Silakan cek storage/logs/laravel.log';
+});
 
 
 Route::get('/', function () {
@@ -40,13 +46,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     // Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
-    Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
+    // Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 
-    Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
-    Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
-    Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+    // Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
 
-    Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
+    // Route untuk dapatkan token Midtrans baru
+Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
+
+// Route untuk dapatkan token ulang (resume pembayaran)
+Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain'])->name('midtrans.tokenAgain');
+
+// Route untuk update hasil pembayaran sukses
+Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess'])->name('pemesanan.success');
+
+// Route pembatalan pemesanan
+Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
+
+
 Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
 
     Route::get('penyewa/tiket', [PemesananController::class, 'riwayatTiket'])->name('penyewa.tiket');
@@ -112,7 +128,7 @@ Route::middleware('auth')->get('/test-sidebar', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/kelola-rekening', [KelolaRekeningController::class, 'index'])->name('rekening.index');
     Route::post('/kelola-rekening', [KelolaRekeningController::class, 'update'])->name('rekening.update');
-     Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
+    //  Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');

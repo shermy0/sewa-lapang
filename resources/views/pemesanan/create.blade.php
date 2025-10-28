@@ -4,7 +4,6 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/pesan.css') }}">
-{{-- SweetAlert2 --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container py-5">
@@ -17,11 +16,6 @@
     {{-- ======================== FORM PEMESANAN BARU ======================== --}}
     <div class="card-booking">
         <h4 class="fw-bold mb-3">{{ $lapangan->nama_lapangan }}</h4>
-        <p class="fw-semibold mb-4">
-            Harga per sesi: <span style="color: var(--green);">
-                Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}
-            </span>
-        </p>
 
         @if(session('error'))
             <script>
@@ -34,29 +28,31 @@
             </script>
         @endif
 
+        {{-- Pilihan jadwal --}}
         <div class="mb-3">
             <label for="jadwal_id" class="form-label fw-semibold">Pilih Jadwal Tersedia</label>
             <select name="jadwal_id" id="jadwal_id" class="form-select select-jadwal" required>
                 <option value="">-- Pilih Jadwal --</option>
                 @foreach($jadwalTersedia as $j)
-                    <option value="{{ $j->id }}">
-                        {{ \Carbon\Carbon::parse($j->tanggal)->format('d M Y') }}
-                        ({{ $j->jam_mulai }} - {{ $j->jam_selesai }})
+                    <option value="{{ $j->id }}" data-harga="{{ $j->harga_sewa }}">
+                        {{ \Carbon\Carbon::parse($j->tanggal)->translatedFormat('d M Y') }}
+                        ({{ $j->jam_mulai }} - {{ $j->jam_selesai }}) 
+                        — Rp{{ number_format($j->harga_sewa, 0, ',', '.') }}
                     </option>
                 @endforeach
             </select>
         </div>
 
+        {{-- Ringkasan --}}
         <div id="summary" class="booking-summary" style="display:none;">
             <strong>Ringkasan Pemesanan:</strong><br>
             Lapangan: {{ $lapangan->nama_lapangan }} <br>
             Jadwal: <span id="summary-jadwal" class="text-success"></span><br>
             Total Bayar: 
-            <span class="fw-bold" style="color: var(--gold);">
-                Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}
-            </span>
+            <span id="summary-harga" class="fw-bold" style="color: var(--gold);"></span>
         </div>
 
+        {{-- Tombol aksi --}}
         <div class="d-flex justify-content-end gap-2 mt-4">
             <button id="pay-button" class="btn btn-green px-4">Pesan & Bayar</button>
             <a href="{{ url()->previous() }}" class="btn btn-outline px-4">Batal</a>
@@ -71,10 +67,10 @@
                 <strong>⚠️ Kamu belum menyelesaikan pembayaran!</strong><br>
                 Jadwal: 
                 <span class="text-success">
-                    {{ \Carbon\Carbon::parse($pemesananPending->jadwal->tanggal)->format('d M Y') }}
+                    {{ \Carbon\Carbon::parse($pemesananPending->jadwal->tanggal)->translatedFormat('d M Y') }}
                     ({{ $pemesananPending->jadwal->jam_mulai }} - {{ $pemesananPending->jadwal->jam_selesai }})
                 </span><br>
-                Total: <strong>Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}</strong><br>
+                Total: <strong>Rp {{ number_format($pemesananPending->jadwal->harga_sewa, 0, ',', '.') }}</strong><br>
                 <span id="countdown" class="text-danger fw-semibold"></span>
             </div>
 
@@ -98,11 +94,16 @@
 const jadwalSelect = document.getElementById('jadwal_id');
 const summary = document.getElementById('summary');
 const summaryText = document.getElementById('summary-jadwal');
+const summaryHarga = document.getElementById('summary-harga');
 
+// Tampilkan ringkasan saat jadwal dipilih
 jadwalSelect.addEventListener('change', () => {
     if (jadwalSelect.value) {
+        const selectedOption = jadwalSelect.options[jadwalSelect.selectedIndex];
+        const harga = parseInt(selectedOption.getAttribute('data-harga'));
         summary.style.display = 'block';
-        summaryText.innerText = jadwalSelect.options[jadwalSelect.selectedIndex].text;
+        summaryText.innerText = selectedOption.text;
+        summaryHarga.innerText = `Rp${harga.toLocaleString('id-ID')}`;
     } else {
         summary.style.display = 'none';
     }
@@ -180,7 +181,6 @@ document.getElementById('pay-button').onclick = function() {
     });
 };
 
-// =================== LANJUTKAN PEMBAYARAN PENDING ===================
 @if($pemesananPending)
 document.getElementById('resume-payment').onclick = function() {
     fetch('/midtrans/token-again/{{ $pemesananPending->id }}')
@@ -205,17 +205,17 @@ document.getElementById('resume-payment').onclick = function() {
                         }).then(() => window.location.href = '/penyewa/tiket');
                     });
                 },
-                onPending: function(result){
+                onPending: function(){
                     Swal.fire({
                         icon: 'info',
                         title: 'Menunggu Pembayaran',
                         text: 'Silakan selesaikan pembayaranmu.',
                         confirmButtonColor: '#41A67E'
                     }).then(() => {
-                    window.location.href = window.location.pathname;
+                        window.location.href = window.location.pathname;
                     });
                 },
-                onError: function(result){
+                onError: function(){
                     Swal.fire({
                         icon: 'error',
                         title: 'Pembayaran Gagal!',
@@ -235,7 +235,7 @@ document.getElementById('resume-payment').onclick = function() {
     });
 };
 
-// =================== KONFIRMASI BATALKAN PEMBAYARAN ===================
+// =================== KONFIRMASI BATALKAN ===================
 document.getElementById('cancel-button').addEventListener('click', function() {
     Swal.fire({
         title: 'Yakin ingin membatalkan?',
