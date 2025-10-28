@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Midtrans\Config as MidtransConfig; // <── ini penting!
+use Midtrans\Config;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,9 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        MidtransConfig::$serverKey = env('MIDTRANS_SERVER_KEY');
-        MidtransConfig::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-        MidtransConfig::$isSanitized = true;
-        MidtransConfig::$is3ds = true;
+\Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+\Midtrans\Config::$isProduction = false; // true kalau sudah live
+\Midtrans\Config::$isSanitized = true;
+\Midtrans\Config::$is3ds = true;
+
     }
 }
