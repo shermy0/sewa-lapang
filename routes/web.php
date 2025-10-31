@@ -27,6 +27,7 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\Auth\VerifyEmailController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -100,11 +101,10 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
         return view('auth.verify-email');
     })->name('verification.notice');
 
-    Route::get('/verify-email/{id}/{hash}', function (EmailVerificationRequest $request) {
-        $request->fulfill();
+Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+    ->middleware(['auth', 'signed', 'throttle:6,1'])
+    ->name('verification.verify');
 
-        return redirect()->route('verification.success');
-    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
     Route::post('/email/verification-notification', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {

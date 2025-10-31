@@ -28,7 +28,8 @@ return new class extends Migration
      * Reverse the migrations.
      */
     public function down(): void
-    {
+    {           
+         $table->dropColumn(['is_scanned', 'scan_time', 'kode_tiket']);
         Schema::dropIfExists('pemesanan');
     }
 };
