@@ -80,48 +80,68 @@ public function downloadTiket($id)
 
 public function getSnapToken(Request $request)
 {
-    $lapangan = Lapangan::findOrFail($request->lapangan_id);
-    $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
+    try {
+        \Log::info('📦 Request masuk ke getSnapToken', $request->all());
 
-    // cek pemesanan menunggu sebelumnya
-    $pemesanan = Pemesanan::firstOrCreate(
-        [
-            'penyewa_id' => Auth::id(),
-            'lapangan_id' => $lapangan->id,
-            'jadwal_id' => $jadwal->id,
-            'status' => 'menunggu'
-        ],
-        [] // jika tidak ada, otomatis dibuat
-    );
+        $lapangan = Lapangan::findOrFail($request->lapangan_id);
+        $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
 
-    $snapToken = Snap::getSnapToken([
-        'transaction_details' => [
-            'order_id' => 'ORDER-' . $pemesanan->id,
-            'gross_amount' => $lapangan->harga_per_jam,
-        ],
-        'customer_details' => [
-            'first_name' => Auth::user()->name,
-            'email' => Auth::user()->email,
-        ],
-    ]);
+        if (!$jadwal->tersedia) {
+            \Log::warning('❌ Jadwal sudah dipesan', ['jadwal_id' => $jadwal->id]);
+            return response()->json(['error' => 'Jadwal sudah dipesan!'], 400);
+        }
 
-    // update atau buat pembayaran pending baru
-    Pembayaran::updateOrCreate(
-        ['pemesanan_id' => $pemesanan->id],
-        [
-            'metode' => 'midtrans',
-            'jumlah' => $lapangan->harga_per_jam,
-            'status' => 'pending',
-            'order_id' => 'ORDER-' . $pemesanan->id,
+        $pemesanan = Pemesanan::firstOrCreate(
+            [
+                'penyewa_id' => Auth::id(),
+                'lapangan_id' => $lapangan->id,
+                'jadwal_id' => $jadwal->id,
+                'status' => 'menunggu',
+            ]
+        );
+
+        // Debug harga
+        \Log::info('💰 Harga sewa:', ['harga_sewa' => $jadwal->harga_sewa]);
+
+        // Ambil token Snap
+        $snapToken = Snap::getSnapToken([
+            'transaction_details' => [
+                'order_id' => 'ORDER-' . $pemesanan->id,
+                'gross_amount' => $jadwal->harga_sewa ?? $lapangan->harga_per_jam,
+            ],
+            'customer_details' => [
+                'first_name' => Auth::user()->name,
+                'email' => Auth::user()->email,
+            ],
+        ]);
+
+        // Debug token
+        \Log::info('✅ Snap token berhasil dibuat', ['token' => $snapToken]);
+
+        Pembayaran::updateOrCreate(
+            ['pemesanan_id' => $pemesanan->id],
+            [
+                'metode' => 'midtrans',
+                'jumlah' => $jadwal->harga_sewa ?? $lapangan->harga_per_jam,
+                'status' => 'pending',
+                'order_id' => 'ORDER-' . $pemesanan->id,
+                'snap_token' => $snapToken,
+            ]
+        );
+
+        return response()->json([
             'snap_token' => $snapToken,
-        ]
-    );
-
-    return response()->json([
-        'snap_token' => $snapToken,
-        'pemesanan_id' => $pemesanan->id
-    ]);
+            'pemesanan_id' => $pemesanan->id,
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('🔥 ERROR getSnapToken: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
 }
+
+
 
 public function batalkan($id)
 {
@@ -243,22 +263,17 @@ public function updateSuccess(Request $request, $id)
 {
     $pemesanan = Pemesanan::findOrFail($id);
 
-    // Ubah status pemesanan & buat kode tiket
     $pemesanan->update([
         'status' => 'dibayar',
         'kode_tiket' => $this->generateShortTicketCode(),
     ]);
 
-    // Update status pembayaran
-    $pembayaran = $pemesanan->pembayaran;
-    $pembayaran->update([
-        'status' => 'berhasil',
-    ]);
+    if ($pemesanan->pembayaran) {
+        $pemesanan->pembayaran->update(['status' => 'berhasil']);
+    }
 
-    // 🔹 Tambahan penting: tandai jadwal jadi tidak tersedia
-    $jadwal = $pemesanan->jadwal;
-    if ($jadwal) {
-        $jadwal->update(['tersedia' => false]);
+    if ($pemesanan->jadwal) {
+        $pemesanan->jadwal->update(['tersedia' => false]);
     }
 
     return response()->json(['success' => true]);
