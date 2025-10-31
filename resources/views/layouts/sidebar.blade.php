@@ -29,6 +29,7 @@
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
             ],
+  
             [
                 'label' => 'Kelola Kategori',
                 'icon' => 'fa-solid fa-futbol',
@@ -37,7 +38,16 @@
             ],            ['label' => 'Pemesanan', 'icon' => 'fa-solid fa-calendar-check', 'url' => '#'],
             ['label' => 'Pembayaran', 'icon' => 'fa-solid fa-money-bill-wave', 'url' => '#'],
             ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
-            ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
+            [
+    'label' => 'Persetujuan',
+    'icon' => 'fa-solid fa-check-circle',
+    'route' => 'persetujuan.index',
+    'active_routes' => ['persetujuan.index'],
+],
+
+
+
+
             [
                 'label' => 'Scan',
                 'icon' => 'fa-solid fa-qrcode',
