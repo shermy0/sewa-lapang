@@ -17,11 +17,11 @@
     {{-- ======================== FORM PEMESANAN BARU ======================== --}}
     <div class="card-booking">
         <h4 class="fw-bold mb-3">{{ $lapangan->nama_lapangan }}</h4>
-        <p class="fw-semibold mb-4">
+        {{-- <p class="fw-semibold mb-4">
             Harga per jam: <span style="color: var(--green);">
                 Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}
             </span>
-        </p>
+        </p> --}}
 
         @if(session('error'))
             <script>
@@ -39,10 +39,12 @@
             <select name="jadwal_id" id="jadwal_id" class="form-select select-jadwal" required>
                 <option value="">-- Pilih Jadwal --</option>
                 @foreach($jadwalTersedia as $j)
-                    <option value="{{ $j->id }}">
-                        {{ \Carbon\Carbon::parse($j->tanggal)->format('d M Y') }}
-                        ({{ $j->jam_mulai }} - {{ $j->jam_selesai }})
-                    </option>
+<option value="{{ $j->id }}">
+    {{ \Carbon\Carbon::parse($j->tanggal)->format('d M Y') }}
+    ({{ $j->jam_mulai }} - {{ $j->jam_selesai }}) 
+    — Rp {{ number_format($j->harga_sewa, 0, ',', '.') }}
+</option>
+
                 @endforeach
             </select>
         </div>
@@ -51,10 +53,9 @@
             <strong>Ringkasan Pemesanan:</strong><br>
             Lapangan: {{ $lapangan->nama_lapangan }} <br>
             Jadwal: <span id="summary-jadwal" class="text-success"></span><br>
-            Total Bayar: 
-            <span class="fw-bold" style="color: var(--gold);">
-                Rp {{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}
-            </span>
+Total Bayar:
+<span class="fw-bold" style="color: var(--gold);" id="summary-total"></span>
+
         </div>
 
         <div class="d-flex justify-content-end gap-2 mt-4">
@@ -98,15 +99,17 @@
 const jadwalSelect = document.getElementById('jadwal_id');
 const summary = document.getElementById('summary');
 const summaryText = document.getElementById('summary-jadwal');
-
 jadwalSelect.addEventListener('change', () => {
     if (jadwalSelect.value) {
+        const selected = jadwalSelect.options[jadwalSelect.selectedIndex];
         summary.style.display = 'block';
-        summaryText.innerText = jadwalSelect.options[jadwalSelect.selectedIndex].text;
+        summaryText.innerText = selected.text;
+        document.getElementById('summary-total').innerText = selected.text.match(/Rp\s[\d.]+/);
     } else {
         summary.style.display = 'none';
     }
 });
+
 
 // =================== PESAN & BAYAR BARU ===================
 document.getElementById('pay-button').onclick = function() {
