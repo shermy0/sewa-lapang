@@ -11,57 +11,79 @@ class Lapangan extends Model
     use HasFactory;
 
     protected $table = 'lapangan';
-protected $fillable = [
-    'pemilik_id',
-    'id_kategori',   // ⬅️ ini wajib ada
-    'nama_lapangan',
-    'kategori',
-    'tiket_tersedia',
-    'deskripsi',
-    'lokasi',
-    'rating',
-    'foto',
-    'status',
-];
+    
+    protected $fillable = [
+        'pemilik_id',
+        'id_kategori',
+        'nama_lapangan',
+        'kategori',
+        'tiket_tersedia',
+        'deskripsi',
+        'lokasi',
+        'rating',
+        'foto',
+        'status',
+        'is_verified'
+    ];
 
+    protected $casts = [
+        'foto' => 'array',
+        'rating' => 'double',
+        'is_verified' => 'boolean',
+        'tiket_tersedia' => 'integer'
+    ];
+
+    // Relationship ke kategori
     public function kategori()
     {
         return $this->belongsTo(Kategori::class, 'id_kategori');
     }
 
+    // Relationship ke pemilik
     public function pemilik()
     {
         return $this->belongsTo(User::class, 'pemilik_id');
     }
 
+    // Relationship ke sections (yang benar berdasarkan struktur database)
+    public function sections()
+    {
+        return $this->hasMany(SectionLapangan::class, 'lapangan_id');
+    }
+
+    // Relationship ke jadwal melalui sections
     public function jadwal()
     {
-        return $this->hasMany(JadwalLapangan::class, 'lapangan_id');
+        return $this->hasManyThrough(
+            JadwalLapangan::class,
+            SectionLapangan::class,
+            'lapangan_id', // Foreign key di section_lapangan
+            'section_id',  // Foreign key di jadwal_lapangan
+            'id',          // Local key di lapangan
+            'id'           // Local key di section_lapangan
+        );
     }
+
+    // Relationship ke pemesanan
     public function pemesanan()
     {
         return $this->hasMany(Pemesanan::class, 'lapangan_id');
     }
-    protected $guarded = [];
 
     // Relasi ke ulasan
     public function ulasans()
     {
-        return $this->hasMany(Ulasan::class, 'lapangan_id', 'id');
+        return $this->hasMany(Ulasan::class, 'lapangan_id');
     }
 
-    // Relasi ke pemesanan (opsional)
-    public function pemesanans()
-    {
-        return $this->hasMany(Pemesanan::class, 'lapangan_id', 'id');
-    }
-
+    // Relasi favorit
     public function favoritedBy()
     {
         return $this->belongsToMany(User::class, 'favorit_lapangan', 'lapangan_id', 'penyewa_id')
                     ->withTimestamps();
     }
 
+    // Accessor untuk foto (tetap seperti sebelumnya)
     public function getFotoAttribute($value)
     {
         if (empty($value)) {
@@ -102,27 +124,13 @@ protected $fillable = [
      */
     public function getFotoUrlsAttribute(): array
     {
-        $raw = $this->getRawOriginal('foto');
+        $fotos = $this->foto;
 
-        if (is_null($raw) || $raw === '') {
+        if (empty($fotos)) {
             return [];
         }
 
-        if (is_array($raw)) {
-            $files = $raw;
-        } else {
-            $files = json_decode($raw, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $files = [$raw];
-            }
-        }
-
-        if (!is_array($files)) {
-            $files = [$files];
-        }
-
-        return collect($files)
+        return collect($fotos)
             ->map(function ($file) {
                 if (empty($file)) {
                     return null;
