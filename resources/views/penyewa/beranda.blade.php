@@ -44,45 +44,63 @@
     </div>
     
     <!-- FILTER KATEGORI -->
-    <div class="d-flex gap-2 flex-wrap my-4">
-        <a href="{{ route('penyewa.beranda', ['kategori' => 'all']) }}" 
-           class="btn {{ ($kategori ?? 'all') === 'all' ? 'btn-success' : 'btn-outline-success' }}">
-           Semua
-        </a>
+<div class="d-flex gap-2 flex-wrap my-4">
+    <a href="{{ route('penyewa.beranda', ['kategori' => 'all']) }}" 
+       class="btn {{ ($kategori ?? 'all') === 'all' ? 'btn-success' : 'btn-outline-success' }}">
+       Semua
+    </a>
 
-        @foreach($kategoris as $k)
-            <a href="{{ route('penyewa.beranda', ['kategori' => $k]) }}" 
-               class="btn {{ $kategori == $k ? 'btn-success' : 'btn-outline-success' }}">
-               {{ $k }}
-            </a>
-        @endforeach
-    </div>
+    @foreach($kategoris as $k)
+        <a href="{{ route('penyewa.beranda', ['kategori' => $k->id]) }}" 
+           class="btn {{ $kategori == $k->id ? 'btn-success' : 'btn-outline-success' }}">
+           {{ $k->nama_kategori }}
+        </a>
+    @endforeach
+</div>
+
 
     <!-- DAFTAR LAPANGAN -->
-    <div class="row">
-        @forelse($lapangan as $item)
-            <div class="col-md-4 mb-4">
-                <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
-                    <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ $item->foto }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
-                            <p class="text-muted mb-1">
-                                <i class="fa-solid fa-location-dot text-success me-1"></i>
-                                {{ $item->lokasi }}
-                            </p>
-                            <p class="fw-semibold text-success">
-                                Rp {{ number_format($item->harga_per_jam, 0, ',', '.') }}/jam
-                            </p>
-                            <span class="badge bg-success">{{ $item->kategori }}</span>
-                        </div>
-                    </div>
-                </a>
+<div class="row">
+    @forelse($lapangan as $item)
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                @php
+                    $foto = is_array(json_decode($item->foto)) 
+                        ? json_decode($item->foto)[0] 
+                        : $item->foto;
+                @endphp
+                <img src="{{ asset('storage/' . $foto) }}" alt="{{ $item->nama_lapangan }}" class="img-fluid rounded-top">
+
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">{{ $item->nama_lapangan }}</h5>
+                    <p class="text-muted mb-1">
+                        <i class="fa-solid fa-location-dot text-success me-1"></i>
+                        {{ $item->lokasi }}
+                    </p>
+                    <p class="text-success fw-semibold mb-2">
+                        Rp {{ number_format($item->harga_sewa, 0, ',', '.') }}
+                        <span class="text-muted">/ {{ $item->durasi_sewa ?? 60 }} menit</span>
+                    </p>
+                    <p class="small mb-1">
+                        <i class="fa-regular fa-calendar me-1"></i>
+                        {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
+                    </p>
+                    <p class="small mb-3">
+                        <i class="fa-regular fa-clock me-1"></i>
+                        {{ substr($item->jam_mulai, 0, 5) }} - {{ substr($item->jam_selesai, 0, 5) }}
+                    </p>
+                    <span class="badge bg-success">{{ ucfirst($item->kategori) }}</span>
+                    <a href="{{ route('penyewa.detail', $item->lapangan_id) }}" class="btn btn-outline-success w-100 mt-3">
+                        Lihat Detail
+                    </a>
+                </div>
             </div>
-        @empty
-            <p class="text-center text-muted mt-4">Tidak ada lapangan ditemukan.</p>
-        @endforelse
-    </div>
+        </div>
+    @empty
+        <p class="text-center text-muted mt-4">Tidak ada jadwal lapangan tersedia.</p>
+    @endforelse
+</div>
+
 
 </div>
 

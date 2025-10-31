@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('pemesanan', function (Blueprint $table) {
-            $table->string('kode_tiket')->nullable()->after('status')->comment('Kode unik untuk tiket/barcode');
-        });
+        Schema::table('pembayaran', function (Blueprint $table) {
+    $table->decimal('pajak_admin', 12, 2)->default(0);
+    $table->decimal('jumlah_bersih', 12, 2)->default(0);
+    $table->string('status_pencairan')->default('belum'); // 'belum', 'proses', 'selesai'
+});
+
     }
 
     /**
@@ -21,8 +24,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('pemesanan', function (Blueprint $table) {
-            $table->dropColumn('kode_tiket');
+        Schema::table('pembayaran', function (Blueprint $table) {
+            //
         });
     }
 };
