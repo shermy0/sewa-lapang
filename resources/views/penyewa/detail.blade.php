@@ -33,8 +33,11 @@
             <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden" 
                  data-bs-ride="carousel" data-bs-interval="3000">
                 <div class="carousel-inner">
+                    @php
+                        $fotoUtama = $lapangan->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
+                    @endphp
                     <div class="carousel-item active">
-                        <img src="{{ asset('poto/'.$lapangan->foto) }}" 
+                        <img src="{{ $fotoUtama }}" 
                              class="d-block w-100" alt="Foto Lapangan"
                              style="height: 350px; object-fit: cover;">
                     </div>
@@ -60,11 +63,15 @@
                     {{ $lapangan->lokasi }}
                 </a>
             </div>
+            @php
+                $hargaPerJam = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? 0;
+            @endphp
             <div class="mb-2">
                 <i class="fa-solid fa-tag text-success me-2"></i>
-                <span class="text-danger fw-semibold">
-                    Rp{{ number_format($lapangan->harga_per_jam, 0, ',', '.') }}/jam
-                </span>
+                {{-- <span class="text-danger fw-semibold">
+                    Rp{{ number_format($lapangan->harga_sewa, 0, ',', '.') }}/jam
+                </span> --}}
+
             </div>
 
             <!-- RATA-RATA ULASAN -->
@@ -169,9 +176,28 @@
                         <p class="text-muted">Belum ada ulasan untuk lapangan ini.</p>
                     @endif
                     <div class="mt-3">
+                    @php
+                        $bolehUlas = \App\Models\Pemesanan::where('penyewa_id', Auth::id() ?? 0)
+                            ->where('lapangan_id', $lapangan->id)
+                            ->where(function ($query) {
+                                if (Schema::hasColumn('pemesanan', 'status_scan')) {
+                                    $query->where('status_scan', 'sudah_scan');
+                                } else {
+                                    $query->where('is_scanned', true);
+                                }
+                            })
+                            ->exists();
+                    @endphp
+
+                    @if ($bolehUlas)
                         <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
                             + Tambah Ulasan
                         </a>
+                    @else
+                        <button class="btn btn-secondary px-4" disabled>
+                            + Tambah Ulasan (scan tiket terlebih dahulu)
+                        </button>
+                    @endif
                     </div>
                 </div>
             </div>
@@ -256,11 +282,15 @@
             <div class="col-md-4 mb-4">
                 <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
                     <div class="card shadow-sm border-0 h-100">
-                        <img src="{{ asset('poto/'.$item->foto) }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
+                        @php
+                            $fotoRekomendasi = $item->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
+                        @endphp
+                        <img src="{{ $fotoRekomendasi }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
                         <div class="card-body">
                             <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
                             <p class="text-muted mb-1"><i class="fa-solid fa-location-dot text-success me-1"></i>{{ $item->lokasi }}</p>
-                            <p class="fw-semibold text-success">Rp {{ number_format($item->harga_per_jam,0,',','.') }}/jam</p>
+                            {{-- <p class="fw-semibold text-success">Rp {{ number_format($item->harga_sewa,0,',','.') }}/jam</p> --}}
+
                             <span class="badge bg-success">{{ $item->kategori }}</span>
                         </div>
                     </div>

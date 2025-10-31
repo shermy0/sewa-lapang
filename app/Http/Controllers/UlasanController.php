@@ -23,15 +23,15 @@ class UlasanController extends Controller
         // Ambil lapangan
         $lapangan = DB::table('lapangan')->where('id', $lapanganId)->first();
 
-        // Ambil pemesanan user untuk lapangan ini yang sudah selesai
+        // Cek apakah user sudah melakukan scan tiket untuk lapangan ini
         $pemesanan = DB::table('pemesanan')
             ->where('penyewa_id', $userId)
             ->where('lapangan_id', $lapanganId)
-            ->where('status', 'selesai')
+            ->where('status_scan', 'sudah_scan')
             ->first();
 
         if (!$pemesanan) {
-            return redirect()->back()->with('error', 'Anda belum pernah pesan lapangan. Pesan ' . $lapangan->nama_lapangan . ' untuk memberi ulasan');
+            return redirect()->back()->with('error', 'Anda belum scan tiket untuk lapangan ini.');
         }
 
         // Simpan ulasan

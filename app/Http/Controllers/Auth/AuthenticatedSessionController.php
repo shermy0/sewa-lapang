@@ -41,6 +41,16 @@ class AuthenticatedSessionController extends Controller
 
     $user = $request->user();
 
+    if ($user->status === 'nonaktif') {
+        Auth::logout();
+
+        return back()
+            ->withErrors([
+                'email' => __('Akun Anda dinonaktifkan. Silakan hubungi administrator.'),
+            ])
+            ->onlyInput('email');
+    }
+
     // Cek verifikasi email (kalau kamu pakai fitur itu)
     if ($user instanceof MustVerifyEmailContract && ! $user->hasVerifiedEmail()) {
         return redirect()
@@ -54,7 +64,7 @@ class AuthenticatedSessionController extends Controller
     } elseif ($user->role === 'pemilik') {
         return redirect()->route('dashboard.pemilik')->with('status', 'Login berhasil sebagai Pemilik.');
     } elseif ($user->role === 'admin') {
-        return redirect()->route('dashboard.admin')->with('status', 'Login berhasil sebagai Admin.');
+        return redirect()->route('dashboard.admin');
     }
 
     // Default kalau role-nya tidak dikenali
