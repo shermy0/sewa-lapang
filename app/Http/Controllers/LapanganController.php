@@ -34,7 +34,7 @@ public function index(Request $request)
                 $query->where('tiket_tersedia', '>', 0);
             } elseif ($request->tiket_tersedia === 'habis') {
                 $query->where('tiket_tersedia', '<=', 0);
-            } 
+            }
         })
         ->latest()
         ->paginate(6)
@@ -53,7 +53,7 @@ public function index(Request $request)
             'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
             'lokasi' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
-            'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
+            // 'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
             'sections' => ['nullable', 'array'],
             'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
             'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
@@ -82,9 +82,9 @@ public function index(Request $request)
                 'kategori' => $kategoriModel?->nama_kategori,
                 'lokasi' => $request->lokasi,
                 'deskripsi' => $request->deskripsi,
-                'tiket_tersedia' => $tiketTersedia,
+                // 'tiket_tersedia' => $tiketTersedia,
                 'status' => $request->input('status', 'standard'),
-                'is_verified' => false,
+                // 'is_verified' => false,
                 'foto' => $fotoPaths,
             ]);
 
@@ -113,7 +113,7 @@ public function index(Request $request)
             'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
             'lokasi' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
-            'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
+            // 'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
             'sections' => ['nullable', 'array'],
             'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
             'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
@@ -148,14 +148,14 @@ public function index(Request $request)
             : ($lapangan->tiket_tersedia ?? 0);
         $sectionsInput = $request->input('sections', []);
 
-        DB::transaction(function () use ($lapangan, $request, $kategoriModel, $tiketTersedia, $fotoPaths, $sectionsInput) {
+        DB::transaction(function () use ($lapangan, $request, $kategoriModel, $fotoPaths, $sectionsInput) {
             $lapangan->update([
                 'nama_lapangan' => $request->nama_lapangan,
                 'id_kategori' => $request->id_kategori,
                 'kategori' => $kategoriModel?->nama_kategori,
                 'lokasi' => $request->lokasi,
                 'deskripsi' => $request->deskripsi,
-                'tiket_tersedia' => $tiketTersedia,
+                // 'tiket_tersedia' => $tiketTersedia,
                 'status' => $request->input('status', $lapangan->status),
                 'foto' => $fotoPaths, // Laravel akan otomatis convert ke JSON
             ]);
@@ -489,5 +489,3 @@ public function index(Request $request)
         return max(1, (int) round($numeric * 60));
     }
 }
-
-

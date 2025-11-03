@@ -11,7 +11,7 @@ class Lapangan extends Model
     use HasFactory;
 
     protected $table = 'lapangan';
-    
+
     protected $fillable = [
         'pemilik_id',
         'id_kategori',
@@ -21,9 +21,9 @@ class Lapangan extends Model
         'lokasi',
         'rating',
         'foto',
-        'status',
+        // 'status',
         'is_verified',
-        'tiket_tersedia',
+        // 'tiket_tersedia',
         'harga_sewa',
     ];
 
