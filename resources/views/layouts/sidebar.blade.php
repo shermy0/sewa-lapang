@@ -29,7 +29,7 @@
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
             ],
-  
+
             [
                 'label' => 'Kelola Kategori',
                 'icon' => 'fa-solid fa-futbol',

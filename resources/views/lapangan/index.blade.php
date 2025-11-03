@@ -705,55 +705,91 @@
 
                             {{-- Section Management --}}
                             <div class="col-12">
-                                <div class="card border-0 bg-light">
-                                    <div class="card-header bg-transparent border-bottom">
-                                        <h6 class="mb-0 fw-bold text-dark">
-                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Section Lapangan
-                                        </h6>
-                                        <small class="text-muted">Setiap lapangan minimal memiliki 1 section (contoh: Lapangan A, Court 1, etc.)</small>
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-white border-0 pb-0">
+                                        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
+                                            <h6 class="mb-0 fw-bold text-dark">
+                                                <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Section Lapangan
+                                            </h6>
+                                            <span class="badge rounded-pill bg-light text-primary border border-primary fw-semibold px-3 py-2">
+                                                Kelola Area
+                                            </span>
+                                        </div>
+                                        <p class="text-muted small mt-2 mb-0">
+                                            Kelompokkan lapangan menjadi beberapa section (contoh: Lapangan A, Court 1, VIP) agar penyewa lebih mudah memilih.
+                                        </p>
                                     </div>
-                                    <div class="card-body">
-                                        <div id="section-container">
-                                            {{-- Section Pertama --}}
-                                            <div class="row g-3 mb-3 section-item">
-                                                <div class="col-md-5">
-                                                    <label class="form-label">Nama Section *</label>
-                                                    <input type="text" name="sections[0][nama_section]" 
-                                                        class="form-control" 
-                                                        placeholder="Contoh: Lapangan A, Court 1" 
-                                                        value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}" 
-                                                        required>
-                                                </div>
-                                                <div class="col-md-5">
-                                                    <label class="form-label">Deskripsi</label>
-                                                    <input type="text" name="sections[0][deskripsi]" 
-                                                        class="form-control" 
-                                                        placeholder="Deskripsi singkat section..."
-                                                        value="{{ old('sections.0.deskripsi') }}">
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label">&nbsp;</label>
-                                                    {{-- Tombol hapus tidak ditampilkan untuk section pertama --}}
+                                    <div class="card-body bg-light">
+                                        <div class="rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4">
+                                            <div class="d-flex align-items-start gap-2 mb-3">
+                                                <i class="fa-solid fa-circle-info text-primary mt-1"></i>
+                                                <div class="small text-muted">
+                                                    Isi minimal satu section sebagai area utama. Tambahkan section baru jika lapangan memiliki lebih dari satu area.
                                                 </div>
                                             </div>
+                                            <div id="section-container" class="section-wrapper">
+                                                {{-- Section Pertama --}}
+                                                <div class="section-item rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4 mb-3 shadow-sm">
+                                                    <div class="row g-3 align-items-end">
+                                                        <div class="col-md-5">
+                                                            <label class="form-label fw-semibold">
+                                                                Nama Section <span class="text-danger">*</span>
+                                                            </label>
+                                                            <input type="text" name="sections[0][nama_section]" 
+                                                                class="form-control" 
+                                                                placeholder="Contoh: Lapangan A, Court 1" 
+                                                                value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}" 
+                                                                required>
+                                                            <div class="form-text">Contoh: Lapangan A, Court 1</div>
+                                                        </div>
+                                                        <div class="col-md-5">
+                                                            <label class="form-label fw-semibold">Deskripsi</label>
+                                                            <input type="text" name="sections[0][deskripsi]" 
+                                                                class="form-control" 
+                                                                placeholder="Deskripsi singkat section..."
+                                                                value="{{ old('sections.0.deskripsi') }}">
+                                                            <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
+                                                        </div>
+                                                        <div class="col-md-2 d-flex align-items-end justify-content-md-end">
+                                                            <span class="text-muted small">Section utama</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3">
+                                                <button type="button" class="btn btn-outline-primary btn-sm px-3" id="tambah-section">
+                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Section Lain
+                                                </button>
+                                                <span class="small text-muted">Section tambahan cocok untuk area indoor/outdoor, court berbeda, atau sesi eksklusif.</span>
+                                            </div>
                                         </div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="tambah-section">
-                                            <i class="fa-solid fa-plus me-1"></i> Tambah Section Lain
-                                        </button>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label fw-semibold text-dark">
-                                    <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
-                                </label>
-                                <input type="file" name="foto[]" class="form-control form-control-lg foto-input"
-                                    accept="image/*" multiple required>
-                                <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
-                                <div class="form-text">
-                                    <i class="fa-solid fa-circle-info me-1"></i> Bisa upload beberapa foto (JPG, PNG, JPEG)
-                                    max 2MB/foto
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body bg-white p-3 p-md-4">
+                                        <div class="d-flex align-items-start gap-3 mb-3">
+                                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
+                                                <i class="fa-solid fa-image"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold text-dark mb-1">Upload Foto Lapangan</h6>
+                                                <p class="text-muted small mb-0">
+                                                    Tampilkan kondisi lapangan terbaik. Unggah beberapa foto untuk memberi gambaran yang jelas kepada penyewa.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="rounded-3 border border-secondary border-opacity-25 p-4 text-center mb-3" style="border-style: dashed;">
+                                            <i class="fa-solid fa-cloud-arrow-up fa-2x text-primary mb-3"></i>
+                                            <p class="fw-semibold text-dark mb-1">Tarik & lepaskan atau pilih foto dari perangkat</p>
+                                            <p class="text-muted small mb-3">Format yang didukung: JPG, PNG, JPEG &middot; Maksimal 2MB per foto</p>
+                                            <input type="file" name="foto[]" class="form-control foto-input"
+                                                accept="image/*" multiple required>
+                                        </div>
+                                        <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -795,28 +831,46 @@
         document.getElementById('tambah-section').addEventListener('click', function() {
             const container = document.getElementById('section-container');
             const newSection = document.createElement('div');
-            newSection.classList.add('row', 'g-3', 'mb-3', 'section-item');
+            newSection.classList.add(
+                'section-item',
+                'rounded-3',
+                'border',
+                'border-secondary',
+                'border-opacity-25',
+                'bg-white',
+                'p-3',
+                'p-md-4',
+                'mb-3',
+                'shadow-sm'
+            );
             newSection.innerHTML = `
-                <div class="col-md-5">
-                    <label class="form-label">Nama Section *</label>
-                    <input type="text" name="sections[${sectionCount}][nama_section]" 
-                        class="form-control" 
-                        placeholder="Contoh: Lapangan B, Court 2" required>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">Deskripsi</label>
-                    <input type="text" name="sections[${sectionCount}][deskripsi]" 
-                        class="form-control" 
-                        placeholder="Deskripsi singkat section...">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
+                        <input type="text" name="sections[${sectionCount}][nama_section]" 
+                            class="form-control" 
+                            placeholder="Contoh: Lapangan B, Court 2" required>
+                        <div class="form-text">Contoh: Lapangan B, Court 2</div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Deskripsi</label>
+                        <input type="text" name="sections[${sectionCount}][deskripsi]" 
+                            class="form-control" 
+                            placeholder="Deskripsi singkat section...">
+                        <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end justify-content-md-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                            <i class="fa-solid fa-trash me-1"></i> Hapus
+                        </button>
+                    </div>
                 </div>
             `;
             container.appendChild(newSection);
+            const firstInput = newSection.querySelector('input');
+            if (firstInput) {
+                firstInput.focus();
+            }
             sectionCount++;
         });
 
@@ -833,25 +887,39 @@
         function tambahSection(lapanganId) {
             const container = document.getElementById(`section-container-${lapanganId}`);
             const newSection = document.createElement('div');
-            newSection.classList.add('row', 'g-3', 'mb-3', 'section-item');
+            newSection.classList.add(
+                'section-item',
+                'rounded-3',
+                'border',
+                'border-secondary',
+                'border-opacity-25',
+                'bg-white',
+                'p-3',
+                'p-md-4',
+                'mb-3',
+                'shadow-sm'
+            );
             newSection.innerHTML = `
-                <div class="col-md-5">
-                    <label class="form-label">Nama Section *</label>
-                    <input type="text" name="sections[new_${sectionCount}][nama_section]" 
-                        class="form-control" 
-                        placeholder="Contoh: Lapangan Baru" required>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">Deskripsi</label>
-                    <input type="text" name="sections[new_${sectionCount}][deskripsi]" 
-                        class="form-control" 
-                        placeholder="Deskripsi singkat section...">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
+                        <input type="text" name="sections[new_${sectionCount}][nama_section]" 
+                            class="form-control" 
+                            placeholder="Contoh: Lapangan Baru" required>
+                        <div class="form-text">Contoh: Lapangan Baru atau Court Ekstra.</div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Deskripsi</label>
+                        <input type="text" name="sections[new_${sectionCount}][deskripsi]" 
+                            class="form-control" 
+                            placeholder="Deskripsi singkat section...">
+                        <div class="form-text">Opsional, gunakan untuk catatan khusus.</div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end justify-content-md-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                            <i class="fa-solid fa-trash me-1"></i> Hapus
+                        </button>
+                    </div>
                 </div>
             `;
             container.appendChild(newSection);
@@ -886,8 +954,34 @@
             `;
 
             // Load jadwal via AJAX
-            fetch(`/lapangan/${lapanganId}/section/${sectionId}/jadwal`)
-                .then(response => response.json())
+            fetch(`/lapangan/${lapanganId}/section/${sectionId}/jadwal`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            })
+                .then(async response => {
+                    let payload = null;
+
+                    // Coba parse JSON jika tersedia
+                    try {
+                        payload = await response.clone().json();
+                    } catch (_) {
+                        payload = null;
+                    }
+
+                    if (!response.ok) {
+                        const message = payload?.message ?? 'Gagal memuat data jadwal.';
+                        throw new Error(message);
+                    }
+
+                    if (!payload) {
+                        throw new Error('Respons server tidak valid.');
+                    }
+
+                    return payload;
+                })
                 .then(data => {
                     if (data.jadwal.length > 0) {
                         let html = `
@@ -977,7 +1071,7 @@
                     document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
                         <div class="alert alert-danger">
                             <i class="fa-solid fa-exclamation-triangle me-2"></i>
-                            Gagal memuat data jadwal
+                            ${error.message || 'Gagal memuat data jadwal'}
                         </div>
                     `;
                 });
