@@ -65,8 +65,20 @@
                     if (!is_array($fotoArray)) {
                         $fotoArray = [];
                     }
-                    $totalJadwal = $item->jadwal->count();
-                    $hargaRataRata = $item->jadwal->avg('harga_sewa');
+                    $totalSections = $item->sections->count();
+                    $totalJadwal = 0;
+                    $hargaRataRata = 0;
+                    
+                    // Hitung total jadwal dan harga rata-rata dari semua sections
+                    foreach ($item->sections as $section) {
+                        $totalJadwal += $section->jadwal->count();
+                        if ($section->jadwal->count() > 0) {
+                            $hargaRataRata += $section->jadwal->avg('harga_sewa');
+                        }
+                    }
+                    if ($item->sections->count() > 0) {
+                        $hargaRataRata = $hargaRataRata / $item->sections->count();
+                    }
                 @endphp
 
                 <div class="col-lg-6 col-xl-4">
@@ -113,9 +125,17 @@
                                     style="object-fit: cover; object-position: center;">
                             @endif
 
-                            {{-- Badge Total Jadwal --}}
+                            {{-- Badge Total Sections --}}
                             <div class="position-absolute top-0 start-0 m-3" style="z-index: 10;">
                                 <span class="badge bg-primary px-3 py-2 shadow">
+                                    <i class="fa-solid fa-layer-group me-1"></i>
+                                    {{ $totalSections }} Section
+                                </span>
+                            </div>
+
+                            {{-- Badge Total Jadwal --}}
+                            <div class="position-absolute top-0 end-0 m-3" style="z-index: 10;">
+                                <span class="badge bg-success px-3 py-2 shadow">
                                     <i class="fa-solid fa-calendar me-1"></i>
                                     {{ $totalJadwal }} Jadwal
                                 </span>
@@ -141,6 +161,26 @@
                                 {{ Str::limit($item->deskripsi, 100) }}
                             </p>
 
+                            {{-- Informasi Sections --}}
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-2">
+                                    <i class="fa-solid fa-layer-group text-primary me-1"></i> Daftar Section:
+                                </small>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach($item->sections->take(3) as $section)
+                                        <span class="badge bg-light text-dark border">
+                                            {{ $section->nama_section }}
+                                            <small class="text-muted">({{ $section->jadwal->count() }} jadwal)</small>
+                                        </span>
+                                    @endforeach
+                                    @if($item->sections->count() > 3)
+                                        <span class="badge bg-light text-muted border">
+                                            +{{ $item->sections->count() - 3 }} lainnya
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
                             {{-- Informasi Jadwal --}}
                             <div class="mb-3 p-3 bg-light rounded">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -151,11 +191,10 @@
                                         {{ $totalJadwal }} Slot
                                     </span>
                                 </div>
-                                @if ($hargaRataRata)
+                                @if ($hargaRataRata > 0)
                                     <div class="d-flex justify-content-between align-items-center">
                                         <small class="text-muted">
                                             <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Rata-rata
-                                            per Jam
                                         </small>
                                         <span class="fw-bold text-success">
                                             Rp {{ number_format($hargaRataRata, 0, ',', '.') }} / jam
@@ -218,19 +257,17 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold text-dark">
-                                                <i class="fa-solid fa-layer-group me-1 text-success"></i> Jenis Olahraga /
-                                                Kategori
+                                                <i class="fa-solid fa-layer-group me-1 text-success"></i> Kategori
                                             </label>
-                                            <select name="kategori" class="form-select form-select-lg" required>
+                                            <select name="id_kategori" class="form-select form-select-lg" required>
                                                 <option value="" disabled>Pilih Kategori</option>
                                                 @foreach ($kategori as $kat)
-                                                    <option value="{{ $kat->nama_kategori }}"
-                                                        {{ $item->kategori == $kat->nama_kategori ? 'selected' : '' }}>
+                                                    <option value="{{ $kat->id }}" 
+                                                        {{ $item->id_kategori == $kat->id ? 'selected' : '' }}>
                                                         {{ $kat->nama_kategori }}
                                                     </option>
                                                 @endforeach
                                             </select>
-
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label fw-semibold text-dark">
@@ -240,17 +277,54 @@
                                                 value="{{ $item->lokasi }}" required>
                                         </div>
 
-                                        <input type="hidden" name="status" value="{{ $item->status }}">
-                                        <input type="hidden" name="harga_sewa" value="{{ $item->harga_sewa }}">
-                                        <input type="hidden" name="durasi_sewa" value="{{ $item->durasi_sewa }}">
-                                        <input type="hidden" name="tiket_tersedia" value="{{ $item->tiket_tersedia }}">
-
                                         <div class="col-12">
                                             <label class="form-label fw-semibold text-dark">
                                                 <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
                                             </label>
                                             <textarea name="deskripsi" class="form-control" rows="4">{{ $item->deskripsi }}</textarea>
                                         </div>
+                                        
+                                        {{-- Section Management --}}
+                                        <div class="col-12">
+                                            <div class="card border-0 bg-light">
+                                                <div class="card-header bg-transparent border-bottom">
+                                                    <h6 class="mb-0 fw-bold text-dark">
+                                                        <i class="fa-solid fa-layer-group me-2 text-primary"></i> Kelola Section
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="section-container-{{ $item->id }}">
+                                                        @foreach($item->sections as $index => $section)
+                                                            <div class="row g-3 mb-3 section-item">
+                                                                <div class="col-md-5">
+                                                                    <label class="form-label">Nama Section</label>
+                                                                    <input type="text" name="sections[{{ $section->id }}][nama_section]" 
+                                                                        class="form-control" value="{{ $section->nama_section }}" required>
+                                                                </div>
+                                                                <div class="col-md-5">
+                                                                    <label class="form-label">Deskripsi</label>
+                                                                    <input type="text" name="sections[{{ $section->id }}][deskripsi]" 
+                                                                        class="form-control" value="{{ $section->deskripsi }}">
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="form-label">&nbsp;</label>
+                                                                    @if($index > 0)
+                                                                        <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                                                                            <i class="fa-solid fa-trash"></i>
+                                                                        </button>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" 
+                                                        onclick="tambahSection({{ $item->id }})">
+                                                        <i class="fa-solid fa-plus me-1"></i> Tambah Section
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="col-12">
                                             <label class="form-label fw-semibold text-dark">
                                                 <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
@@ -304,43 +378,51 @@
                                     data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body p-4">
-                                {{-- Info Jadwal --}}
-                                <div class="alert alert-info mb-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fa-solid fa-calendar me-2 fs-5"></i>
-                                            <div>
-                                                <strong>Total Jadwal:</strong>
-                                                <span class="fw-bold">{{ $totalJadwal }}</span> slot
+                                {{-- Pilih Section --}}
+                                <div class="card border-0 bg-light mb-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h6 class="mb-0 fw-bold text-dark">
+                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Pilih Section
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <select class="form-select" id="section-selector-{{ $item->id }}" 
+                                                    onchange="tampilkanJadwalSection({{ $item->id }})">
+                                                    <option value="">-- Pilih Section --</option>
+                                                    @foreach($item->sections as $section)
+                                                        <option value="{{ $section->id }}">
+                                                            {{ $section->nama_section }}
+                                                            @if($section->deskripsi)
+                                                                 - {{ $section->deskripsi }}
+                                                            @endif
+                                                        </option>
+                                                    @endforeach
+                                                </select>
                                             </div>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <i class="fa-solid fa-money-bill-wave me-2 fs-5"></i>
-                                            <div>
-                                                <strong>Harga:</strong>
-                                                <span class="fw-bold text-success">Di-set per jadwal</span>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <i class="fa-solid fa-clock me-2 fs-5"></i>
-                                            <div>
-                                                <strong>Durasi:</strong> Di-set per jadwal
+                                            <div class="col-md-6">
+                                                <div id="section-info-{{ $item->id }}" class="text-muted">
+                                                    Pilih section untuk melihat dan mengelola jadwal
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {{-- Form Tambah Jadwal --}}
-                                <div class="card border-0 bg-light mb-4">
+                                <div class="card border-0 bg-light mb-4" id="form-jadwal-container-{{ $item->id }}" style="display: none;">
                                     <div class="card-header bg-transparent border-0">
                                         <h6 class="mb-0 fw-bold text-dark">
-                                            <i class="fa-solid fa-plus-circle me-2 text-success"></i> Tambah Jadwal Baru
+                                            <i class="fa-solid fa-plus-circle me-2 text-success"></i> 
+                                            Tambah Jadwal Baru - <span id="section-name-{{ $item->id }}"></span>
                                         </h6>
                                     </div>
                                     <div class="card-body">
                                         <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST"
                                             class="form-submit-jadwal" id="formJadwal{{ $item->id }}">
                                             @csrf
+                                            <input type="hidden" name="section_id" id="section-id-{{ $item->id }}">
                                             <div class="row g-3">
                                                 <div class="col-md-3">
                                                     <label class="form-label fw-semibold text-dark">Tanggal</label>
@@ -362,22 +444,15 @@
                                                 <div class="col-md-2">
                                                     @php
                                                         $durasiInputDefault = old('durasi_sewa', 1);
-                                                        if (
-                                                            !is_null($durasiInputDefault) &&
-                                                            $durasiInputDefault !== ''
-                                                        ) {
+                                                        if (!is_null($durasiInputDefault) && $durasiInputDefault !== '') {
                                                             $numericDefault = is_numeric($durasiInputDefault)
                                                                 ? (float) $durasiInputDefault
                                                                 : 0;
-                                                            $durasiInputDefault =
-                                                                $numericDefault > 24
-                                                                    ? $numericDefault / 60
-                                                                    : $numericDefault;
+                                                            $durasiInputDefault = $numericDefault > 24
+                                                                ? $numericDefault / 60
+                                                                : $numericDefault;
                                                         }
-                                                        $durasiPreviewDisplay = rtrim(
-                                                            rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'),
-                                                            ',',
-                                                        );
+                                                        $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
                                                     @endphp
                                                     <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
                                                     <input type="number" name="durasi_sewa" class="form-control"
@@ -420,83 +495,12 @@
                                     </div>
                                 </div>
 
-                                {{-- Daftar Jadwal --}}
-                                <h6 class="fw-bold text-dark mb-3">
-                                    <i class="fa-solid fa-list me-2"></i> Daftar Jadwal ({{ $totalJadwal }})
-                                </h6>
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Tanggal</th>
-                                                <th>Jam Mulai</th>
-                                                <th>Jam Selesai</th>
-                                                <th>Durasi (Jam)</th>
-                                                <th>Total Harga (Durasi)</th>
-                                                <th>Status</th>
-                                                <th>Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse($item->jadwal->sortBy('tanggal')->sortBy('jam_mulai') as $jadwal)
-                                                @php
-                                                    $jamMulai = \Carbon\Carbon::parse($jadwal->jam_mulai);
-                                                    $jamSelesai = \Carbon\Carbon::parse($jadwal->jam_selesai);
-                                                    $durasiJam =
-                                                        $jadwal->durasi_sewa > 0 ? $jadwal->durasi_sewa / 60 : 0;
-                                                    $durasiJamFormatted =
-                                                        $durasiJam > 0
-                                                            ? rtrim(
-                                                                rtrim(number_format($durasiJam, 2, ',', '.'), '0'),
-                                                                ',',
-                                                            )
-                                                            : '0';
-                                                @endphp
-                                                <tr>
-                                                    <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') }}</td>
-                                                    <td>{{ $jamMulai->format('H:i') }}</td>
-                                                    <td>{{ $jamSelesai->format('H:i') }}</td>
-                                                    <td>{{ $durasiJamFormatted }} jam</td>
-                                                    <td>
-                                                        <span class="fw-bold text-success d-block">
-                                                            Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}
-                                                        </span>
-                                                        <small class="text-muted d-block">
-                                                            Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam
-                                                        </small>
-                                                    </td>
-                                                    <td>
-                                                        <span
-                                                            class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
-                                                            {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-nowrap">
-                                                        <button type="button" class="btn btn-sm btn-outline-primary me-1"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#editJadwalModal{{ $jadwal->id }}">
-                                                            <i class="fa-solid fa-pen"></i>
-                                                        </button>
-                                                        <button type="button"
-                                                            class="btn btn-sm btn-outline-danger delete-jadwal-btn"
-                                                            data-lapangan-id="{{ $item->id }}"
-                                                            data-jadwal-id="{{ $jadwal->id }}"
-                                                            data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d/m/Y') }}"
-                                                            data-jam="{{ $jamMulai->format('H:i') }} - {{ $jamSelesai->format('H:i') }}">
-                                                            <i class="fa-solid fa-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="7" class="text-center text-muted py-4">
-                                                        <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                                                        <br>Belum ada jadwal
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
+                                {{-- Daftar Jadwal per Section --}}
+                                <div id="jadwal-container-{{ $item->id }}">
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
+                                        <br>Pilih section untuk melihat jadwal
+                                    </div>
                                 </div>
                             </div>
                             <div class="modal-footer border-0 bg-light p-4">
@@ -508,109 +512,96 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Edit Jadwal Modals --}}
+                @foreach($item->sections as $section)
+                    @foreach($section->jadwal->sortBy('tanggal')->sortBy('jam_mulai') as $jadwal)
+                        {{-- Modal Edit Jadwal --}}
+                        <div class="modal fade" id="editJadwalModal{{ $jadwal->id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                                <div class="modal-content border-0 shadow-lg">
+                                    <div class="modal-header border-0"
+                                        style="background: linear-gradient(135deg, #0d6efd 0%, #20c997 100%);">
+                                        <h5 class="modal-title text-white fw-bold">
+                                            <i class="fa-solid fa-clock-rotate-left me-2"></i> Edit Jadwal - {{ $section->nama_section }}
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form action="{{ route('lapangan.jadwal.update', [$item->id, $jadwal->id]) }}" method="POST"
+                                        class="form-submit-jadwal">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="section_id" value="{{ $section->id }}">
+                                        <div class="modal-body p-4">
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Tanggal</label>
+                                                    <input type="date" name="tanggal" class="form-control"
+                                                        value="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Jam Mulai</label>
+                                                    <input type="time" name="jam_mulai" class="form-control"
+                                                        value="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}" required data-jam-mulai-input>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Jam Selesai</label>
+                                                    <input type="time" name="jam_selesai" class="form-control"
+                                                        value="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}" required data-jam-selesai-input>
+                                                    <div class="form-text text-muted">Disesuaikan otomatis dari durasi.</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
+                                                    <input type="number" name="durasi_sewa" class="form-control" min="0.25"
+                                                        max="24" step="0.25" placeholder="1"
+                                                        value="{{ $jadwal->durasi_sewa / 60 }}" data-durasi-jam-input>
+                                                    <div class="form-text text-muted">
+                                                        <span data-durasi-jam-preview>{{ $jadwal->durasi_sewa / 60 }}</span> jam
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Harga per Jam</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text bg-success text-white">Rp</span>
+                                                        <input type="number" name="harga_sewa" class="form-control"
+                                                            value="{{ $jadwal->harga_sewa }}" min="0" step="1000"
+                                                            required data-harga-per-jam-input>
+                                                        <span class="input-group-text bg-light text-muted">/ jam</span>
+                                                    </div>
+                                                    <div class="form-text text-muted">
+                                                        Total: <span class="fw-semibold text-success" data-harga-total-display>
+                                                            Rp {{ number_format($jadwal->harga_sewa * ($jadwal->durasi_sewa / 60), 0, ',', '.') }}
+                                                        </span>
+                                                        (<span data-durasi-jam-display>{{ $jadwal->durasi_sewa / 60 }}</span> jam)
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold text-dark">Status</label>
+                                                    <select name="tersedia" class="form-select" required>
+                                                        <option value="1" {{ $jadwal->tersedia ? 'selected' : '' }}>Tersedia</option>
+                                                        <option value="0" {{ !$jadwal->tersedia ? 'selected' : '' }}>Tidak Tersedia</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-0 bg-light p-4">
+                                            <button type="button" class="btn btn-lg btn-outline-secondary px-4"
+                                                data-bs-dismiss="modal">
+                                                <i class="fa-solid fa-xmark me-2"></i> Batal
+                                            </button>
+                                            <button type="submit" class="btn btn-lg btn-success px-5 shadow">
+                                                <i class="fa-solid fa-check-circle me-2"></i> Simpan Perubahan
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                @endforeach
             @endforeach
         </div>
-
-        {{-- Edit Jadwal Modals --}}
-        @foreach ($lapangan as $item)
-            @foreach ($item->jadwal->sortBy('tanggal')->sortBy('jam_mulai') as $jadwal)
-                @php
-                    $durasiJamEdit = $jadwal->durasi_sewa > 0 ? $jadwal->durasi_sewa / 60 : 0;
-                    $durasiInputValue =
-                        $durasiJamEdit > 0 ? rtrim(rtrim(number_format($durasiJamEdit, 2, '.', ''), '0'), '.') : '0';
-                    if ($durasiInputValue === '') {
-                        $durasiInputValue = '0';
-                    }
-                    $durasiDisplayEdit =
-                        $durasiJamEdit > 0 ? rtrim(rtrim(number_format($durasiJamEdit, 2, ',', '.'), '0'), ',') : '0';
-                    $tanggalEdit = \Carbon\Carbon::parse($jadwal->tanggal)->format('Y-m-d');
-                    $jamMulaiEdit = \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
-                    $jamSelesaiEdit = \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
-                    $hargaTotalEdit = number_format($jadwal->harga_total, 0, ',', '.');
-                @endphp
-                <div class="modal fade" id="editJadwalModal{{ $jadwal->id }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                        <div class="modal-content border-0 shadow-lg">
-                            <div class="modal-header border-0"
-                                style="background: linear-gradient(135deg, #0d6efd 0%, #20c997 100%);">
-                                <h5 class="modal-title text-white fw-bold">
-                                    <i class="fa-solid fa-clock-rotate-left me-2"></i> Edit Jadwal
-                                </h5>
-                                <button type="button" class="btn-close btn-close-white"
-                                    data-bs-dismiss="modal"></button>
-                            </div>
-                            <form action="{{ route('lapangan.jadwal.update', [$item->id, $jadwal->id]) }}" method="POST"
-                                class="form-submit-jadwal">
-                                @csrf
-                                @method('PUT')
-                                <div class="modal-body p-4">
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-dark">Tanggal</label>
-                                            <input type="date" name="tanggal" class="form-control"
-                                                value="{{ $tanggalEdit }}" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-dark">Jam Mulai</label>
-                                            <input type="time" name="jam_mulai" class="form-control"
-                                                value="{{ $jamMulaiEdit }}" required data-jam-mulai-input>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-dark">Jam Selesai</label>
-                                            <input type="time" name="jam_selesai" class="form-control"
-                                                value="{{ $jamSelesaiEdit }}" required data-jam-selesai-input>
-                                            <div class="form-text text-muted">Disesuaikan otomatis dari durasi.</div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
-                                            <input type="number" name="durasi_sewa" class="form-control" min="0.25"
-                                                max="24" step="0.25" placeholder="1"
-                                                value="{{ $durasiInputValue }}" data-durasi-jam-input>
-                                            <div class="form-text text-muted">
-                                                <span data-durasi-jam-preview>{{ $durasiDisplayEdit }}</span> jam
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-dark">Harga per Jam</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text bg-success text-white">Rp</span>
-                                                <input type="number" name="harga_sewa" class="form-control"
-                                                    value="{{ $jadwal->harga_sewa }}" min="0" step="1000"
-                                                    required data-harga-per-jam-input>
-                                                <span class="input-group-text bg-light text-muted">/ jam</span>
-                                            </div>
-                                            <div class="form-text text-muted">
-                                                Total: <span class="fw-semibold text-success" data-harga-total-display>Rp
-                                                    {{ $hargaTotalEdit }}</span>
-                                                (<span data-durasi-jam-display>{{ $durasiDisplayEdit }}</span> jam)
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-semibold text-dark">Status</label>
-                                            <select name="tersedia" class="form-select" required>
-                                                <option value="1" {{ $jadwal->tersedia ? 'selected' : '' }}>Tersedia
-                                                </option>
-                                                <option value="0" {{ !$jadwal->tersedia ? 'selected' : '' }}>Tidak
-                                                    Tersedia</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer border-0 bg-light p-4">
-                                    <button type="button" class="btn btn-lg btn-outline-secondary px-4"
-                                        data-bs-dismiss="modal">
-                                        <i class="fa-solid fa-xmark me-2"></i> Batal
-                                    </button>
-                                    <button type="submit" class="btn btn-lg btn-success px-5 shadow">
-                                        <i class="fa-solid fa-check-circle me-2"></i> Simpan Perubahan
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        @endforeach
 
         {{-- Empty State --}}
         @if ($lapangan->count() == 0)
@@ -684,11 +675,11 @@
                                     <i class="fa-solid fa-tag me-1 text-success"></i> Nama Lapangan
                                 </label>
                                 <input type="text" name="nama_lapangan" class="form-control form-control-lg"
-                                    placeholder="Contoh: Futsal Arena Pro" value="{{ old('nama_lapangan') }}" required>
+                                    placeholder="Contoh: GOR Nasional, Futsal Arena Pro" value="{{ old('nama_lapangan') }}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-dark">
-                                    <i class="fa-solid fa-layer-group me-1 text-success"></i> Jenis Olahraga / Kategori
+                                    <i class="fa-solid fa-layer-group me-1 text-success"></i> Kategori
                                 </label>
                                 <select name="id_kategori" class="form-select form-select-lg" required>
                                     <option value="" disabled selected>Pilih Kategori</option>
@@ -696,7 +687,6 @@
                                         <option value="{{ $kat->id }}">{{ $kat->nama_kategori }}</option>
                                     @endforeach
                                 </select>
-
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-dark">
@@ -706,17 +696,54 @@
                                     placeholder="Jl. Sudirman No.123, Jakarta" value="{{ old('lokasi') }}" required>
                             </div>
 
-                            <input type="hidden" name="harga_sewa" value="0">
-                            <input type="hidden" name="durasi_sewa" value="1">
-                            <input type="hidden" name="status" value="{{ old('status', 'standard') }}">
-                            <input type="hidden" name="tiket_tersedia" value="{{ old('tiket_tersedia', 0) }}">
-
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-dark">
                                     <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
                                 </label>
                                 <textarea name="deskripsi" class="form-control" rows="4" placeholder="Jelaskan fasilitas lapangan...">{{ old('deskripsi') }}</textarea>
                             </div>
+
+                            {{-- Section Management --}}
+                            <div class="col-12">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-header bg-transparent border-bottom">
+                                        <h6 class="mb-0 fw-bold text-dark">
+                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Section Lapangan
+                                        </h6>
+                                        <small class="text-muted">Setiap lapangan minimal memiliki 1 section (contoh: Lapangan A, Court 1, etc.)</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="section-container">
+                                            {{-- Section Pertama --}}
+                                            <div class="row g-3 mb-3 section-item">
+                                                <div class="col-md-5">
+                                                    <label class="form-label">Nama Section *</label>
+                                                    <input type="text" name="sections[0][nama_section]" 
+                                                        class="form-control" 
+                                                        placeholder="Contoh: Lapangan A, Court 1" 
+                                                        value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}" 
+                                                        required>
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <label class="form-label">Deskripsi</label>
+                                                    <input type="text" name="sections[0][deskripsi]" 
+                                                        class="form-control" 
+                                                        placeholder="Deskripsi singkat section..."
+                                                        value="{{ old('sections.0.deskripsi') }}">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">&nbsp;</label>
+                                                    {{-- Tombol hapus tidak ditampilkan untuk section pertama --}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="tambah-section">
+                                            <i class="fa-solid fa-plus me-1"></i> Tambah Section Lain
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-dark">
                                     <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
@@ -761,6 +788,201 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 
     <script>
+        // ========== SECTION MANAGEMENT ==========
+        let sectionCount = 1;
+        
+        // Tambah section baru di form tambah lapangan
+        document.getElementById('tambah-section').addEventListener('click', function() {
+            const container = document.getElementById('section-container');
+            const newSection = document.createElement('div');
+            newSection.classList.add('row', 'g-3', 'mb-3', 'section-item');
+            newSection.innerHTML = `
+                <div class="col-md-5">
+                    <label class="form-label">Nama Section *</label>
+                    <input type="text" name="sections[${sectionCount}][nama_section]" 
+                        class="form-control" 
+                        placeholder="Contoh: Lapangan B, Court 2" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Deskripsi</label>
+                    <input type="text" name="sections[${sectionCount}][deskripsi]" 
+                        class="form-control" 
+                        placeholder="Deskripsi singkat section...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(newSection);
+            sectionCount++;
+        });
+
+        // Hapus section
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-section') || 
+                e.target.closest('.remove-section')) {
+                const btn = e.target.classList.contains('remove-section') ? e.target : e.target.closest('.remove-section');
+                btn.closest('.section-item').remove();
+            }
+        });
+
+        // Tambah section di form edit
+        function tambahSection(lapanganId) {
+            const container = document.getElementById(`section-container-${lapanganId}`);
+            const newSection = document.createElement('div');
+            newSection.classList.add('row', 'g-3', 'mb-3', 'section-item');
+            newSection.innerHTML = `
+                <div class="col-md-5">
+                    <label class="form-label">Nama Section *</label>
+                    <input type="text" name="sections[new_${sectionCount}][nama_section]" 
+                        class="form-control" 
+                        placeholder="Contoh: Lapangan Baru" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Deskripsi</label>
+                    <input type="text" name="sections[new_${sectionCount}][deskripsi]" 
+                        class="form-control" 
+                        placeholder="Deskripsi singkat section...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(newSection);
+            sectionCount++;
+        }
+
+        // ========== TAMPILKAN JADWAL PER SECTION ==========
+        function tampilkanJadwalSection(lapanganId) {
+            const selector = document.getElementById(`section-selector-${lapanganId}`);
+            const sectionId = selector.value;
+            const sectionName = selector.options[selector.selectedIndex].text;
+            
+            if (!sectionId) {
+                document.getElementById(`form-jadwal-container-${lapanganId}`).style.display = 'none';
+                document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
+                        <br>Pilih section untuk melihat jadwal
+                    </div>
+                `;
+                return;
+            }
+
+            // Tampilkan form jadwal
+            document.getElementById(`form-jadwal-container-${lapanganId}`).style.display = 'block';
+            document.getElementById(`section-name-${lapanganId}`).textContent = sectionName;
+            document.getElementById(`section-id-${lapanganId}`).value = sectionId;
+
+            // Update info section
+            document.getElementById(`section-info-${lapanganId}`).innerHTML = `
+                <strong>${sectionName}</strong> - Pilih tanggal dan waktu untuk menambah jadwal
+            `;
+
+            // Load jadwal via AJAX
+            fetch(`/lapangan/${lapanganId}/section/${sectionId}/jadwal`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.jadwal.length > 0) {
+                        let html = `
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fa-solid fa-list me-2"></i> Daftar Jadwal (${data.jadwal.length})
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Tanggal</th>
+                                            <th>Jam Mulai</th>
+                                            <th>Jam Selesai</th>
+                                            <th>Durasi (Jam)</th>
+                                            <th>Total Harga</th>
+                                            <th>Status</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        data.jadwal.forEach(jadwal => {
+                            const durasiJam = jadwal.durasi_sewa / 60;
+                            const durasiFormatted = durasiJam % 1 === 0 ? durasiJam : durasiJam.toFixed(2);
+                            const totalHarga = jadwal.harga_sewa * durasiJam;
+                            
+                            html += `
+                                <tr>
+                                    <td>${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}</td>
+                                    <td>${jadwal.jam_mulai}</td>
+                                    <td>${jadwal.jam_selesai}</td>
+                                    <td>${durasiFormatted} jam</td>
+                                    <td>
+                                        <span class="fw-bold text-success d-block">
+                                            Rp ${totalHarga.toLocaleString('id-ID')}
+                                        </span>
+                                        <small class="text-muted d-block">
+                                            Rp ${jadwal.harga_sewa.toLocaleString('id-ID')} / jam
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge ${jadwal.tersedia ? 'bg-success' : 'bg-danger'}">
+                                            ${jadwal.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
+                                        </span>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editJadwalModal${jadwal.id}">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-danger delete-jadwal-btn"
+                                            data-lapangan-id="${lapanganId}"
+                                            data-jadwal-id="${jadwal.id}"
+                                            data-tanggal="${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}"
+                                            data-jam="${jadwal.jam_mulai} - ${jadwal.jam_selesai}">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        
+                        document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = html;
+                        
+                        // Re-attach delete event listeners
+                        attachDeleteJadwalEvents();
+                    } else {
+                        document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
+                            <div class="text-center text-muted py-4">
+                                <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
+                                <br>Belum ada jadwal untuk section ini
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fa-solid fa-exclamation-triangle me-2"></i>
+                            Gagal memuat data jadwal
+                        </div>
+                    `;
+                });
+        }
+
         // ========== SWEETALERT CONFIGURATION ==========
         const Toast = Swal.mixin({
             toast: true,
@@ -860,8 +1082,7 @@
                     preConfirm: () => {
                         return new Promise((resolve) => {
                             setTimeout(() => {
-                                const form = document.getElementById(
-                                    'deleteLapanganForm');
+                                const form = document.getElementById('deleteLapanganForm');
                                 form.action = '{{ url('lapangan') }}/' + id;
                                 form.submit();
                                 resolve();
@@ -886,59 +1107,62 @@
         });
 
         // ========== DELETE JADWAL WITH SWEETALERT ==========
-        document.querySelectorAll('.delete-jadwal-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const lapanganId = this.dataset.lapanganId;
-                const jadwalId = this.dataset.jadwalId;
-                const tanggal = this.dataset.tanggal;
-                const jam = this.dataset.jam;
+        function attachDeleteJadwalEvents() {
+            document.querySelectorAll('.delete-jadwal-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const lapanganId = this.dataset.lapanganId;
+                    const jadwalId = this.dataset.jadwalId;
+                    const tanggal = this.dataset.tanggal;
+                    const jam = this.dataset.jam;
 
-                Swal.fire({
-                    title: 'Hapus Jadwal?',
-                    html: `Apakah Anda yakin ingin menghapus jadwal:<br><strong style="color: #dc3545;">${tanggal}</strong><br><strong style="color: #dc3545;">${jam}</strong>?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fa-solid fa-trash me-2"></i>Ya, Hapus!',
-                    cancelButtonText: '<i class="fa-solid fa-times me-2"></i>Batal',
-                    reverseButtons: true,
-                    showClass: {
-                        popup: 'animate__animated animate__zoomIn animate__faster'
-                    },
-                    hideClass: {
-                        popup: 'animate__animated animate__zoomOut animate__faster'
-                    },
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        return new Promise((resolve) => {
-                            setTimeout(() => {
-                                const form = document.getElementById(
-                                    'deleteJadwalForm');
-                                form.action =
-                                    `{{ url('lapangan') }}/${lapanganId}/jadwal/${jadwalId}`;
-                                form.submit();
-                                resolve();
-                            }, 500);
-                        });
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Menghapus...',
-                            html: 'Mohon tunggu sebentar',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false,
-                            showConfirmButton: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-                    }
+                    Swal.fire({
+                        title: 'Hapus Jadwal?',
+                        html: `Apakah Anda yakin ingin menghapus jadwal:<br><strong style="color: #dc3545;">${tanggal}</strong><br><strong style="color: #dc3545;">${jam}</strong>?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fa-solid fa-trash me-2"></i>Ya, Hapus!',
+                        cancelButtonText: '<i class="fa-solid fa-times me-2"></i>Batal',
+                        reverseButtons: true,
+                        showClass: {
+                            popup: 'animate__animated animate__zoomIn animate__faster'
+                        },
+                        hideClass: {
+                            popup: 'animate__animated animate__zoomOut animate__faster'
+                        },
+                        showLoaderOnConfirm: true,
+                        preConfirm: () => {
+                            return new Promise((resolve) => {
+                                setTimeout(() => {
+                                    const form = document.getElementById('deleteJadwalForm');
+                                    form.action = `{{ url('lapangan') }}/${lapanganId}/jadwal/${jadwalId}`;
+                                    form.submit();
+                                    resolve();
+                                }, 500);
+                            });
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Menghapus...',
+                                html: 'Mohon tunggu sebentar',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                        }
+                    });
                 });
             });
-        });
+        }
+
+        // Panggil pertama kali
+        attachDeleteJadwalEvents();
 
         // ========== FORM SUBMIT WITH LOADING ==========
         document.querySelectorAll('.form-submit-lapangan').forEach(form => {
@@ -1294,163 +1518,6 @@
 
         .swal2-html-container {
             font-size: 1rem;
-        }
-
-        /* Custom Success Checkmark Animation */
-        .swal2-success {
-            border-color: #a5dc86 !important;
-            animation: successPulse 0.75s ease-in-out;
-        }
-
-        .swal2-success .swal2-success-ring {
-            border: 4px solid rgba(165, 220, 134, 0.2) !important;
-            animation: ringPulse 0.75s ease-in-out;
-        }
-
-        .swal2-success .swal2-success-fix {
-            background-color: #fff !important;
-        }
-
-        .swal2-icon.swal2-success [class^='swal2-success-line'] {
-            background-color: #a5dc86 !important;
-            border-radius: 2px;
-        }
-
-        .swal2-icon.swal2-success .swal2-success-line-tip {
-            width: 25px !important;
-            left: 14px !important;
-            top: 46px !important;
-            animation: checkmarkTip 0.75s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        .swal2-icon.swal2-success .swal2-success-line-long {
-            width: 47px !important;
-            right: 8px !important;
-            top: 38px !important;
-            animation: checkmarkLong 0.75s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.15s;
-        }
-
-        /* Smooth Animation */
-        .swal2-icon.swal2-success {
-            animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        @keyframes scaleIn {
-            0% {
-                transform: scale(0);
-                opacity: 0;
-            }
-
-            50% {
-                transform: scale(1.15);
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        @keyframes successPulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
-        @keyframes ringPulse {
-            0% {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        @keyframes checkmarkTip {
-            0% {
-                width: 0;
-                left: 1px;
-                top: 19px;
-            }
-
-            54% {
-                width: 0;
-                left: 1px;
-                top: 19px;
-            }
-
-            70% {
-                width: 50px;
-                left: -8px;
-                top: 37px;
-            }
-
-            84% {
-                width: 17px;
-                left: 21px;
-                top: 48px;
-            }
-
-            100% {
-                width: 35px;
-                left: 14px;
-                top: 46px;
-            }
-        }
-
-        @keyframes checkmarkLong {
-            0% {
-                width: 0;
-                right: 46px;
-                top: 54px;
-            }
-
-            65% {
-                width: 0;
-                right: 46px;
-                top: 54px;
-            }
-
-            84% {
-                width: 55px;
-                right: 0;
-                top: 35px;
-            }
-
-            100% {
-                width: 60px;
-                right: 8px;
-                top: 38px;
-            }
-        }
-
-        /* Toast Success Icon */
-        .swal2-toast .swal2-success {
-            width: 2em !important;
-            height: 2em !important;
-        }
-
-        /* Warning Icon Custom */
-        .swal2-warning {
-            border-color: #facea8 !important;
-        }
-
-        /* Error Icon Custom */
-        .swal2-error {
-            border-color: #f27474 !important;
         }
     </style>
 @endsection
