@@ -22,25 +22,28 @@ public function downloadTiket($id)
               ->setPaper('a4', 'landscape');
     return $pdf->download('Tiket_'.$pemesanan->kode_tiket.'.pdf');
 }
-    public function create($lapangan_id)
+public function create($lapangan_id)
 {
-    $lapangan = Lapangan::findOrFail($lapangan_id);
+    $lapangan = Lapangan::with('sections')->findOrFail($lapangan_id);
     $userId = Auth::id();
 
-    $jadwalTersedia = JadwalLapangan::where('lapangan_id', $lapangan_id)
-        ->where('tersedia', true)
+    // Cek apakah user masih punya pemesanan menunggu
+    $pemesananPending = Pemesanan::where('penyewa_id', $userId)
+        ->where('lapangan_id', $lapangan_id)
+        ->where('status', 'menunggu')
+        ->with(['pembayaran', 'jadwal'])
+        ->first();
+
+    return view('pemesanan.create', compact('lapangan', 'pemesananPending'));
+}
+public function getJadwalBySection($section_id)
+{
+    $jadwal = JadwalLapangan::where('section_id', $section_id)
         ->orderBy('tanggal')
         ->orderBy('jam_mulai')
         ->get();
 
-    // 🔹 Cek apakah user sudah punya pemesanan menunggu di lapangan ini
-    $pemesananPending = Pemesanan::where('penyewa_id', $userId)
-        ->where('lapangan_id', $lapangan_id)
-        ->where('status', 'menunggu')
-        ->with('pembayaran')
-        ->first();
-
-    return view('pemesanan.create', compact('lapangan', 'jadwalTersedia', 'pemesananPending'));
+    return response()->json($jadwal);
 }
 
     // ========================== HALAMAN TIKET ==========================

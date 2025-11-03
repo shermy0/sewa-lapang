@@ -51,7 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     // Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
-
+Route::get('/jadwal/section/{section_id}', [App\Http\Controllers\PemesananController::class, 'getJadwalBySection'])
+    ->name('jadwal.bySection');
     Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);

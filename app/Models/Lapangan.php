@@ -173,4 +173,9 @@ class Lapangan extends Model
     {
         return $this->foto_urls[0] ?? null;
     }
+
+    public function section()
+    {
+        return $this->hasMany(SectionLapangan::class, 'lapangan_id');
+    }
 }
