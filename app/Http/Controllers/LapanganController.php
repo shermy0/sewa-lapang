@@ -7,7 +7,9 @@ use App\Models\Lapangan;
 use App\Models\Kategori;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class LapanganController extends Controller
 {
@@ -44,41 +46,53 @@ public function index(Request $request)
 }
 
 
-public function store(Request $request)
-{
-    $request->validate([
-        'nama_lapangan' => ['required', 'string', 'max:255'],
-        'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
-        'lokasi' => ['required', 'string', 'max:255'],
-        'deskripsi' => ['nullable', 'string'],
-        'tiket_tersedia' => ['required', 'integer', 'min:0'],
-        'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_lapangan' => ['required', 'string', 'max:255'],
+            'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
+            'lokasi' => ['required', 'string', 'max:255'],
+            'deskripsi' => ['nullable', 'string'],
+            // 'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
+            'sections' => ['nullable', 'array'],
+            'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
+            'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
+            'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+        ]);
 
-    $fotoPaths = [];
-    if ($request->hasFile('foto')) {
-        foreach ($request->file('foto') as $foto) {
-            $fotoPaths[] = $foto->store('lapangan', 'public');
+        $fotoPaths = [];
+        if ($request->hasFile('foto')) {
+            foreach ($request->file('foto') as $foto) {
+                $fotoPaths[] = $foto->store('lapangan', 'public');
+            }
         }
+
+        $kategoriModel = Kategori::find($request->id_kategori);
+        $tiketTersedia = $request->filled('tiket_tersedia')
+            ? max(0, (int) $request->input('tiket_tersedia'))
+            : 0;
+
+        $sectionsInput = $request->input('sections', []);
+
+        DB::transaction(function () use ($request, $kategoriModel, $fotoPaths, $tiketTersedia, $sectionsInput) {
+            $lapangan = Lapangan::create([
+                'pemilik_id' => auth()->id(),
+                'id_kategori' => $request->id_kategori,
+                'nama_lapangan' => $request->nama_lapangan,
+                'kategori' => $kategoriModel?->nama_kategori,
+                'lokasi' => $request->lokasi,
+                'deskripsi' => $request->deskripsi,
+                // 'tiket_tersedia' => $tiketTersedia,
+                'status' => $request->input('status', 'standard'),
+                // 'is_verified' => false,
+                'foto' => $fotoPaths,
+            ]);
+
+            $this->syncSections($lapangan, $sectionsInput, false);
+        });
+
+        return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
     }
-
-    $kategori = \App\Models\Kategori::find($request->id_kategori);
-
-    Lapangan::create([
-        'pemilik_id' => auth()->id(),
-        'id_kategori' => $request->id_kategori,
-        'nama_lapangan' => $request->nama_lapangan,
-        'kategori' => $kategori?->nama_kategori, // opsional
-        'lokasi' => $request->lokasi,
-        'deskripsi' => $request->deskripsi,
-        'tiket_tersedia' => $request->tiket_tersedia,
-        'status' => $request->input('status', 'standard'),
-        'is_verified' => false,
-        'foto' => $fotoPaths,
-    ]);
-
-    return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
-}
 
 
 
@@ -96,10 +110,13 @@ public function store(Request $request)
 
         $request->validate([
             'nama_lapangan' => ['required', 'string', 'max:255'],
-            'kategori' => ['required', 'string', 'max:255'],
+            'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
             'lokasi' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
-            'tiket_tersedia' => ['required', 'integer', 'min:0'],
+            // 'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
+            'sections' => ['nullable', 'array'],
+            'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
+            'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
             'foto.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
@@ -125,15 +142,26 @@ public function store(Request $request)
             }
         }
 
-        $lapangan->update([
-            'nama_lapangan' => $request->nama_lapangan,
-            'kategori' => $request->kategori,
-            'lokasi' => $request->lokasi,
-            'deskripsi' => $request->deskripsi,
-            'tiket_tersedia' => $request->tiket_tersedia,
-            'status' => $request->input('status', $lapangan->status),
-            'foto' => $fotoPaths, // Laravel akan otomatis convert ke JSON
-        ]);
+        $kategoriModel = Kategori::find($request->id_kategori);
+        $tiketTersedia = $request->filled('tiket_tersedia')
+            ? max(0, (int) $request->input('tiket_tersedia'))
+            : ($lapangan->tiket_tersedia ?? 0);
+        $sectionsInput = $request->input('sections', []);
+
+        DB::transaction(function () use ($lapangan, $request, $kategoriModel, $fotoPaths, $sectionsInput) {
+            $lapangan->update([
+                'nama_lapangan' => $request->nama_lapangan,
+                'id_kategori' => $request->id_kategori,
+                'kategori' => $kategoriModel?->nama_kategori,
+                'lokasi' => $request->lokasi,
+                'deskripsi' => $request->deskripsi,
+                // 'tiket_tersedia' => $tiketTersedia,
+                'status' => $request->input('status', $lapangan->status),
+                'foto' => $fotoPaths, // Laravel akan otomatis convert ke JSON
+            ]);
+
+            $this->syncSections($lapangan, $sectionsInput, true);
+        });
 
         return redirect()->route('lapangan.index')->with('success', 'Data lapangan berhasil diperbarui!');
     }
@@ -161,9 +189,84 @@ public function store(Request $request)
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil dihapus!');
     }
 
+    public function getSectionJadwal($lapanganId, $sectionId)
+    {
+        if (!auth()->check()) {
+            return response()->json([
+                'message' => 'Sesi Anda telah berakhir. Silakan login kembali.',
+                'jadwal' => [],
+            ], 401);
+        }
+
+        if (auth()->check() && auth()->user()->role === 'pemilik') {
+            $lapangan = Lapangan::with('sections')
+                ->where('id', $lapanganId)
+                ->where('pemilik_id', auth()->id())
+                ->first();
+        } else {
+            $lapangan = Lapangan::with('sections')->find($lapanganId);
+        }
+
+        if (!$lapangan) {
+            return response()->json([
+                'message' => 'Lapangan tidak ditemukan atau tidak dapat diakses.',
+                'jadwal' => [],
+            ], 404);
+        }
+
+        $section = $lapangan->sections()
+            ->with(['jadwal' => function ($query) {
+                $query->orderBy('tanggal')->orderBy('jam_mulai');
+            }])
+            ->where('id', $sectionId)
+            ->first();
+
+        if (!$section) {
+            return response()->json([
+                'message' => 'Section tidak ditemukan.',
+                'jadwal' => [],
+            ], 404);
+        }
+
+        try {
+            $jadwalData = $section->jadwal->map(function ($jadwal) {
+                return [
+                    'id' => $jadwal->id,
+                    'tanggal' => $jadwal->tanggal ? Carbon::parse($jadwal->tanggal)->format('Y-m-d') : null,
+                    'jam_mulai' => $jadwal->jam_mulai,
+                    'jam_selesai' => $jadwal->jam_selesai,
+                    'durasi_sewa' => (int) $jadwal->durasi_sewa,
+                    'harga_sewa' => (float) $jadwal->harga_sewa,
+                    'tersedia' => (bool) $jadwal->tersedia,
+                ];
+            })->values();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat memproses data jadwal.',
+                'jadwal' => [],
+            ], 500);
+        }
+
+        return response()->json([
+            'section' => [
+                'id' => $section->id,
+                'nama_section' => $section->nama_section,
+                'deskripsi' => $section->deskripsi,
+            ],
+            'jadwal' => $jadwalData,
+        ]);
+    }
+
     public function storeJadwal(Request $request, $lapanganId)
     {
         $request->validate([
+            'section_id' => [
+                'required',
+                'integer',
+                Rule::exists('section_lapangan', 'id')->where('lapangan_id', $lapanganId),
+            ],
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
@@ -173,7 +276,7 @@ public function store(Request $request)
         ]);
 
         // Check for time conflicts
-        $hasConflict = JadwalLapangan::where('lapangan_id', $lapanganId)
+        $hasConflict = JadwalLapangan::where('section_id', $request->section_id)
             ->where('tanggal', $request->tanggal)
             ->where(function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
@@ -214,7 +317,7 @@ public function store(Request $request)
         $hargaPerJam = (float) $hargaPerJam;
 
         JadwalLapangan::create([
-            'lapangan_id' => $lapanganId,
+            'section_id' => $request->section_id,
             'tanggal' => $request->tanggal,
             'jam_mulai' => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
@@ -228,11 +331,18 @@ public function store(Request $request)
 
     public function updateJadwal(Request $request, $lapanganId, $jadwalId)
     {
-        $jadwal = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('id', $jadwalId)
+        $jadwal = JadwalLapangan::where('id', $jadwalId)
+            ->whereHas('section', function ($query) use ($lapanganId) {
+                $query->where('lapangan_id', $lapanganId);
+            })
             ->firstOrFail();
 
         $request->validate([
+            'section_id' => [
+                'required',
+                'integer',
+                Rule::exists('section_lapangan', 'id')->where('lapangan_id', $lapanganId),
+            ],
             'tanggal' => ['required', 'date'],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
@@ -242,8 +352,8 @@ public function store(Request $request)
         ]);
 
         // Check for conflicts (excluding current jadwal)
-        $hasConflict = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('id', '!=', $jadwalId)
+        $hasConflict = JadwalLapangan::where('id', '!=', $jadwalId)
+            ->where('section_id', $request->section_id)
             ->where('tanggal', $request->tanggal)
             ->where(function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
@@ -282,6 +392,7 @@ public function store(Request $request)
             'durasi_sewa' => $durasiMenit,
             'harga_sewa' => $request->harga_sewa,
             'tersedia' => $request->tersedia,
+            'section_id' => $request->section_id,
         ]);
 
         return redirect()->back()->with('success', 'Jadwal berhasil diperbarui!');
@@ -295,13 +406,72 @@ public function store(Request $request)
             return redirect()->back()->with('error', 'ID jadwal tidak ditemukan.');
         }
 
-        $jadwal = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('id', $jadwalId)
+        $jadwal = JadwalLapangan::where('id', $jadwalId)
+            ->whereHas('section', function ($query) use ($lapanganId) {
+                $query->where('lapangan_id', $lapanganId);
+            })
             ->firstOrFail();
 
         $jadwal->delete();
 
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus!');
+    }
+
+    private function sanitizeSectionData(?array $section): ?array
+    {
+        if (!is_array($section)) {
+            return null;
+        }
+
+        $nama = trim($section['nama_section'] ?? '');
+        if ($nama === '') {
+            return null;
+        }
+
+        $deskripsi = trim($section['deskripsi'] ?? '');
+
+        return [
+            'nama_section' => $nama,
+            'deskripsi' => $deskripsi !== '' ? $deskripsi : null,
+        ];
+    }
+
+    private function syncSections(Lapangan $lapangan, array $sectionsInput, bool $replaceExisting = true): void
+    {
+        $processedIds = [];
+
+        foreach ($sectionsInput as $key => $sectionRaw) {
+            $sectionData = $this->sanitizeSectionData($sectionRaw);
+            if (!$sectionData) {
+                continue;
+            }
+
+            if ($replaceExisting && ctype_digit((string) $key)) {
+                $existing = $lapangan->sections()->where('id', (int) $key)->first();
+                if ($existing) {
+                    $existing->update($sectionData);
+                    $processedIds[] = (int) $key;
+                    continue;
+                }
+            }
+
+            $newSection = $lapangan->sections()->create($sectionData);
+            $processedIds[] = $newSection->id;
+        }
+
+        if (empty($processedIds)) {
+            $default = $lapangan->sections()->create([
+                'nama_section' => 'Lapangan Utama',
+                'deskripsi' => null,
+            ]);
+            $processedIds[] = $default->id;
+        }
+
+        if ($replaceExisting) {
+            $lapangan->sections()
+                ->whereNotIn('id', $processedIds)
+                ->delete();
+        }
     }
 
     private function convertDurasiJamKeMenit($input): ?int
@@ -319,3 +489,5 @@ public function store(Request $request)
         return max(1, (int) round($numeric * 60));
     }
 }
+
+
