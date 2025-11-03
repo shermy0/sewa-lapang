@@ -17,20 +17,15 @@ class Lapangan extends Model
         'id_kategori',
         'nama_lapangan',
         'kategori',
-        'tiket_tersedia',
         'deskripsi',
         'lokasi',
         'rating',
         'foto',
-        'status',
-        'is_verified'
     ];
 
     protected $casts = [
         'foto' => 'array',
         'rating' => 'double',
-        'is_verified' => 'boolean',
-        'tiket_tersedia' => 'integer'
     ];
 
     // Relationship ke kategori
