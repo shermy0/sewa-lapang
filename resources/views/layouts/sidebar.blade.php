@@ -29,6 +29,7 @@
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
             ],
+
             [
                 'label' => 'Kelola Kategori',
                 'icon' => 'fa-solid fa-futbol',
@@ -44,6 +45,12 @@
                 'route' => 'rekening.index',
                 'active_routes' => ['rekening.index'],
             ],
+            [
+    'label' => 'Persetujuan',
+    'icon' => 'fa-solid fa-check-circle',
+    'route' => 'persetujuan.index',
+    'active_routes' => ['persetujuan.index'],
+],
             [
                 'label' => 'Scan',
                 'icon' => 'fa-solid fa-qrcode',

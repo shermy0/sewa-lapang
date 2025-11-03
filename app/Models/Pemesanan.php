@@ -47,4 +47,9 @@ class Pemesanan extends Model
     {
         return $this->hasOne(Ulasan::class);
     }
+    public function permintaanPerubahan()
+{
+    return $this->hasMany(PermintaanPerubahan::class, 'pemesanan_id');
+}
+
 }

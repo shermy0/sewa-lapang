@@ -7,9 +7,7 @@ use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\DisbursementController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\PemesananController;
@@ -28,9 +26,10 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\PersetujuanController;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
 
 Route::middleware('guest')->group(function () {
@@ -39,38 +38,25 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
-
-    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
 
 Route::middleware('auth')->group(function () {
 
+    // PERSETUJUAN PEMILIK
+    Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
 
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     // Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
-    // Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
+    Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 
-    // Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
+    Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
+    Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
+    Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
 
-    // Route untuk dapatkan token Midtrans baru
-Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
-
-// Route untuk dapatkan token ulang (resume pembayaran)
-Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain'])->name('midtrans.tokenAgain');
-
-// Route untuk update hasil pembayaran sukses
-Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess'])->name('pemesanan.success');
-
-// Route pembatalan pemesanan
-Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
-
-
+    Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
 Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
 
     Route::get('penyewa/tiket', [PemesananController::class, 'riwayatTiket'])->name('penyewa.tiket');
@@ -153,7 +139,7 @@ Route::middleware('auth')->get('/test-sidebar', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/kelola-rekening', [KelolaRekeningController::class, 'index'])->name('rekening.index');
     Route::post('/kelola-rekening', [KelolaRekeningController::class, 'update'])->name('rekening.update');
-    //  Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
+     Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');
@@ -196,36 +182,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
     Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
     Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
+    Route::get('/lapangan/{lapanganId}/section/{sectionId}/jadwal', [LapanganController::class, 'getSectionJadwal'])->name('lapangan.section.jadwal');
 
     // API Tiket (optional)
     Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
     Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
-});
-
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/dashboard/admin', [AdminDashboardController::class, 'index'])->name('dashboard.admin');
-
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/lapangan', [AdminLapanganController::class, 'index'])->name('lapangan.index');
-
-        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
-        Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
-        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
-        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
-        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
-        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
-        Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('users.update-status');
-        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
-
-        Route::get('/pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
-        Route::put('/pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('pembayaran.update');
-
-        Route::get('/laporan/penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('laporan.penyalahgunaan.index');
-        Route::get('/laporan/penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('laporan.penyalahgunaan.show');
-        Route::patch('/laporan/penyalahgunaan/{laporanPenyalahgunaan}/status', [AdminLaporanPenyalahgunaanController::class, 'updateStatus'])->name('laporan.penyalahgunaan.update-status');
-        Route::delete('/laporan/penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'destroy'])->name('laporan.penyalahgunaan.destroy');
-
-        Route::get('/account', [AdminAccountController::class, 'edit'])->name('account.edit');
-        Route::put('/account', [AdminAccountController::class, 'update'])->name('account.update');
-    });
 });
