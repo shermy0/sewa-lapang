@@ -455,7 +455,7 @@
                                                         $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
                                                     @endphp
                                                     <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
-                                                    <input type="number" name="durasi_sewa" class="form-control"
+                                                    <input type="text" name="durasi_sewa" inputmode="decimal" pattern="^\d+([,.]\d{1,2})?$" class="form-control"
                                                         min="0.25" max="24" step="0.25" placeholder="1"
                                                         value="{{ $durasiInputDefault }}" required data-durasi-jam-input>
                                                     <div class="form-text text-muted">
@@ -553,7 +553,7 @@
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
-                                                    <input type="number" name="durasi_sewa" class="form-control" min="0.25"
+                                                    <input type="text" name="durasi_sewa" inputmode="decimal" pattern="^\d+([,.]\d{1,2})?$" class="form-control" min="0.25"
                                                         max="24" step="0.25" placeholder="1"
                                                         value="{{ $jadwal->durasi_sewa / 60 }}" data-durasi-jam-input>
                                                     <div class="form-text text-muted">
@@ -1615,3 +1615,4 @@
         }
     </style>
 @endsection
+

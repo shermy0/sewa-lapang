@@ -276,8 +276,7 @@ public function index(Request $request)
         ]);
 
         // Check for time conflicts
-        $hasConflict = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('section_id', $request->section_id)
+        $hasConflict = JadwalLapangan::where('section_id', $request->section_id)
             ->where('tanggal', $request->tanggal)
             ->where(function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
@@ -318,7 +317,6 @@ public function index(Request $request)
         $hargaPerJam = (float) $hargaPerJam;
 
         JadwalLapangan::create([
-            'lapangan_id' => $lapanganId,
             'section_id' => $request->section_id,
             'tanggal' => $request->tanggal,
             'jam_mulai' => $request->jam_mulai,
@@ -333,8 +331,10 @@ public function index(Request $request)
 
     public function updateJadwal(Request $request, $lapanganId, $jadwalId)
     {
-        $jadwal = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('id', $jadwalId)
+        $jadwal = JadwalLapangan::where('id', $jadwalId)
+            ->whereHas('section', function ($query) use ($lapanganId) {
+                $query->where('lapangan_id', $lapanganId);
+            })
             ->firstOrFail();
 
         $request->validate([
@@ -352,8 +352,7 @@ public function index(Request $request)
         ]);
 
         // Check for conflicts (excluding current jadwal)
-        $hasConflict = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('id', '!=', $jadwalId)
+        $hasConflict = JadwalLapangan::where('id', '!=', $jadwalId)
             ->where('section_id', $request->section_id)
             ->where('tanggal', $request->tanggal)
             ->where(function ($query) use ($request) {
@@ -407,8 +406,10 @@ public function index(Request $request)
             return redirect()->back()->with('error', 'ID jadwal tidak ditemukan.');
         }
 
-        $jadwal = JadwalLapangan::where('lapangan_id', $lapanganId)
-            ->where('id', $jadwalId)
+        $jadwal = JadwalLapangan::where('id', $jadwalId)
+            ->whereHas('section', function ($query) use ($lapanganId) {
+                $query->where('lapangan_id', $lapanganId);
+            })
             ->firstOrFail();
 
         $jadwal->delete();
