@@ -182,6 +182,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
     Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
     Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
+    Route::get('/lapangan/{lapanganId}/section/{sectionId}/jadwal', [LapanganController::class, 'getSectionJadwal'])->name('lapangan.section.jadwal');
 
     // API Tiket (optional)
     Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');

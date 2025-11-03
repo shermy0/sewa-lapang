@@ -21,6 +21,10 @@ class Lapangan extends Model
         'lokasi',
         'rating',
         'foto',
+        'status',
+        'is_verified',
+        'tiket_tersedia',
+        'harga_sewa',
     ];
 
     protected $casts = [
