@@ -28,7 +28,7 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PersetujuanController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::middleware('guest')->group(function () {
@@ -160,6 +160,34 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
     Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
+});
+
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.admin');
+
+    Route::get('/lapangan', [AdminLapanganController::class, 'index'])->name('admin.lapangan.index');
+
+    Route::resource('users', AdminUserController::class)->names([
+        'index' => 'admin.users.index',
+        'create' => 'admin.users.create',
+        'store' => 'admin.users.store',
+        'show' => 'admin.users.show',
+        'edit' => 'admin.users.edit',
+        'update' => 'admin.users.update',
+        'destroy' => 'admin.users.destroy',
+    ]);
+    Route::patch('users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('admin.users.update-status');
+
+    Route::get('/account', [AdminAccountController::class, 'edit'])->name('admin.account.edit');
+    Route::put('/account', [AdminAccountController::class, 'update'])->name('admin.account.update');
+
+    Route::get('/pembayaran', [AdminPembayaranController::class, 'index'])->name('admin.pembayaran.index');
+    Route::put('/pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('admin.pembayaran.update');
+
+    Route::get('/laporan/penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('admin.laporan.penyalahgunaan.index');
+    Route::get('/laporan/penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('admin.laporan.penyalahgunaan.show');
+    Route::patch('/laporan/penyalahgunaan/{laporanPenyalahgunaan}/status', [AdminLaporanPenyalahgunaanController::class, 'updateStatus'])->name('admin.laporan.penyalahgunaan.update-status');
+    Route::delete('/laporan/penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'destroy'])->name('admin.laporan.penyalahgunaan.destroy');
 });
 
 
