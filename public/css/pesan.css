@@ -1,13 +1,81 @@
 :root {
   --green: #41A67E;
+  --primary-green: #41A67E;
   --gold: #F59E0B;
   --blue: #3B82F6;
   --purple: #8B5CF6;
   --white: #ffffff;
   --gray-bg: #F3F4F6;
+  --light-bg: #FAFBFB;
   --text: #2E3A35;
+  --border: #E5E9E8;
 }
 
+
+.section-card {
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--white);
+  transition: all 0.3s ease;
+}
+.section-card:hover {
+  border-color: var(--primary-green);
+  background-color: #F9FFFB;
+  transform: translateY(-4px);
+}
+.section-card.active {
+  border-color: var(--primary-green);
+  background: linear-gradient(135deg, #E8FBF2, #FFFFFF);
+}
+.section-card.active h6 {
+  color: var(--primary-green);
+}
+.section-card i {
+  transition: transform 0.3s ease;
+}
+.section-card:hover i {
+  transform: scale(1.1);
+}
+
+.jadwal-card {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--white);
+}
+.jadwal-header {
+  background-color: var(--primary-green);
+  color: var(--white);
+  font-weight: 600;
+  padding: 10px 15px;
+}
+.jadwal-body {
+  padding: 15px 20px;
+}
+.jadwal-item {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  padding: 14px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  background: var(--white);
+  color: var(--text);
+}
+.jadwal-item.available:hover {
+  border-color: var(--primary-green);
+  /* background-color: #F1FCF7; */
+}
+.jadwal-item.unavailable {
+  /* background-color: #F3F4F4; */
+  color: #999;
+  cursor: not-allowed;
+}
+.jadwal-item.selected {
+  background-color: var(--primary-green);
+  color: var(--white);
+  border-color: var(--primary-green);
+}
 body {
   background-color: var(--gray-bg);
   color: var(--text);

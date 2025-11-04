@@ -47,9 +47,11 @@ class Pemesanan extends Model
     {
         return $this->hasOne(Ulasan::class);
     }
-    public function permintaanPerubahan()
+public function permintaanPerubahan()
 {
-    return $this->hasMany(PermintaanPerubahan::class, 'pemesanan_id');
+    return $this->hasOne(\App\Models\PermintaanPerubahan::class, 'pemesanan_id')->latest();
 }
+
+
 
 }

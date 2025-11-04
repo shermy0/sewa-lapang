@@ -14,10 +14,19 @@ return new class extends Migration
         Schema::create('permintaan_perubahan', function (Blueprint $table) {
             $table->id();
             $table->foreignId('pemesanan_id')->constrained('pemesanan')->onDelete('cascade');
+
+            // 🔹 Tambahan baru: untuk dukung perpindahan section
+            $table->foreignId('section_lama_id')->nullable()->constrained('section_lapangan')->onDelete('cascade');
+            $table->foreignId('section_baru_id')->nullable()->constrained('section_lapangan')->onDelete('cascade');
+
+            // 🔹 Perubahan jadwal (yang sudah kamu punya)
             $table->foreignId('jadwal_lama_id')->constrained('jadwal_lapangan')->onDelete('cascade');
             $table->foreignId('jadwal_baru_id')->nullable()->constrained('jadwal_lapangan')->onDelete('cascade');
+
+            // 🔹 Status & alasan
             $table->enum('status', ['menunggu', 'disetujui', 'ditolak'])->default('menunggu');
             $table->text('alasan')->nullable();
+
             $table->timestamps();
         });
     }

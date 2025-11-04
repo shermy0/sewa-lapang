@@ -9,12 +9,34 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container py-5">
-    {{-- HEADER --}}
-    <div class="text-center mb-5">
-        <i class="fa-solid fa-calendar-check fa-4x text-success mb-3"></i>
-        <h2 class="fw-bold mt-2 text-success">{{ $lapangan->nama_lapangan }}</h2>
-        <p class="text-muted">Pilih section dan jadwal bermain sesuai ketersediaan.</p>
-    </div>
+{{-- HEADER --}}
+<div class="text-center mb-5">
+    {{-- Icon otomatis sesuai kategori --}}
+    @if(str_contains(strtolower($lapangan->kategori ?? ''), 'badminton'))
+        <i class="fa-solid fa-shuttlecock fa-4x text-success mb-3"></i>
+    @elseif(str_contains(strtolower($lapangan->kategori ?? ''), 'futsal'))
+        <i class="fa-solid fa-futbol fa-4x text-success mb-3"></i>
+    @elseif(str_contains(strtolower($lapangan->kategori ?? ''), 'tenis'))
+        <i class="fa-solid fa-table-tennis-paddle-ball fa-4x text-success mb-3"></i>
+    @else
+        <i class="fa-solid fa-dumbbell fa-4x text-success mb-3"></i>
+    @endif
+
+    <h2 class="fw-bold mt-2 text-success">{{ $lapangan->nama_lapangan }}</h2>
+    <p class="text-muted mb-2">
+        <i class="fa-solid fa-tag me-1"></i> {{ ucfirst($lapangan->kategori) ?? 'Umum' }} &nbsp; | &nbsp;
+        <i class="fa-solid fa-location-dot me-1"></i> {{ $lapangan->lokasi }}
+    </p>
+
+    @if($lapangan->rating > 0)
+        <p class="text-warning mb-2">
+            <i class="fa-solid fa-star me-1"></i> {{ number_format($lapangan->rating, 1) }} / 5
+        </p>
+    @endif
+
+    <p class="text-muted">Pilih section dan jadwal bermain sesuai ketersediaan.</p>
+</div>
+
 
     {{-- ================== SECTION LIST ================== --}}
     <div class="mb-5">
@@ -384,79 +406,4 @@ function showJadwal(jadwals){
 }
 </script>
 
-<style>
-:root {
-  --primary-green: #41A67E;
-  --gold: #F59E0B;
-  --light-bg: #FAFBFB;
-  --white: #FFFFFF;
-  --border: #E5E9E8;
-  --text: #2E3A35;
-}
-
-.section-card {
-  border: 2px solid var(--border);
-  border-radius: 14px;
-  background: var(--white);
-  transition: all 0.3s ease;
-}
-.section-card:hover {
-  border-color: var(--primary-green);
-  background-color: #F9FFFB;
-  transform: translateY(-4px);
-}
-.section-card.active {
-  border-color: var(--primary-green);
-  background: linear-gradient(135deg, #E8FBF2, #FFFFFF);
-}
-.section-card.active h6 {
-  color: var(--primary-green);
-}
-.section-card i {
-  transition: transform 0.3s ease;
-}
-.section-card:hover i {
-  transform: scale(1.1);
-}
-
-.jadwal-card {
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--white);
-}
-.jadwal-header {
-  background-color: var(--primary-green);
-  color: var(--white);
-  font-weight: 600;
-  padding: 10px 15px;
-}
-.jadwal-body {
-  padding: 15px 20px;
-}
-.jadwal-item {
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  text-align: center;
-  padding: 14px;
-  transition: all 0.25s ease;
-  cursor: pointer;
-  background: var(--white);
-  color: var(--text);
-}
-.jadwal-item.available:hover {
-  border-color: var(--primary-green);
-  /* background-color: #F1FCF7; */
-}
-.jadwal-item.unavailable {
-  /* background-color: #F3F4F4; */
-  color: #999;
-  cursor: not-allowed;
-}
-.jadwal-item.selected {
-  background-color: var(--primary-green);
-  color: var(--white);
-  border-color: var(--primary-green);
-}
-</style>
 @endsection
