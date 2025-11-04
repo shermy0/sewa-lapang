@@ -14,6 +14,71 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class PemesananController extends Controller
 {
+    public function getDetailPermintaan($id)
+{
+    $permintaan = \App\Models\PermintaanPerubahan::with(['sectionBaru', 'jadwalBaru', 'pemesanan.lapangan'])
+        ->findOrFail($id);
+
+    // Cegah akses data orang lain
+    if ($permintaan->pemesanan->penyewa_id != Auth::id()) {
+        abort(403);
+    }
+
+    return response()->json([
+        'id' => $permintaan->id,
+        'status' => $permintaan->status,
+        'alasan' => $permintaan->alasan,
+        'pemesanan_id' => $permintaan->pemesanan_id,
+        'lapangan_id' => $permintaan->pemesanan->lapangan_id,
+        'section_baru' => $permintaan->sectionBaru,
+        'jadwal_baru' => $permintaan->jadwalBaru,
+    ]);
+}
+
+    public function batalkanPermintaan($id)
+{
+    $permintaan = \App\Models\PermintaanPerubahan::findOrFail($id);
+    if ($permintaan->pemesanan->penyewa_id != Auth::id()) {
+        abort(403);
+    }
+
+    $permintaan->delete();
+
+    return response()->json(['success' => true]);
+}
+
+    public function ajukanPerubahan(Request $request, $pemesananId)
+{
+    $request->validate([
+        'section_baru_id' => 'required|exists:section_lapangan,id',
+        'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
+        'alasan' => 'nullable|string|max:255',
+    ]);
+
+    $pemesanan = Pemesanan::findOrFail($pemesananId);
+    if ($pemesanan->penyewa_id != Auth::id()) {
+        abort(403);
+    }
+
+    \App\Models\PermintaanPerubahan::create([
+        'pemesanan_id' => $pemesanan->id,
+        'section_lama_id' => $pemesanan->jadwal->section_id,
+        'section_baru_id' => $request->section_baru_id,
+        'jadwal_lama_id' => $pemesanan->jadwal_id,
+        'jadwal_baru_id' => $request->jadwal_baru_id,
+        'alasan' => $request->alasan,
+        'status' => 'menunggu',
+    ]);
+
+    return response()->json(['success' => true]);
+}
+
+public function getSectionsByLapangan($lapangan_id)
+{
+    $lapangan = \App\Models\Lapangan::with('sections')->findOrFail($lapangan_id);
+    return response()->json($lapangan->sections);
+}
+
 
 public function downloadTiket($id)
 {
