@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
 Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
 // Route untuk ambil detail permintaan perubahan
 Route::get('/permintaan-perubahan/{id}', [App\Http\Controllers\PemesananController::class, 'getDetailPermintaan']);
+Route::post('/permintaan-perubahan/{id}/setujui', [App\Http\Controllers\PemesananController::class, 'setujuiPermintaan'])
+    ->name('permintaan-perubahan.setujui');
 
 Route::post('/permintaan-perubahan/{pemesananId}', [PemesananController::class, 'ajukanPerubahan'])
     ->name('permintaan-perubahan.store');

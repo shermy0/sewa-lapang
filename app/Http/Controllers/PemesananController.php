@@ -10,10 +10,54 @@ use App\Models\Pembayaran;
 use Illuminate\Support\Facades\Auth;
 use Midtrans\Snap;
 use Barryvdh\DomPDF\Facade\Pdf;
-
-
+use Carbon\Carbon;
 class PemesananController extends Controller
 {
+    
+public function boot(): void
+{
+    Carbon::setLocale('id');
+}
+
+
+public function setujuiPermintaan($id)
+{
+    $permintaan = \App\Models\PermintaanPerubahan::with(['pemesanan', 'jadwalLama', 'jadwalBaru'])->findOrFail($id);
+
+    // Cegah yang bukan pemilik lapangan
+    if ($permintaan->pemesanan->lapangan->pemilik_id != Auth::id()) {
+        abort(403, 'Tidak punya akses.');
+    }
+
+    // Update status permintaan
+    $permintaan->update(['status' => 'disetujui']);
+
+    // Ubah jadwal lama jadi tersedia lagi
+    if ($permintaan->jadwalLama) {
+        $permintaan->jadwalLama->update(['tersedia' => true]);
+    }
+
+    // Tandai jadwal baru jadi tidak tersedia
+    if ($permintaan->jadwalBaru) {
+        $permintaan->jadwalBaru->update(['tersedia' => false]);
+    }
+
+    // Update data pemesanan ke jadwal baru
+    $pemesanan = $permintaan->pemesanan;
+    $pemesanan->update([
+        'jadwal_id' => $permintaan->jadwal_baru_id,
+    ]);
+
+    // ✅ refresh relasi agar ambil jadwal & section baru
+    $pemesanan->load('jadwal.section');
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Permintaan perubahan telah disetujui.',
+        'pemesanan' => $pemesanan, // kirim data baru kalau perlu di-ajax
+    ]);
+}
+
     public function getDetailPermintaan($id)
 {
     $permintaan = \App\Models\PermintaanPerubahan::with(['sectionBaru', 'jadwalBaru', 'pemesanan.lapangan'])
@@ -112,15 +156,31 @@ public function getJadwalBySection($section_id)
 }
 
     // ========================== HALAMAN TIKET ==========================
-    public function riwayatTiket()
-    {
-        $userId = Auth::id();
-        $sudahDibayar = Pemesanan::where('penyewa_id', $userId)
-                        ->where('status', 'dibayar')
-                        ->get();
+public function riwayatTiket()
+{
+    $userId = Auth::id();
 
-        return view('penyewa.tiket', compact('sudahDibayar'));
-    }
+    $sudahDibayar = Pemesanan::with([
+        'lapangan',
+        'jadwal.section',
+        'permintaanPerubahan.jadwalBaru.section',
+        'permintaanPerubahan.sectionBaru',
+    ])
+    ->where('penyewa_id', $userId)
+    ->where('status', 'dibayar')
+    ->get()
+    ->map(function ($p) {
+        // kalau ada perubahan disetujui, pastikan jadwalnya sudah ke-update
+        if ($p->permintaanPerubahan && $p->permintaanPerubahan->status === 'disetujui') {
+            $p->refresh(); // ✅ ambil ulang data pemesanan + relasi terbaru
+        }
+        return $p;
+    });
+
+    return view('penyewa.tiket', compact('sudahDibayar'));
+}
+
+
 
     // ========================== HALAMAN MENUNGGU PEMBAYARAN ==========================
     public function riwayatBelum()
