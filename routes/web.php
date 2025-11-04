@@ -77,11 +77,13 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
     Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
     Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
 
-    // ULASAN PENYEWA
-    Route::post('/simpan/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
-    Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
-    Route::put('/{id}/update', [UlasanController::class, 'update'])->name('ulasan.update');
-    Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
+  // ULASAN PENYEWA
+    Route::prefix('ulasan')->group(function () {
+        Route::post('/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
+        Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
+        Route::put('/{id}/update', [UlasanController::class, 'update'])->name('ulasan.update');
+        Route::delete('/{id}', [UlasanController::class, 'destroy'])->name('ulasan.hapus');
+    });
 
     // FAVORIT PENYEWA
     Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');

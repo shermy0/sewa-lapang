@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<div class="detail-lapangan container py-4">
+<div class="container py-4">
+    <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
 
     <!-- ALERT ERROR / SUCCESS -->
     @if(session('error'))
@@ -17,105 +18,147 @@
         <div id="alert-success" class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    <div class="detail-lapangan container py-4">
     @php
-    $favoritTableExists = \Illuminate\Support\Facades\Schema::hasTable('favorit_lapangan');
-        $isFavorit = $isFavorit ?? ($favoritTableExists && Auth::check() && Auth::user()->role === 'penyewa'
-            ? Auth::user()->favoritLapangan()->where('lapangan_id', $lapangan->id)->exists()
-            : false);
+        // normalisasi foto: selalu -> array $fotoList
+        $fotoList = [];
+        if (is_array($lapangan->foto)) {
+            $fotoList = $lapangan->foto;
+        } else {
+            $decoded = @json_decode($lapangan->foto, true);
+            if (is_array($decoded)) {
+                $fotoList = $decoded;
+            } elseif (!empty($lapangan->foto)) {
+                $fotoList = [$lapangan->foto];
+            }
+        }
+
+        // helper untuk menghasilkan url gambar
+        function foto_url($file) {
+            if (!$file) return null;
+            // kalau sudah url lengkap
+            if (strpos($file, 'http://') === 0 || strpos($file, 'https://') === 0) {
+                return $file;
+            }
+            // coba gunakan storage path dulu
+            return asset('storage/' . ltrim($file, '/'));
+        }
     @endphp
 
-    <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
-
     <div class="row g-4 align-items-start">
-        <!-- FOTO -->
+        <!-- FOTO (kiri) -->
         <div class="col-md-5">
-            <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden" 
-                 data-bs-ride="carousel" data-bs-interval="3000">
-                <div class="carousel-inner">
-                    @php
-                        $fotoUtama = $lapangan->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
-                    @endphp
-                    <div class="carousel-item active">
-                        <img src="{{ $fotoUtama }}" 
-                             class="d-block w-100" alt="Foto Lapangan"
-                             style="height: 350px; object-fit: cover;">
+            @if(count($fotoList) > 1)
+                <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden" 
+                     data-bs-ride="carousel" data-bs-interval="3500">
+                    <div class="carousel-inner">
+                        @foreach($fotoList as $i => $f)
+                            <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
+                                <img src="{{ foto_url($f) }}" class="d-block w-100" alt="Foto {{ $lapangan->nama_lapangan }}"
+                                     style="height: 350px; object-fit: cover;">
+                            </div>
+                        @endforeach
                     </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselLapanganDetail" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#carouselLapanganDetail" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
                 </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#carouselLapanganDetail" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon"></span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#carouselLapanganDetail" data-bs-slide="next">
-                    <span class="carousel-control-next-icon"></span>
-                </button>
-            </div>
+            @else
+                @php $single = $fotoList[0] ?? null; @endphp
+                <div class="card shadow-sm rounded-4 overflow-hidden">
+                    <img src="{{ $single ? foto_url($single) : 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1200&h=800&fit=crop' }}"
+                         class="d-block w-100" alt="Foto {{ $lapangan->nama_lapangan }}"
+                         style="height: 350px; object-fit: cover;">
+                </div>
+            @endif
         </div>
 
-        <!-- INFORMASI -->
+        <!-- INFORMASI (kanan) -->
         <div class="col-md-7">
-            <h3 class="fw-semibold">{{ $lapangan->nama_lapangan }}</h3>
-            <span class="badge bg-success mb-2">Tersedia</span>
-            <p class="text-muted">{{ $lapangan->deskripsi ?? 'Belum ada deskripsi.' }}</p>
-            <div class="mb-2">
-                <i class="fa-solid fa-location-dot text-success me-2"></i>
-                <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($lapangan->lokasi) }}" 
-                   target="_blank" class="text-secondary text-decoration-none">
-                    {{ $lapangan->lokasi }}
-                </a>
-            </div>
-            @php
-                $hargaPerJam = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? 0;
-            @endphp
-            <div class="mb-2">
-                <i class="fa-solid fa-tag text-success me-2"></i>
-                {{-- <span class="text-danger fw-semibold">
-                    Rp{{ number_format($lapangan->harga_sewa, 0, ',', '.') }}/jam
-                </span> --}}
+            <h2 class="fw-bold mb-1">{{ $lapangan->nama_lapangan }}</h2>
 
-            </div>
-
-            <!-- RATA-RATA ULASAN -->
-            <div class="mb-3">
-                <strong>Rating:</strong>
-                @if($totalUlasan > 0)
-                    @for ($i=1; $i<=5; $i++)
-                        @if($i <= floor($avgRating))
-                            <i class="fa-solid fa-star text-warning"></i>
-                        @elseif ($i == ceil($avgRating) && $avgRating - floor($avgRating) >= 0.5)
-                            <i class="fa-solid fa-star-half-stroke text-warning"></i>
-                        @else
-                            <i class="fa-regular fa-star text-warning"></i>
-                        @endif
-                    @endfor
-                    ({{ number_format($avgRating,1) }}/5 dari {{ $totalUlasan }} ulasan)
-                @else
-                    <span class="text-muted">Belum ada ulasan</span>
+            {{-- kategori/status --}}
+            <div class="mb-2 d-flex align-items-center gap-2">
+                @if(!empty($lapangan->nama_kategori))
+                    <span class="badge bg-primary">{{ $lapangan->nama_kategori }}</span>
                 @endif
             </div>
 
-            <div class="d-flex gap-2 mt-3 align-items-center">
-                <a href="#" class="btn btn-outline-success d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#ulasanModal">
-                    Lihat Ulasan
+            {{-- deskripsi --}}
+            <p class="text-muted mb-3">{{ $lapangan->deskripsi ?? 'Belum ada deskripsi.' }}</p>
+
+            {{-- alamat --}}
+            <div class="mb-2">
+                <i class="fa-solid fa-location-dot text-success me-2"></i>
+                <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($lapangan->lokasi ?? '') }}" target="_blank" class="text-decoration-none text-secondary">
+                    {{ $lapangan->lokasi ?? 'Alamat tidak tersedia' }}
+                </a>
+            </div>
+
+            {{-- harga --}}
+            @php
+                $hargaPerJam = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? 0;
+            @endphp
+            <div class="mb-3">
+                <i class="fa-solid fa-tag text-success me-2"></i>
+                <span class="text-danger fw-semibold">
+                    Rp {{ number_format($hargaPerJam, 0, ',', '.') }} / jam
+                </span>
+            </div>
+
+            {{-- rating --}}
+            <div class="mb-3">
+                <strong>Rating:</strong>
+                @if(($totalUlasan ?? 0) > 0)
+                    @php $avg = round($avgRating ?? 0, 1); @endphp
+                    <span class="ms-2">
+                        @for($i=1; $i<=5; $i++)
+                            @if($i <= floor($avg))
+                                <i class="fa-solid fa-star text-warning"></i>
+                            @elseif($i == ceil($avg) && ($avg - floor($avg)) >= 0.5)
+                                <i class="fa-solid fa-star-half-stroke text-warning"></i>
+                            @else
+                                <i class="fa-regular fa-star text-warning"></i>
+                            @endif
+                        @endfor
+                        <span class="ms-2 text-muted">({{ number_format($avg,1) }}/5 dari {{ $totalUlasan }} ulasan)</span>
+                    </span>
+                @else
+                    <span class="ms-2 text-muted">Belum ada ulasan</span>
+                @endif
+            </div>
+
+            {{-- tombol aksi --}}
+            <div class="d-flex gap-2 mt-3">
+                {{-- Lihat (ulasan) --}}
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">
+                    <i class="fa-solid fa-comment-dots me-1"></i> Lihat Ulasan
+                </button>
+
+                {{-- Pesan --}}
+                <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-success">
+                    <i class="fa-solid fa-cart-plus me-1"></i> Pesan
                 </a>
 
-                <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-success px-4 d-flex align-items-center justify-content-center">
-                    Pesan
-                </a>
-
+                {{-- Favorit (hanya untuk user penyewa) --}}
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
-                    @if ($isFavorit)
-                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
+                    @if (!empty($isFavorit) && $isFavorit)
+                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="m-0 p-0">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger d-flex align-items-center justify-content-center">
-                                <i class="fa-solid fa-heart-crack me-1"></i>
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fa-solid fa-heart-crack me-1"></i> Hapus Favorit
                             </button>
                         </form>
                     @else
-                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="d-inline m-0 p-0">
+                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="m-0 p-0">
                             @csrf
-                            <button type="submit" class="btn btn-outline-danger d-flex align-items-center justify-content-center">
-                                <i class="fa-solid fa-heart me-1"></i>
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fa-solid fa-heart me-1"></i> Favorit
                             </button>
                         </form>
                     @endif
@@ -124,7 +167,7 @@
         </div>
     </div>
 
-    <!-- Modal Lihat Ulasan -->
+    {{-- Modal Ulasan (sama seperti sebelumnya) --}}
     <div class="modal fade" id="ulasanModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -133,12 +176,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    @if($ulasans->count() > 0)
+                    @if(($ulasans ?? collect())->count() > 0)
                         <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
                             @foreach($ulasans as $ulasan)
                                 <div class="d-flex align-items-start mb-3">
-                                    <img src="{{ asset('poto/'.$ulasan->user_foto ?? 'default.jpg') }}" 
-                                         class="rounded-circle me-3" width="50" height="50">
+                                    <img src="{{ foto_url($ulasan->user_foto ?? null) ?? asset('poto/default.jpg') }}"
+                                         class="rounded-circle me-3" width="50" height="50" alt="{{ $ulasan->username }}">
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <h6 class="mb-1">{{ $ulasan->username }}</h6>
@@ -175,212 +218,115 @@
                     @else
                         <p class="text-muted">Belum ada ulasan untuk lapangan ini.</p>
                     @endif
-                    <div class="mt-3">
+
+                    {{-- tombol tambah ulasan (jika bisa) --}}
                     @php
                         $bolehUlas = \App\Models\Pemesanan::where('penyewa_id', Auth::id() ?? 0)
                             ->where('lapangan_id', $lapangan->id)
                             ->where(function ($query) {
-                                if (Schema::hasColumn('pemesanan', 'status_scan')) {
+                                if (\Illuminate\Support\Facades\Schema::hasColumn('pemesanan', 'status_scan')) {
                                     $query->where('status_scan', 'sudah_scan');
                                 } else {
                                     $query->where('is_scanned', true);
                                 }
-                            })
-                            ->exists();
+                            })->exists();
                     @endphp
 
-                    @if ($bolehUlas)
-                        <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
-                            + Tambah Ulasan
-                        </a>
-                    @else
-                        <button class="btn btn-secondary px-4" disabled>
-                            + Tambah Ulasan (scan tiket terlebih dahulu)
-                        </button>
-                    @endif
+                    <div class="mt-3">
+                        @if ($bolehUlas)
+                            <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
+                                + Tambah Ulasan
+                            </a>
+                        @else
+                            <button class="btn btn-secondary px-4" disabled>
+                                + Tambah Ulasan (scan tiket terlebih dahulu)
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Tambah Ulasan -->
-    <div class="modal fade" id="tambahUlasanModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form action="{{ route('ulasan.simpan', $lapangan->id) }}" method="POST" class="modal-content">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Tambah Ulasan {{ $lapangan->nama_lapangan }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Rating</label>
-                        <div class="star-rating" data-rating="0">
-                            @for($i=1; $i<=5; $i++)
-                                <i class="fa-regular fa-star fa-2x text-warning" data-value="{{ $i }}"></i>
-                            @endfor
-                        </div>
-                        <input type="hidden" name="rating" id="ratingInput" value="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="komentar" class="form-label">Komentar</label>
-                        <textarea name="komentar" id="komentar" class="form-control" rows="4" required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Kirim</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    {{-- Modal Tambah Ulasan & Edit Ulasan tetap bisa kamu pakai dari file lama --}}
 
-    <!-- Modal Edit Ulasan -->
-    @foreach($ulasans as $ulasan)
-    <div class="modal fade" id="editUlasanModal{{ $ulasan->id }}" tabindex="-1" aria-labelledby="editUlasanLabel{{ $ulasan->id }}" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form action="{{ route('ulasan.update', $ulasan->id) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editUlasanLabel{{ $ulasan->id }}">Edit Ulasan {{ $lapangan->nama_lapangan }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Rating dengan bintang -->
-                        <div class="mb-3">
-                            <label class="form-label">Rating</label>
-                            <div class="star-rating" data-rating="{{ $ulasan->rating }}" id="starRating{{ $ulasan->id }}">
-                                @for($i=1; $i<=5; $i++)
-                                    <i class="fa-regular fa-star fa-2x text-warning" data-value="{{ $i }}"></i>
-                                @endfor
-                            </div>
-                            <input type="hidden" name="rating" id="ratingInput{{ $ulasan->id }}" value="{{ $ulasan->rating }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="komentar{{ $ulasan->id }}" class="form-label">Komentar</label>
-                            <textarea name="komentar" id="komentar{{ $ulasan->id }}" rows="3" class="form-control">{{ $ulasan->komentar }}</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success">Simpan Perubahan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endforeach
-
-    <!-- LAPANGAN LAINNYA -->
+    {{-- LAPANGAN LAINNYA (tampilan seperti beranda) --}}
     <h4 class="fw-bold mt-5 mb-3">Lapangan Lainnya</h4>
-    <div class="row">
-        @forelse($lainnya as $item)
-            <div class="col-md-4 mb-4">
-                <a href="{{ route('penyewa.detail', $item->id) }}" class="text-decoration-none text-dark">
-                    <div class="card shadow-sm border-0 h-100">
-                        @php
-                            $fotoRekomendasi = $item->foto_utama ?? 'https://via.placeholder.com/640x360?text=Lapangan';
-                        @endphp
-                        <img src="{{ $fotoRekomendasi }}" class="card-img-top" alt="Foto Lapangan" style="height: 200px; object-fit: cover;">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ $item->nama_lapangan }}</h5>
-                            <p class="text-muted mb-1"><i class="fa-solid fa-location-dot text-success me-1"></i>{{ $item->lokasi }}</p>
-                            {{-- <p class="fw-semibold text-success">Rp {{ number_format($item->harga_sewa,0,',','.') }}/jam</p> --}}
+    <div class="row g-4">
+        @forelse($lapanganLainnya ?? collect() as $item)
+            @php
+                $fotoArray = is_array($item->foto) ? $item->foto : (@json_decode($item->foto, true) ?: [$item->foto]);
+                $fotoArray = array_filter($fotoArray);
+                $sections = $item->sections ?? collect();
+                $totalSections = $sections->count();
+                $totalJadwal = 0;
+                $hargaRataRata = 0;
+                foreach ($sections as $section) {
+                    $totalJadwal += $section->jadwal->count();
+                    if ($section->jadwal->count()) {
+                        $hargaRataRata += $section->jadwal->avg('harga_sewa');
+                    }
+                }
+                if ($totalSections > 0) $hargaRataRata = $hargaRataRata / $totalSections;
+            @endphp
 
-                            <span class="badge bg-success">{{ $item->kategori }}</span>
+            <div class="col-lg-6 col-xl-4">
+                <div class="card border-0 shadow-sm h-100 overflow-hidden hover-lift">
+                    <div class="position-relative" style="height: 220px; overflow: hidden;">
+                        @if(!empty($fotoArray))
+                            <img src="{{ foto_url(array_values($fotoArray)[0]) }}" class="w-100 h-100" style="object-fit: cover;">
+                        @else
+                            <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1200&h=800&fit=crop" class="w-100 h-100" style="object-fit: cover;">
+                        @endif
+
+                        <div class="position-absolute top-0 start-0 m-3">
+                            <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> {{ $totalSections }} Section</span>
+                        </div>
+                        <div class="position-absolute top-0 end-0 m-3">
+                            <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-calendar me-1"></i> {{ $totalJadwal }} Jadwal</span>
+                        </div>
+                        <div class="position-absolute bottom-0 start-0 m-3" style="z-index:10;">
+                            <span class="badge bg-dark bg-opacity-75 px-3 py-2"><i class="fa-solid fa-tag me-1"></i> {{ ucfirst($item->kategori ?? '') }}</span>
                         </div>
                     </div>
-                </a>
+
+                    <div class="card-body">
+                        <h5 class="fw-bold">{{ $item->nama_lapangan }}</h5>
+                        <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot text-success me-1"></i> {{ Str::limit($item->lokasi, 50) }}</p>
+                        <p class="text-muted small">{{ Str::limit($item->deskripsi, 100) }}</p>
+
+                        @if ($hargaRataRata > 0)
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Rata-rata</small>
+                                <span class="fw-bold text-success">Rp {{ number_format($hargaRataRata,0,',','.') }} / jam</span>
+                            </div>
+                        @endif
+
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="{{ route('penyewa.detail', $item->id) }}" class="btn btn-outline-primary flex-fill">
+                                <i class="fa-solid fa-eye me-1"></i> Detail
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         @empty
-            <p class="text-center text-muted mt-4">Tidak ada lapangan ditemukan.</p>
+            <div class="col-12 text-center text-muted py-5">
+                <i class="fa-solid fa-futbol fa-2x mb-3"></i>
+                <p>Tidak ada lapangan ditemukan.</p>
+            </div>
         @endforelse
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // hide alerts automatically
     setTimeout(() => {
         const alertError = document.getElementById('alert-error');
-        if(alertError) alertError.style.display = 'none';
+        if (alertError) alertError.style.display = 'none';
         const alertSuccess = document.getElementById('alert-success');
-        if(alertSuccess) alertSuccess.style.display = 'none';
+        if (alertSuccess) alertSuccess.style.display = 'none';
     }, 3000);
 </script>
-
-<!-- Script tambah ulasan -->
-<script>
-    const stars = document.querySelectorAll('.star-rating i');
-    const ratingInput = document.getElementById('ratingInput');
-
-    stars.forEach(star => {
-        star.addEventListener('mouseenter', () => {
-            const val = star.getAttribute('data-value');
-            highlightStars(val);
-        });
-
-        star.addEventListener('mouseleave', () => {
-            const val = ratingInput.value;
-            highlightStars(val);
-        });
-
-        star.addEventListener('click', () => {
-            const val = star.getAttribute('data-value');
-            ratingInput.value = val;
-            highlightStars(val);
-        });
-    });
-
-    function highlightStars(rating) {
-        stars.forEach(star => {
-            if(star.getAttribute('data-value') <= rating){
-                star.classList.remove('fa-regular');
-                star.classList.add('fa-solid');
-            } else {
-                star.classList.remove('fa-solid');
-                star.classList.add('fa-regular');
-            }
-        });
-    }
-</script>
-
-<!-- Script edit ulasan -->
-@foreach($ulasans as $ulasan)
-<script>
-    const starRating{{ $ulasan->id }} = document.querySelectorAll('#starRating{{ $ulasan->id }} i');
-    const ratingInput{{ $ulasan->id }} = document.getElementById('ratingInput{{ $ulasan->id }}');
-
-    function highlightStars{{ $ulasan->id }}(rating) {
-        starRating{{ $ulasan->id }}.forEach(star => {
-            if(star.getAttribute('data-value') <= rating){
-                star.classList.remove('fa-regular');
-                star.classList.add('fa-solid');
-            } else {
-                star.classList.remove('fa-solid');
-                star.classList.add('fa-regular');
-            }
-        });
-    }
-
-    // Set rating awal
-    highlightStars{{ $ulasan->id }}(ratingInput{{ $ulasan->id }}.value);
-
-    starRating{{ $ulasan->id }}.forEach(star => {
-        star.addEventListener('mouseenter', () => {
-            highlightStars{{ $ulasan->id }}(star.getAttribute('data-value'));
-        });
-        star.addEventListener('mouseleave', () => {
-            highlightStars{{ $ulasan->id }}(ratingInput{{ $ulasan->id }}.value);
-        });
-        star.addEventListener('click', () => {
-            ratingInput{{ $ulasan->id }}.value = star.getAttribute('data-value');
-            highlightStars{{ $ulasan->id }}(ratingInput{{ $ulasan->id }}.value);
-        });
-    });
-</script>
-@endforeach
 @endsection
