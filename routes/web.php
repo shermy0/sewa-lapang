@@ -55,7 +55,8 @@ Route::delete('/permintaan-perubahan/{id}', [PemesananController::class, 'batalk
     ->name('permintaan-perubahan.delete');
 
     // PERSETUJUAN PEMILIK
-    Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
+Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
+Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
 
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');

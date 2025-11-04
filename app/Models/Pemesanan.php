@@ -19,6 +19,11 @@ class Pemesanan extends Model
         'status_scan',
         'waktu_scan',
     ];
+    public function user()
+{
+    return $this->belongsTo(User::class, 'penyewa_id');
+}
+
 
     public function penyewa()
     {
