@@ -76,12 +76,6 @@
   color: var(--white);
   border-color: var(--primary-green);
 }
-body {
-  background-color: var(--gray-bg);
-  color: var(--text);
-  font-family: 'Poppins', sans-serif;
-}
-
 .card-booking {
   background: var(--white);
   border: none;

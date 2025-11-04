@@ -23,24 +23,80 @@
                     Sedang mengajukan perubahan jadwal / lapangan...
                 </div>
             @endif
+@if($p->permintaanPerubahan)
+    @if($p->permintaanPerubahan->status === 'menunggu')
+        <div class="alert alert-warning py-2 px-3 small mb-2">
+            <i class="fa-solid fa-hourglass-half me-1"></i>
+            Menunggu persetujuan perubahan jadwal / section...
+        </div>
+    @elseif($p->permintaanPerubahan->status === 'disetujui')
+        <div class="alert alert-success py-2 px-3 small mb-2">
+            <i class="fa-solid fa-check-circle me-1"></i>
+            Perubahan jadwal / section telah disetujui dan diperbarui di tiket ini.
+        </div>
+    @elseif($p->permintaanPerubahan->status === 'ditolak')
+        <div class="alert alert-danger py-2 px-3 small mb-2">
+            <i class="fa-solid fa-xmark me-1"></i>
+            Permintaan perubahan ditolak.
+        </div>
+    @endif
+@endif
+
 
             <div class="ticket shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="d-flex flex-column flex-md-row">
                     
                     {{-- Kiri --}}
-                    <div class="ticket-left bg-success text-white p-4 d-flex flex-column justify-content-between">
-                        <div>
-                            <h5 class="fw-bold mb-2">{{ $p->lapangan->nama_lapangan }}</h5>
-                            <p class="mb-1"><i class="fa-solid fa-tag me-1"></i>{{ ucfirst($p->lapangan->kategori) }}</p>
-                            <p class="mb-0"><i class="fa-solid fa-location-dot me-1"></i>{{ $p->lapangan->lokasi }}</p>
-                        </div>
-                        <div class="mt-3">
-                            <p class="mb-1"><i class="fa-solid fa-calendar-day me-1"></i>
-                                {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}</p>
-                            <p class="mb-0"><i class="fa-solid fa-clock me-1"></i>
-                                {{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }}</p>
-                        </div>
-                    </div>
+{{-- Tentukan jadwal dan section yang aktif --}}
+@php
+    $jadwalAktif = $p->jadwal;
+    $sectionAktif = $p->jadwal?->section;
+
+    if ($p->permintaanPerubahan && $p->permintaanPerubahan->status === 'disetujui') {
+        $jadwalAktif = $p->permintaanPerubahan->jadwalBaru ?? $jadwalAktif;
+        $sectionAktif = $p->permintaanPerubahan->sectionBaru ?? $sectionAktif;
+    }
+@endphp
+
+<div class="ticket-left">
+    <div class="ticket-left-header text-center">
+        <div class="lapangan-name">{{ $p->lapangan->nama_lapangan }}</div>
+        <div class="lapangan-meta">
+            <i class="fa-solid fa-tag me-1"></i>{{ ucfirst($p->lapangan->kategori) }}<br>
+            <i class="fa-solid fa-location-dot me-1"></i>{{ $p->lapangan->lokasi }}
+        </div>
+
+        {{-- ✅ Section Info --}}
+        @if($sectionAktif)
+            <div class="section-info mt-2">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>{{ $sectionAktif->nama_section }}</span>
+            </div>
+        @endif
+    </div>
+
+    {{-- ✅ Jadwal Info --}}
+@if($jadwalAktif)
+    @php
+        \Carbon\Carbon::setLocale('id'); // ✅ ubah ke bahasa Indonesia
+        $tanggal = \Carbon\Carbon::parse($jadwalAktif->tanggal);
+        $hari = $tanggal->translatedFormat('l'); // hasilnya: Senin, Selasa, dst.
+    @endphp
+
+    <div class="schedule mt-3 text-center">
+        <div>
+            <i class="fa-solid fa-calendar-day me-1"></i>
+            {{ $hari }}, {{ $tanggal->translatedFormat('d F Y') }}
+        </div>
+        <div>
+            <i class="fa-solid fa-clock me-1"></i>
+            {{ $jadwalAktif->jam_mulai }} - {{ $jadwalAktif->jam_selesai }}
+        </div>
+    </div>
+@endif
+
+</div>
+
 
                     {{-- Kanan --}}
                     <div class="ticket-right p-4 flex-grow-1 bg-white position-relative">
@@ -69,7 +125,7 @@
                                 {{-- Kalau sudah ada perubahan, tombol berubah jadi lihat detail --}}
                                 <button class="btn btn-outline-primary btn-sm px-3"
                                     onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
-                                    <i class="fa-solid fa-eye me-1"></i> Lihat Detail
+                                    <i class="fa-solid fa-eye me-1"></i> Lihat Detail Permintaan
                                 </button>
                             @endif
                         </div>

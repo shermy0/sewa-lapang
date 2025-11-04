@@ -20,24 +20,24 @@ class PermintaanPerubahan extends Model
         'alasan',
         'status',
     ];
+public function pemesanan()
+{
+    return $this->belongsTo(Pemesanan::class, 'pemesanan_id');
+}
 
-    public function pemesanan()
-    {
-        return $this->belongsTo(Pemesanan::class);
-    }
+public function jadwalBaru()
+{
+    return $this->belongsTo(JadwalLapangan::class, 'jadwal_baru_id');
+}
 
-    public function sectionBaru()
+public function jadwalLama()
+{
+    return $this->belongsTo(JadwalLapangan::class, 'jadwal_lama_id');
+}
+
+public function sectionBaru()
 {
     return $this->belongsTo(SectionLapangan::class, 'section_baru_id');
 }
 
-    public function jadwalLama()
-    {
-        return $this->belongsTo(JadwalLapangan::class, 'jadwal_lama_id');
-    }
-
-    public function jadwalBaru()
-    {
-        return $this->belongsTo(JadwalLapangan::class, 'jadwal_baru_id');
-    }
 }
