@@ -3,61 +3,68 @@
 @section('title', 'Menunggu Pembayaran')
 
 @section('content')
+<link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
 <div class="container py-4">
-    <h2 class="fw-bold mb-4 text-warning">Menunggu Pembayaran</h2>
+    <div class="penyewa-page-header">
+        <div>
+            <p class="eyebrow">Status Pembayaran</p>
+            <h1>Menunggu Pembayaran</h1>
+            <p class="subtitle">Segera selesaikan pembayaran agar jadwal bermainmu tetap aman.</p>
+        </div>
+        <span class="page-pill">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i>
+            {{ $belumDibayar->count() }} pesanan
+        </span>
+    </div>
 
-    <div class="row">
+    <div class="payment-grid">
         @forelse($belumDibayar as $p)
-        <div class="col-md-4 mb-3">
-            <div class="card p-3 border-warning position-relative">
-                <p><strong>Lapangan:</strong> {{ $p->lapangan->nama_lapangan }}</p>
-                <p><strong>Jadwal:</strong> 
-                    {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}
-                    ({{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }})
-                </p>
-                <p><strong>Status:</strong> 
-                    <span class="badge bg-warning text-dark">Belum Dibayar</span>
-                </p>
-
-                {{-- COUNTDOWN --}}
-                <p class="text-danger fw-semibold mb-1" id="countdown-{{ $p->id }}"></p>
-
-                <div class="d-flex justify-content-between mt-2">
-                    <button class="btn btn-success btn-pay-again" data-id="{{ $p->id }}">Bayar Sekarang</button>
-                    <form action="{{ route('pemesanan.batalkan', $p->id) }}" method="POST" onsubmit="return confirm('Yakin batalkan pemesanan ini?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Batalkan</button>
-                    </form>
+        <div class="payment-card shadow-sm">
+            <div class="payment-card__head">
+                <div>
+                    <p class="label">Lapangan</p>
+                    <h5>{{ $p->lapangan->nama_lapangan }}</h5>
+                </div>
+                <span class="status-chip status-chip--warning">
+                    <i class="fa-solid fa-coins me-1"></i> Belum Dibayar
+                </span>
+            </div>
+            <div class="payment-card__body">
+                <div class="info-row">
+                    <span><i class="fa-regular fa-calendar me-2 text-success"></i>Tanggal</span>
+                    <strong>{{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}</strong>
+                </div>
+                <div class="info-row">
+                    <span><i class="fa-regular fa-clock me-2 text-success"></i>Jam Main</span>
+                    <strong>{{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }}</strong>
+                </div>
+                <div class="info-row">
+                    <span><i class="fa-solid fa-wallet me-2 text-success"></i>Total</span>
+                    <strong>Rp{{ number_format($p->total_harga, 0, ',', '.') }}</strong>
                 </div>
             </div>
+
+            <p class="countdown-label text-danger" data-countdown data-created-at="{{ $p->created_at->format('c') }}" id="countdown-{{ $p->id }}"></p>
+
+            <div class="payment-card__actions">
+                <button class="btn btn-success flex-grow-1 btn-pay-again" data-id="{{ $p->id }}">
+                    <i class="fa-solid fa-credit-card me-1"></i> Bayar Sekarang
+                </button>
+                <form action="{{ route('pemesanan.batalkan', $p->id) }}" method="POST" onsubmit="return confirm('Yakin batalkan pemesanan ini?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fa-solid fa-xmark me-1"></i> Batalkan
+                    </button>
+                </form>
+            </div>
         </div>
-
-        {{-- COUNTDOWN SCRIPT --}}
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const createdAt = new Date("{{ $p->created_at }}");
-            const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
-            const countdownEl = document.getElementById("countdown-{{ $p->id }}");
-
-            const timer = setInterval(() => {
-                const now = new Date();
-                const diff = deadline - now;
-
-                if (diff <= 0) {
-                    clearInterval(timer);
-                    countdownEl.innerHTML = "⛔ Waktu pembayaran sudah habis!";
-                } else {
-                    const h = Math.floor(diff / (1000 * 60 * 60));
-                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((diff % (1000 * 60)) / 1000);
-                    countdownEl.innerHTML = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
-                }
-            }, 1000);
-        });
-        </script>
         @empty
-        <p class="text-muted">Tidak ada pesanan menunggu pembayaran.</p>
+        <div class="empty-state-card">
+            <i class="fa-solid fa-clipboard-check"></i>
+            <h5>Semua pesanan sudah dibayar</h5>
+            <p>Nikmati sesi bermainmu! Pesanan baru akan tampil di sini.</p>
+        </div>
         @endforelse
     </div>
 </div>
@@ -65,6 +72,33 @@
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const countdownTargets = document.querySelectorAll('[data-countdown]');
+
+    countdownTargets.forEach(target => {
+        const createdAt = new Date(target.dataset.createdAt);
+        const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+
+        const tick = () => {
+            const now = new Date();
+            const diff = deadline.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                target.textContent = 'Waktu pembayaran sudah habis.';
+                target.classList.add('text-muted');
+                return;
+            }
+
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            target.textContent = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+
+            setTimeout(tick, 1000);
+        };
+
+        tick();
+    });
+
     document.querySelectorAll('.btn-pay-again').forEach(btn => {
         btn.addEventListener('click', function() {
             const pemesananId = this.dataset.id;
@@ -88,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         .then(() => window.location.reload())
                         .catch(err => console.error(err));
                     },
-                    onPending: function(result){
+                    onPending: function(){
                         alert("Menunggu pembayaran...");
                         window.location.reload();
                     },

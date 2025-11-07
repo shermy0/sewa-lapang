@@ -7,7 +7,38 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container py-4">
-    <h1 class="fw-bold mb-3" style="color: var(--primary-green);">Pemesanan Saya</h1>
+    <div class="penyewa-page-header">
+        <div>
+            <p class="eyebrow">Kelola Pemesanan</p>
+            <h1>Pemesanan Saya</h1>
+            <p class="subtitle">Pantau status, cek jadwal, dan bagikan ulasan setelah bermain.</p>
+        </div>
+    </div>
+
+    @php
+        $total = $pemesanan->count();
+        $selesai = $pemesanan->where('status', 'selesai')->count();
+        $menunggu = $pemesanan->where('status', 'menunggu')->count();
+        $dibatalkan = $pemesanan->where('status', 'dibatalkan')->count();
+    @endphp
+    <div class="booking-stats">
+        <div class="stat-card">
+            <p>Total Pemesanan</p>
+            <h4>{{ $total }}</h4>
+        </div>
+        <div class="stat-card stat-card--success">
+            <p>Selesai</p>
+            <h4>{{ $selesai }}</h4>
+        </div>
+        <div class="stat-card stat-card--warning">
+            <p>Menunggu</p>
+            <h4>{{ $menunggu }}</h4>
+        </div>
+        <div class="stat-card stat-card--danger">
+            <p>Dibatalkan</p>
+            <h4>{{ $dibatalkan }}</h4>
+        </div>
+    </div>
 
     @foreach (['success', 'error'] as $flash)
         @if (session($flash))
@@ -25,9 +56,9 @@
             <p class="text-muted mb-0">Mulai jelajahi lapangan dan lakukan pemesanan pertamamu.</p>
         </div>
     @else
-        <div class="table-responsive shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive booking-table shadow-sm rounded-4 overflow-hidden">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-success">
+                <thead>
                     <tr>
                         <th scope="col">Lapangan</th>
                         <th scope="col">Tanggal</th>
@@ -63,17 +94,20 @@
                             <td>{{ number_format($durasiJam, 1) }} jam</td>
                             <td>Rp{{ number_format($item->total_harga, 0, ',', '.') }}</td>
                             <td>
-                                <span class="badge bg-{{ $item->status === 'selesai' ? 'success' : ($item->status === 'dibatalkan' ? 'danger' : 'warning text-dark') }}">
+                                @php
+                                    $statusClass = $item->status === 'selesai' ? 'success' : ($item->status === 'dibatalkan' ? 'danger' : 'warning');
+                                @endphp
+                                <span class="status-chip status-chip--{{ $statusClass }}">
                                     {{ $status }}
                                 </span>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-                                    <a href="{{ route('penyewa.detail', $lapangan->id ?? 0) }}" class="btn btn-outline-success btn-sm">
+                                    <a href="{{ route('penyewa.detail', $lapangan->id ?? 0) }}" class="btn btn-outline-success btn-sm btn-action">
                                         <i class="fa-solid fa-eye me-1"></i> Detail
                                     </a>
                                     @if ($item->status === 'selesai')
-                                        <button class="btn btn-sm {{ $hasUlasan ? 'btn-warning text-dark' : 'btn-success' }}"
+                                        <button class="btn btn-sm btn-action {{ $hasUlasan ? 'btn-warning text-dark' : 'btn-success' }}"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#ulasanPemesanan{{ $item->id }}">
                                             <i class="fa-solid fa-star me-1"></i>

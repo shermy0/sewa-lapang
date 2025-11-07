@@ -230,35 +230,26 @@
     <!-- ⭐ PENTING: Bootstrap JS Bundle (termasuk Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Script Sidebar Toggle -->
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleSidebar = document.getElementById('toggleSidebar');
-
-        toggleSidebar.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-        });
-    </script>
-
     <!-- Stack untuk script tambahan dari halaman child -->
     @stack('scripts')
 <script>
-  const sidebar = document.getElementById('sidebar');
-  const mainContent = document.getElementById('mainContent');
-  const toggleSidebar = document.getElementById('toggleSidebar');
+  const sidebarEl = document.getElementById('sidebar');
+  const mainContentEl = document.getElementById('mainContent');
+  const toggleSidebarBtn = document.getElementById('toggleSidebar');
   const dropdownToggles = document.querySelectorAll('[data-bs-toggle="submenu"]');
 
-  toggleSidebar.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('expanded');
-  });
+  if (toggleSidebarBtn && sidebarEl && mainContentEl) {
+    toggleSidebarBtn.addEventListener('click', () => {
+      sidebarEl.classList.toggle('collapsed');
+      mainContentEl.classList.toggle('expanded');
+    });
+  }
 
   dropdownToggles.forEach(toggle => {
     toggle.addEventListener('click', () => {
       const submenu = toggle.nextElementSibling;
       const isShown = submenu.classList.contains('show');
+
       document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
       document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
 
