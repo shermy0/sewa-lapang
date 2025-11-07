@@ -112,7 +112,8 @@
         </table>
 
         <div class="barcode">
-            {!! DNS1D::getBarcodeHTML($pemesanan->kode_tiket, 'C128', 2, 50) !!}
+            {!! DNS1D::getBarcodeHTML($pemesanan->kode_tiket, 'C128', 2, 60) !!}
+            <p class="mt-2" style="letter-spacing: 2px;">{{ $pemesanan->kode_tiket }}</p>
         </div>
 
         <div class="footer">

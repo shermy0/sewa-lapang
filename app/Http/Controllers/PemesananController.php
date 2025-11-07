@@ -244,10 +244,20 @@ public function getSnapToken(Request $request)
         \Log::info('💰 Harga sewa:', ['harga_sewa' => $jadwal->harga_sewa]);
 
         // Ambil token Snap
+        $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+
+        if ($hargaSewa <= 0) {
+            \Log::warning('Harga sewa tidak tersedia', [
+                'lapangan_id' => $lapangan->id,
+                'jadwal_id' => $jadwal->id,
+            ]);
+            return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+        }
+
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
                 'order_id' => 'ORDER-' . $pemesanan->id,
-                'gross_amount' => $jadwal->harga_sewa ?? $lapangan->harga_per_jam,
+                'gross_amount' => $hargaSewa,
             ],
             'customer_details' => [
                 'first_name' => Auth::user()->name,
@@ -262,7 +272,7 @@ public function getSnapToken(Request $request)
             ['pemesanan_id' => $pemesanan->id],
             [
                 'metode' => 'midtrans',
-                'jumlah' => $jadwal->harga_sewa ?? $lapangan->harga_per_jam,
+                'jumlah' => $hargaSewa,
                 'status' => 'pending',
                 'order_id' => 'ORDER-' . $pemesanan->id,
                 'snap_token' => $snapToken,
@@ -311,6 +321,12 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
 {
     try {
         $lapangan = $pemesanan->lapangan;
+        $jadwal = $pemesanan->jadwal;
+        $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+
+        if ($hargaSewa <= 0) {
+            return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+        }
 
         // buat order_id unik tiap generate token
         $uniqueOrderId = 'ORDER-' . $pemesanan->id . '-' . time();
@@ -318,7 +334,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
                 'order_id' => $uniqueOrderId,
-                'gross_amount' => $lapangan->harga_per_jam,
+                'gross_amount' => $hargaSewa,
             ],
             'customer_details' => [
                 'first_name' => Auth::user()->name,
@@ -332,7 +348,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
             $pembayaran = Pembayaran::create([
                 'pemesanan_id' => $pemesanan->id,
                 'metode' => 'midtrans',
-                'jumlah' => $lapangan->harga_per_jam,
+                'jumlah' => $hargaSewa,
                 'status' => 'pending',
                 'order_id' => $uniqueOrderId,
                 'snap_token' => $snapToken,
@@ -342,6 +358,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
                 'snap_token' => $snapToken,
                 'status' => 'pending',
                 'order_id' => $uniqueOrderId,
+                'jumlah' => $hargaSewa,
             ]);
         }
 
@@ -383,10 +400,12 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
         ]);
 
         // 🔹 Simpan pembayaran pending
+        $hargaSewa = $this->resolveHargaSewa($pemesanan->jadwal, $lapangan);
+
         Pembayaran::create([
             'pemesanan_id' => $pemesanan->id,
             'metode' => 'midtrans',
-            'jumlah' => $lapangan->harga_per_jam,
+            'jumlah' => $hargaSewa,
             'status' => 'pending',
             'order_id' => 'ORDER-' . time(),
             'snap_token' => $request->snap_token,
@@ -403,14 +422,19 @@ public function updateSuccess(Request $request, $id)
 {
     $pemesanan = Pemesanan::findOrFail($id);
 
-    $pemesanan->update([
-        'status' => 'dibayar',
-        'kode_tiket' => $this->generateShortTicketCode(),
-    ]);
+        $hargaSewa = $this->resolveHargaSewa($pemesanan->jadwal, $pemesanan->lapangan);
 
-    if ($pemesanan->pembayaran) {
-        $pemesanan->pembayaran->update(['status' => 'berhasil']);
-    }
+        $pemesanan->update([
+            'status' => 'dibayar',
+            'kode_tiket' => $this->generateShortTicketCode(),
+        ]);
+
+        if ($pemesanan->pembayaran) {
+            $pemesanan->pembayaran->update([
+                'status' => 'berhasil',
+                'jumlah' => $hargaSewa,
+            ]);
+        }
 
     if ($pemesanan->jadwal) {
         $pemesanan->jadwal->update(['tersedia' => false]);
@@ -427,6 +451,21 @@ public function updateSuccess(Request $request, $id)
         return $prefix . $random; // contoh hasil: TK7F3C9A
     }
 
-    
+    private function resolveHargaSewa(?JadwalLapangan $jadwal, ?Lapangan $lapangan): int
+    {
+        $candidates = [
+            optional($jadwal)->harga_sewa,
+            optional($lapangan)->harga_sewa,
+            optional($lapangan)->harga_per_jam,
+        ];
+
+        foreach ($candidates as $value) {
+            if (is_numeric($value) && $value > 0) {
+                return (int) round($value);
+            }
+        }
+
+        return 0;
+    }
 
 }

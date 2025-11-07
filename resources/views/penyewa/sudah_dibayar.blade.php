@@ -15,7 +15,7 @@
         </p>
         <p><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
         <div class="mt-2 text-center">
-            {!! DNS1D::getBarcodeHTML($p->kode_tiket, 'C128') !!}
+            {!! DNS1D::getBarcodeHTML($p->kode_tiket, 'C128', 2, 40) !!}
         </div>
     </div>
 </div>

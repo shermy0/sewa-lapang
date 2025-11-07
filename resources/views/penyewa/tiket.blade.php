@@ -164,9 +164,10 @@
                             </p>
                         </div>
 
-                        {{-- Barcode --}}
+                        {{-- QR Code --}}
                         <div class="qr text-center mt-3">
-                            {!! DNS1D::getBarcodeHTML($p->kode_tiket, 'C128') !!}
+                            {!! DNS1D::getBarcodeHTML($p->kode_tiket, 'C128', 2, 60) !!}
+                            <div class="fw-semibold mt-2">{{ $p->kode_tiket }}</div>
                         </div>
 
                         {{-- Aksi --}}

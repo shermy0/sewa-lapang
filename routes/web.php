@@ -179,6 +179,33 @@ Route::middleware(['auth', 'role:pemilik'])->group(function () {
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
 });
 
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/dashboard/admin', [AdminDashboardController::class, 'index'])->name('dashboard.admin');
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        // Lapangan
+        Route::get('/lapangan', [AdminLapanganController::class, 'index'])->name('lapangan.index');
+
+        // Pengguna
+        Route::resource('users', AdminUserController::class);
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('users.update-status');
+
+        // Pembayaran
+        Route::get('/pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
+        Route::put('/pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('pembayaran.update');
+
+        // Laporan penyalahgunaan
+        Route::get('/laporan-penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('laporan.penyalahgunaan.index');
+        Route::get('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('laporan.penyalahgunaan.show');
+        Route::put('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'updateStatus'])->name('laporan.penyalahgunaan.update');
+        Route::delete('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'destroy'])->name('laporan.penyalahgunaan.destroy');
+
+        // Pengaturan akun admin
+        Route::get('/account', [AdminAccountController::class, 'edit'])->name('account.edit');
+        Route::put('/account', [AdminAccountController::class, 'update'])->name('account.update');
+    });
+});
+
 
 Route::middleware(['auth'])->group(function () {
     // CRUD Kategori

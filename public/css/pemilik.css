@@ -68,12 +68,21 @@ body {
 }
 
 #barcode-scanner {
-    width: 500px;
-    height: 320px;
+    flex: 1;
+    min-width: 540px;
+    height: 360px;
     border: 3px solid #28a745;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+#barcode-scanner video,
+#barcode-scanner canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 #result-box {
@@ -95,6 +104,23 @@ body {
 #result {
     line-height: 1.8;
     font-size: 16px;
+}
+
+@media (max-width: 992px) {
+    #barcode-scanner {
+        min-width: 100%;
+        height: 320px;
+    }
+
+    .manual-box,
+    .upload-box,
+    #result-box {
+        min-width: 100%;
+    }
+
+    .scan-wrapper {
+        flex-direction: column;
+    }
 }
 
 .loader {
