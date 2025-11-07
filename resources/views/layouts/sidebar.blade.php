@@ -245,29 +245,49 @@
     <!-- Stack untuk script tambahan dari halaman child -->
     @stack('scripts')
 <script>
+document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
   const toggleSidebar = document.getElementById('toggleSidebar');
-  const dropdownToggles = document.querySelectorAll('[data-bs-toggle="submenu"]');
+  const dropdownToggles = document.querySelectorAll('.menu-link.dropdown-toggle');
 
-  toggleSidebar.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('expanded');
-  });
+  // === Sidebar Collapse ===
+  if (toggleSidebar) {
+    toggleSidebar.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      mainContent.classList.toggle('expanded');
+    });
+  }
 
+  // === Dropdown Custom (submenu) ===
   dropdownToggles.forEach(toggle => {
-    toggle.addEventListener('click', () => {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault(); // cegah reload atau loncat halaman #
+      e.stopPropagation(); // cegah tabrakan event Bootstrap
+
       const submenu = toggle.nextElementSibling;
       const isShown = submenu.classList.contains('show');
+
+      // Tutup semua submenu lain
       document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
       document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
 
+      // Tampilkan submenu yang diklik
       if (!isShown) {
         submenu.classList.add('show');
         toggle.classList.add('active');
       }
     });
   });
+
+  // Klik di luar sidebar -> tutup submenu
+  document.addEventListener('click', (e) => {
+    if (!sidebar.contains(e.target)) {
+      document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
+      document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
+    }
+  });
+});
 </script>
 
 </body>

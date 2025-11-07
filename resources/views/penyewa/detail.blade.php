@@ -1,4 +1,3 @@
-
 @extends('layouts.sidebar')
 
 @section('title', 'Detail Lapangan')
