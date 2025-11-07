@@ -26,7 +26,7 @@
                 <div class="col-md-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="fa-solid fa-filter me-1"></i> Terapkan
-                    </button>
+                    </button>`
                     <a href="{{ route('admin.pembayaran.index') }}" class="btn btn-light border">
                         <i class="fa-solid fa-rotate me-1"></i> Reset
                     </a>
