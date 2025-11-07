@@ -21,6 +21,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\KelolaRekeningController;
 use App\Http\Controllers\PemilikDashboardController;
+use App\Http\Controllers\PemilikPemesananController;
 use App\Http\Controllers\ScanTiketController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
@@ -29,7 +30,7 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PersetujuanController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::middleware('guest')->group(function () {
@@ -170,11 +171,12 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:pemilik'])->group(function () {
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
     Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
+    Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
 });
 
 
