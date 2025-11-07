@@ -126,11 +126,23 @@ public function getSectionsByLapangan($lapangan_id)
 
 public function downloadTiket($id)
 {
-    $pemesanan = Pemesanan::findOrFail($id);
+    $pemesanan = Pemesanan::with([
+        'lapangan',
+        'jadwal.section',
+        'user'
+    ])->findOrFail($id);
+
     $pdf = Pdf::loadView('penyewa.tiket-download', compact('pemesanan'))
-              ->setPaper('a4', 'landscape');
+        ->setPaper('a4', 'landscape')
+        ->setOption('margin-top', 0)
+        ->setOption('margin-bottom', 0)
+        ->setOption('margin-left', 0)
+        ->setOption('margin-right', 0)
+        ->setOption('enable-smart-shrinking', true);
+
     return $pdf->download('Tiket_'.$pemesanan->kode_tiket.'.pdf');
 }
+
 public function create($lapangan_id)
 {
     $lapangan = Lapangan::with('sections')->findOrFail($lapangan_id);
