@@ -27,8 +27,19 @@
                 'route' => 'dashboard.pemilik',
                 'active_routes' => ['dashboard.pemilik'],
             ],
-            ['label' => 'Data Lapangan', 'icon' => 'fa-solid fa-futbol', 'url' => '#'],
-            [
+                [
+                    'label' => 'Data Lapangan',
+                    'icon' => 'fa-solid fa-futbol',
+                    'route' => 'lapangan.index',
+                    'active_routes' => ['lapangan.index'],
+                ],          
+                                [
+                    'label' => 'Kelola Kategori',
+                    'icon' => 'fa-solid fa-tags',
+                    'route' => 'kategori.index',
+                    'active_routes' => ['kategori.index'],
+                ],  
+                [
                 'label' => 'Pemesanan',
                 'icon' => 'fa-solid fa-calendar-check',
                 'route' => 'pemilik.pemesanan.index',
@@ -216,7 +227,23 @@
 <main class="main-content" id="mainContent">
   @yield('content')
 </main>
+    <!-- ⭐ PENTING: Bootstrap JS Bundle (termasuk Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- Script Sidebar Toggle -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleSidebar = document.getElementById('toggleSidebar');
+
+        toggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    </script>
+
+    <!-- Stack untuk script tambahan dari halaman child -->
+    @stack('scripts')
 <script>
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.getElementById('mainContent');
