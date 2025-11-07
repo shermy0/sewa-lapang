@@ -64,10 +64,10 @@ class Lapangan extends Model
     }
 
     // Relationship ke pemesanan
-    public function pemesanan()
-    {
-        return $this->hasMany(Pemesanan::class, 'lapangan_id');
-    }
+public function pemesanan()
+{
+    return $this->hasMany(\App\Models\Pemesanan::class, 'lapangan_id', 'id');
+}
 
     // Relasi ke ulasan
     public function ulasans()
