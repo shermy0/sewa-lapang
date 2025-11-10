@@ -211,29 +211,6 @@
         color: #004080;
     }
 
-    .attachment-box {
-        margin-top: 30px;
-        padding: 20px;
-        border: 2px dashed #c8e2d0;
-        border-radius: 12px;
-        background: #f8fffa;
-    }
-
-    .attachment-box .form-label {
-        font-weight: 600;
-        color: #198754;
-    }
-
-    .pdf-hint {
-        font-size: 14px;
-        color: #6c757d;
-    }
-
-    .upload-status .success-result,
-    .upload-status .error-result {
-        margin-top: 15px;
-    }
-
     @media (max-width: 768px) {
         #barcode-scanner {
             height: 350px;
@@ -265,36 +242,6 @@
             <div id="result">Arahkan kamera ke barcode tiket untuk mulai memindai...</div>
         </div>
 
-        <!-- Lampiran Gambar -->
-        <div class="attachment-box">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <h5 class="mb-0">🖼️ Lampirkan Gambar Tiket</h5>
-                <span class="badge bg-light text-success border border-success">Opsional</span>
-            </div>
-            <p class="pdf-hint mb-4">
-                Unggah salinan tiket (JPG/PNG). Setelah dikirim, sistem langsung memindai gambar & menampilkan hasil verifikasinya.
-            </p>
-            <form id="imageScanForm" class="row g-3" enctype="multipart/form-data">
-                @csrf
-                <div class="col-md-6">
-                    <label for="kodeTiketLampiran" class="form-label">Kode Tiket (opsional)</label>
-                    <input type="text" class="form-control" id="kodeTiketLampiran" name="kode_tiket" placeholder="Contoh: TKT-12345">
-                </div>
-                <div class="col-md-6">
-                    <label for="lampiranPdf" class="form-label">File Gambar</label>
-                    <input type="file" class="form-control" id="lampiranPdf" name="lampiran_pdf" accept="image/*" required>
-                </div>
-                <div class="col-12 d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-success" id="lampiranSubmitBtn">
-                        <span class="btn-text">Unggah & Pindai</span>
-                        <span class="spinner-border spinner-border-sm ms-2 d-none" id="lampiranSpinner" role="status" aria-hidden="true"></span>
-                    </button>
-                    <button type="reset" class="btn btn-outline-secondary">Reset</button>
-                </div>
-            </form>
-            <div id="lampiranStatus" class="upload-status"></div>
-        </div>
-
         <!-- Tips Scanner -->
         <div class="scanner-tips">
             <h6>💡 Tips Scanning:</h6>
@@ -320,10 +267,6 @@ document.addEventListener('DOMContentLoaded', function(){
     let liveStarted = false;
     let lastScannedCode = '';
     let lastScanTime = 0;
-    const lampiranForm = document.getElementById('imageScanForm');
-    const lampiranStatus = document.getElementById('lampiranStatus');
-    const lampiranSubmitBtn = document.getElementById('lampiranSubmitBtn');
-    const lampiranSpinner = document.getElementById('lampiranSpinner');
 
     const showLoading = (kode, sumber) => {
         resultBox.innerHTML = `
@@ -379,188 +322,6 @@ document.addEventListener('DOMContentLoaded', function(){
         "code_39_reader",
         "upc_reader"
     ];
-
-    const loadImageToCanvas = (dataUrl) => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth || img.width;
-                canvas.height = img.naturalHeight || img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                resolve(canvas);
-            };
-            img.onerror = () => reject(new Error('Gagal memuat gambar.'));
-            img.src = dataUrl;
-        });
-    };
-
-    const decodeQrFromCanvas = async (canvas) => {
-        if (!window.jsQR) {
-            throw new Error('jsQR belum dimuat.');
-        }
-        const ctx = canvas.getContext('2d');
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const qr = jsQR(imageData.data, canvas.width, canvas.height, {
-            inversionAttempts: "attemptBoth"
-        });
-        return qr?.data || null;
-    };
-
-    const decodeBarcodeFromImageDataUrl = (dataUrl) => {
-        return new Promise((resolve, reject) => {
-            Quagga.decodeSingle({
-                decoder: { readers },
-                locator: { patchSize: "medium", halfSample: false },
-                locate: true,
-                src: dataUrl
-            }, async function(result) {
-                if (result && result.codeResult && result.codeResult.code) {
-                    resolve(result.codeResult.code);
-                    return;
-                }
-
-                try {
-                    const canvas = await loadImageToCanvas(dataUrl);
-                    const qrData = await decodeQrFromCanvas(canvas);
-                    if (qrData) {
-                        resolve(qrData);
-                        return;
-                    }
-                } catch (qrErr) {
-                    console.warn('QR decode error:', qrErr);
-                }
-
-                reject(new Error('Barcode / QR tidak ditemukan pada berkas.'));
-            });
-        });
-    };
-
-    const decodeBarcodeFromImageFile = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
-            reader.onload = (e) => {
-                decodeBarcodeFromImageDataUrl(e.target.result).then(resolve).catch(reject);
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
-    const extractKodeFromFile = async (file) => {
-        if (!file) return null;
-        if (!file.type.startsWith('image/')) {
-            throw new Error('Format file tidak didukung untuk pemindaian otomatis. Gunakan gambar JPG/PNG.');
-        }
-        return decodeBarcodeFromImageFile(file);
-    };
-
-    const renderLampiranResult = (detail) => {
-        const linkBtn = detail.file_url
-            ? `<a href="${detail.file_url}" target="_blank" class="btn btn-sm btn-outline-success mt-3">Lihat Gambar</a>`
-            : '';
-
-        return `
-            <div class="success-result">
-                <h6>📄 Lampiran berhasil dipindai</h6>
-                <div><strong>Nama File:</strong> ${detail.file_name || '-'}</div>
-                ${detail.kode_tiket ? `<div><strong>Kode Tiket:</strong> ${detail.kode_tiket}</div>` : ''}
-                <div><strong>Waktu Unggah:</strong> ${detail.uploaded_at || '-'}</div>
-                ${linkBtn}
-            </div>
-        `;
-    };
-
-    const toggleLampiranLoading = (state) => {
-        if (!lampiranSubmitBtn) return;
-        lampiranSubmitBtn.disabled = state;
-        if (lampiranSpinner) {
-            lampiranSpinner.classList.toggle('d-none', !state);
-        }
-    };
-
-    const showLampiranError = (message) => {
-        if (!lampiranStatus) return;
-        lampiranStatus.innerHTML = `<div class="error-result"><strong>❌</strong> ${message}</div>`;
-    };
-
-    const initLampiranUpload = () => {
-        if (!lampiranForm) return;
-
-        lampiranForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const fileInput = lampiranForm.querySelector('input[name="lampiran_pdf"]');
-            const kodeInput = lampiranForm.querySelector('input[name="kode_tiket"]');
-
-            if (!fileInput?.files?.length) {
-                showLampiranError('Silakan pilih file gambar terlebih dahulu.');
-                return;
-            }
-
-            const file = fileInput.files[0];
-            let kodeTiket = (kodeInput?.value || '').trim();
-
-            toggleLampiranLoading(true);
-
-            if (!kodeTiket) {
-                lampiranStatus.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <span class="loader"></span>
-                        <span>Mendeteksi barcode dari file...</span>
-                    </div>
-                `;
-                try {
-                    kodeTiket = await extractKodeFromFile(file);
-                    if (kodeInput) {
-                        kodeInput.value = kodeTiket || '';
-                    }
-                    lampiranStatus.innerHTML = `
-                        <div class="success-result">
-                            <div><strong>Kode terdeteksi otomatis:</strong> ${kodeTiket}</div>
-                            <div class="text-muted small mt-2">Mengunggah berkas untuk pencatatan...</div>
-                        </div>
-                    `;
-                } catch (detectErr) {
-                    console.warn('Deteksi barcode gagal:', detectErr);
-                    lampiranStatus.innerHTML = `
-                        <div class="error-result">
-                            Tidak dapat membaca barcode / QR dari file. Masukkan kode tiket secara manual lalu ulangi.
-                        </div>
-                    `;
-                    toggleLampiranLoading(false);
-                    return;
-                }
-            } else {
-                lampiranStatus.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <span class="loader"></span>
-                        <span>Mengunggah lampiran...</span>
-                    </div>
-                `;
-            }
-
-            const kodeFinal = kodeInput?.value?.trim() || kodeTiket;
-            if (kodeFinal) {
-                lampiranStatus.innerHTML = renderLampiranResult({
-                    file_name: file.name,
-                    kode_tiket: kodeFinal,
-                    uploaded_at: new Date().toLocaleString()
-                });
-                verifyKode(kodeFinal, 'lampiran gambar');
-            } else {
-                lampiranStatus.innerHTML = renderLampiranResult({
-                    file_name: file.name,
-                    uploaded_at: new Date().toLocaleString(),
-                    kode_tiket: null
-                });
-            }
-
-            lampiranForm.reset();
-
-            toggleLampiranLoading(false);
-        });
-    };
 
     const verifyKode = (kode, sumberLabel = 'kode tiket') => {
         const now = Date.now();
@@ -777,7 +538,6 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 
-    initLampiranUpload();
 });
 </script>
 @endsection
