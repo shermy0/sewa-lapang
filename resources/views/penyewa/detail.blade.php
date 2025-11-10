@@ -271,7 +271,79 @@
         </div>
     </div>
 
-    {{-- Modal Tambah Ulasan & Edit Ulasan tetap bisa kamu pakai dari file lama --}}
+    @auth
+        {{-- Modal Tambah Ulasan --}}
+        <div class="modal fade" id="tambahUlasanModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Tambah Ulasan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ route('ulasan.simpan', $lapangan->id) }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Rating</label>
+                                <select name="rating" class="form-select" required>
+                                    <option value="" disabled selected>Pilih rating</option>
+                                    @for ($i = 1; $i <= 5; $i++)
+                                        <option value="{{ $i }}">{{ $i }} / 5</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Komentar</label>
+                                <textarea name="komentar" class="form-control" rows="4" placeholder="Bagikan pengalamanmu" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-success">Kirim Ulasan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {{-- Modal Edit Ulasan --}}
+        @foreach(($ulasans ?? collect()) as $ulasan)
+            @if(auth()->id() === $ulasan->user_id)
+                <div class="modal fade" id="editUlasanModal{{ $ulasan->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Ulasan</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ route('ulasan.update', $ulasan->id) }}" method="POST">
+                                @csrf
+                                @method('PUT')
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Rating</label>
+                                        <select name="rating" class="form-select" required>
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <option value="{{ $i }}" {{ $ulasan->rating == $i ? 'selected' : '' }}>{{ $i }} / 5</option>
+                                            @endfor
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Komentar</label>
+                                        <textarea name="komentar" class="form-control" rows="4" required>{{ $ulasan->komentar }}</textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endforeach
+    @endauth
 
     {{-- LAPANGAN LAINNYA (tampilan seperti beranda) --}}
     <h4 class="fw-bold mt-5 mb-3">Lapangan Lainnya</h4>
