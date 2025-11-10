@@ -188,10 +188,10 @@
                 $penyewa = $item->pemesanan->user->name ?? '-';
                 $lapangan = $item->pemesanan->lapangan->nama_lapangan ?? '-';
                 $sectionLama = $item->jadwalLama->section->nama_section ?? '-';
-                $tglLama = $item->jadwalLama ? \Carbon\Carbon::parse($item->jadwalLama->tanggal)->translatedFormat('l, d M Y') : '-';
+                $tglLama = $item->jadwalLama ? \Carbon\Carbon::parse($item->jadwalLama->tanggal)->locale('id')->translatedFormat('l, d F Y') : '-';
                 $jamLama = $item->jadwalLama ? "{$item->jadwalLama->jam_mulai} - {$item->jadwalLama->jam_selesai}" : '-';
                 $sectionBaru = $item->jadwalBaru->section->nama_section ?? '-';
-                $tglBaru = $item->jadwalBaru ? \Carbon\Carbon::parse($item->jadwalBaru->tanggal)->translatedFormat('l, d M Y') : '-';
+                $tglBaru = $item->jadwalBaru ? \Carbon\Carbon::parse($item->jadwalBaru->tanggal)->locale('id')->translatedFormat('l, d F Y') : '-';
                 $jamBaru = $item->jadwalBaru ? "{$item->jadwalBaru->jam_mulai} - {$item->jadwalBaru->jam_selesai}" : '-';
               @endphp
               <tr>

@@ -8,6 +8,7 @@ use App\Models\Pemesanan;
 use App\Models\JadwalLapangan;
 use App\Models\Pembayaran;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Midtrans\Snap;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -254,9 +255,19 @@ public function getSnapToken(Request $request)
             return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
         }
 
+        if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
+            \Log::error('⚠️ MIDTRANS belum dikonfigurasi', [
+                'server_key' => config('midtrans.server_key'),
+                'client_key' => config('midtrans.client_key'),
+            ]);
+            return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
+        }
+
+        $orderId = $this->generateOrderId($pemesanan);
+
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
-                'order_id' => 'ORDER-' . $pemesanan->id,
+                'order_id' => $orderId,
                 'gross_amount' => $hargaSewa,
             ],
             'customer_details' => [
@@ -274,7 +285,7 @@ public function getSnapToken(Request $request)
                 'metode' => 'midtrans',
                 'jumlah' => $hargaSewa,
                 'status' => 'pending',
-                'order_id' => 'ORDER-' . $pemesanan->id,
+                'order_id' => $orderId,
                 'snap_token' => $snapToken,
             ]
         );
@@ -328,8 +339,13 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
             return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
         }
 
+        if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
+            \Log::error('⚠️ MIDTRANS belum dikonfigurasi saat getSnapTokenAgain');
+            return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
+        }
+
         // buat order_id unik tiap generate token
-        $uniqueOrderId = 'ORDER-' . $pemesanan->id . '-' . time();
+        $uniqueOrderId = $this->generateOrderId($pemesanan);
 
         $snapToken = Snap::getSnapToken([
             'transaction_details' => [
@@ -401,13 +417,14 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
 
         // 🔹 Simpan pembayaran pending
         $hargaSewa = $this->resolveHargaSewa($pemesanan->jadwal, $lapangan);
+        $orderId = $this->generateOrderId($pemesanan);
 
         Pembayaran::create([
             'pemesanan_id' => $pemesanan->id,
             'metode' => 'midtrans',
             'jumlah' => $hargaSewa,
             'status' => 'pending',
-            'order_id' => 'ORDER-' . time(),
+            'order_id' => $orderId,
             'snap_token' => $request->snap_token,
         ]);
 
@@ -449,6 +466,16 @@ public function updateSuccess(Request $request, $id)
         $prefix = 'LPN'; // bisa diganti misal "LPN" untuk lapangan
         $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
         return $prefix . $random; // contoh hasil: TK7F3C9A
+    }
+
+    private function generateOrderId(Pemesanan $pemesanan): string
+    {
+        return sprintf(
+            'ORDER-%s-%s-%s',
+            $pemesanan->id,
+            now()->format('YmdHis'),
+            Str::upper(Str::random(4))
+        );
     }
 
     private function resolveHargaSewa(?JadwalLapangan $jadwal, ?Lapangan $lapangan): int

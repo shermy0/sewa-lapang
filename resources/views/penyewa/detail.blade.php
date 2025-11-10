@@ -48,7 +48,7 @@
         <!-- FOTO (kiri) -->
         <div class="col-md-5">
             @if(count($fotoList) > 1)
-                <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden" 
+                <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden"
                      data-bs-ride="carousel" data-bs-interval="3500">
                     <div class="carousel-inner">
                         @foreach($fotoList as $i => $f)
@@ -102,12 +102,35 @@
             {{-- harga --}}
             @php
                 $hargaPerJam = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? 0;
+
+                if (!is_numeric($hargaPerJam) || $hargaPerJam <= 0) {
+                    $sections = $lapangan->sections ?? collect();
+                    $totalHarga = 0;
+                    $jumlahJadwal = 0;
+
+                    foreach ($sections as $section) {
+                        foreach ($section->jadwal as $jadwal) {
+                            if (is_numeric($jadwal->harga_sewa) && $jadwal->harga_sewa > 0) {
+                                $totalHarga += $jadwal->harga_sewa;
+                                $jumlahJadwal++;
+                            }
+                        }
+                    }
+
+                    if ($jumlahJadwal > 0) {
+                        $hargaPerJam = $totalHarga / $jumlahJadwal;
+                    }
+                }
             @endphp
             <div class="mb-3">
                 <i class="fa-solid fa-tag text-success me-2"></i>
-                <span class="text-danger fw-semibold">
-                    Rp {{ number_format($hargaPerJam, 0, ',', '.') }} / jam
-                </span>
+                @if($hargaPerJam > 0)
+                    <span class="text-danger fw-semibold">
+                        Rp {{ number_format($hargaPerJam, 0, ',', '.') }} / jam
+                    </span>
+                @else
+                    <span class="text-muted">Harga belum tersedia</span>
+                @endif
             </div>
 
             {{-- rating --}}
