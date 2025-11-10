@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    \Carbon\Carbon::setLocale('id');
     $statusBadges = [
         'menunggu' => ['label' => 'Menunggu', 'class' => 'bg-warning text-dark'],
         'dibayar' => ['label' => 'Dibayar', 'class' => 'bg-info text-dark'],
@@ -313,7 +314,7 @@
                               <td>
                                   <div class="schedule-box">
                                       <div class="day">
-                                          {{ $jadwal?->tanggal?->translatedFormat('l, d F Y') ?? '-' }}
+                                          {{ optional($jadwal?->tanggal)?->locale('id')->translatedFormat('l, d F Y') ?? '-' }}
                                       </div>
                                       <div class="time">
                                           <i class="fa-regular fa-clock me-1"></i>
@@ -338,8 +339,8 @@
                               </td>
                               <td>
                                   <div class="identity-box text-center">
-                                      <div class="title">{{ $item->created_at?->translatedFormat('d M Y') ?? '-' }}</div>
-                                      <div class="subtitle">{{ $item->created_at?->format('H:i') ?? '' }}</div>
+                                      <div class="title">{{ optional($item->created_at)?->locale('id')->translatedFormat('d F Y') ?? '-' }}</div>
+                                      <div class="subtitle">{{ optional($item->created_at)?->timezone(config('app.timezone'))->format('H:i') ?? '' }}</div>
                                   </div>
                               </td>
                           </tr>

@@ -67,7 +67,12 @@
                 'route' => 'pemilik.scan',
                 'active_routes' => ['pemilik.scan'],
             ],
-            ['label' => 'Pengaturan Akun', 'icon' => 'fa-solid fa-gear', 'url' => '#'],
+            [
+                'label' => 'Pengaturan Akun',
+                'icon' => 'fa-solid fa-gear',
+                'route' => 'profile.index',
+                'active_routes' => ['profile.index'],
+            ],
         ];
     } else {
         $menuItems = [

@@ -38,9 +38,33 @@
                     <span><i class="fa-regular fa-clock me-2 text-success"></i>Jam Main</span>
                     <strong>{{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }}</strong>
                 </div>
+                @php
+                    $totalBayar = $p->total_harga;
+
+                    if (!is_numeric($totalBayar) || $totalBayar <= 0) {
+                        $sections = $p->lapangan->sections ?? collect();
+                        $totalHarga = 0;
+                        $jumlahJadwal = 0;
+
+                        foreach ($sections as $section) {
+                            foreach ($section->jadwal as $jadwal) {
+                                if (is_numeric($jadwal->harga_sewa) && $jadwal->harga_sewa > 0) {
+                                    $totalHarga += $jadwal->harga_sewa;
+                                    $jumlahJadwal++;
+                                }
+                            }
+                        }
+
+                        if ($jumlahJadwal > 0) {
+                            $totalBayar = $totalHarga / $jumlahJadwal;
+                        }
+                    }
+                @endphp
                 <div class="info-row">
                     <span><i class="fa-solid fa-wallet me-2 text-success"></i>Total</span>
-                    <strong>Rp{{ number_format($p->total_harga, 0, ',', '.') }}</strong>
+                    <strong>
+                        {{ $totalBayar > 0 ? 'Rp' . number_format($totalBayar, 0, ',', '.') : 'Harga belum tersedia' }}
+                    </strong>
                 </div>
             </div>
 
