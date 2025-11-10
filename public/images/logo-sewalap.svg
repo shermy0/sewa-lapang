@@ -1,0 +1,12 @@
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo SewaLap">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#41A67E"/>
+      <stop offset="100%" stop-color="#2D7F61"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="22" fill="url(#grad)" stroke="#E8F4EF" stroke-width="2"/>
+  <path d="M12 28c2 2.5 5 4 8 4 4.418 0 8-3.134 8-7s-3.582-7-8-7c-2.416 0-4.605 1.008-6.127 2.627" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  <path d="M26 24h10" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M36 20l4 4-4 4" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

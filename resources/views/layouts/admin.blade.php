@@ -72,7 +72,7 @@
         <!-- Header with toggle -->
         <div class="sidebar-header">
             <div class="brand">
-                <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo" class="brand-logo">
+                <img src="{{ asset('images/logo-sewalap.svg') }}" alt="Logo" class="brand-logo">
                 <span class="brand-text">SewaLap Admin</span>
             </div>
             <button class="toggle-sidebar" id="toggleSidebar">

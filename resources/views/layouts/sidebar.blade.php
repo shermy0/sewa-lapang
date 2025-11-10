@@ -119,7 +119,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="brand">
-      <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo SewaLap" class="brand-logo">
+      <img src="{{ asset('images/logo-sewalap.svg') }}" alt="Logo SewaLap" class="brand-logo">
       <span class="brand-text">SewaLap</span>
     </div>
     <button class="toggle-sidebar" id="toggleSidebar">
