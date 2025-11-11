@@ -38,6 +38,15 @@
             text-align: center;
             margin-top: 20px;
         }
+        .qr-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            border: 2px dashed #41A67E;
+            border-radius: 12px;
+            background: #f9fffb;
+        }
         .footer {
             margin-top: 25px;
             text-align: center;
@@ -112,8 +121,11 @@
         </table>
 
         <div class="barcode">
-            {!! DNS1D::getBarcodeHTML($pemesanan->kode_tiket, 'C128', 2, 60) !!}
-            <p class="mt-2" style="letter-spacing: 2px;">{{ $pemesanan->kode_tiket }}</p>
+            <div class="qr-wrapper">
+                {!! DNS2D::getBarcodeHTML($pemesanan->kode_tiket ?? 'SEWALAP', 'QRCODE', 8, 8) !!}
+            </div>
+            <p class="mt-3" style="letter-spacing: 2px; font-weight: bold;">{{ $pemesanan->kode_tiket }}</p>
+            <small class="text-muted d-block">Pindai QR ini saat check-in</small>
         </div>
 
         <div class="footer">

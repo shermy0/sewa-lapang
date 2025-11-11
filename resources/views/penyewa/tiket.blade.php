@@ -166,7 +166,9 @@
 
                         {{-- QR Code --}}
                         <div class="qr text-center mt-3">
-                            {!! DNS1D::getBarcodeHTML($p->kode_tiket, 'C128', 2, 60) !!}
+                            <div class="d-inline-flex p-3 border border-success border-dashed rounded-3 bg-light">
+                                {!! DNS2D::getBarcodeHTML($p->kode_tiket ?? 'SEWALAP', 'QRCODE', 6, 6) !!}
+                            </div>
                             <div class="fw-semibold mt-2">{{ $p->kode_tiket }}</div>
                         </div>
 

@@ -224,7 +224,7 @@
 </style>
 
 <div class="container py-4">
-    <h2 class="fw-bold mb-4 text-success">📱 Scan Tiket Barcode</h2>
+    <h2 class="fw-bold mb-4 text-success">📱 Scan Tiket QR</h2>
 
     <div class="scan-wrapper">
         <!-- Kamera Scanner -->
@@ -239,7 +239,7 @@
         <!-- Hasil Scan -->
         <div id="result-box">
             <h5>📋 Hasil Scan</h5>
-            <div id="result">Arahkan kamera ke barcode tiket untuk mulai memindai...</div>
+            <div id="result">Arahkan kamera ke QR code tiket untuk mulai memindai...</div>
         </div>
 
         <!-- Tips Scanner -->
@@ -248,7 +248,7 @@
             <ul>
                 <li>Jarak optimal: 15-25 cm dari kamera</li>
                 <li>Pastikan pencahayaan cukup terang</li>
-                <li>Posisikan barcode horizontal di area hijau</li>
+                <li>Posisikan kode QR tepat di area hijau</li>
                 <li>Tahan stabil selama 1-2 detik</li>
                 <li>Tunggu kamera fokus (gambar tajam)</li>
             </ul>
@@ -256,10 +256,7 @@
     </div>
 </div>
 
-{{-- QuaggaJS --}}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-{{-- jsQR for QR code detection --}}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     const resultBox = document.getElementById('result');
@@ -315,13 +312,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     };
 
-    const readers = [
-        "code_128_reader",
-        "ean_reader",
-        "ean_8_reader",
-        "code_39_reader",
-        "upc_reader"
-    ];
+    let html5QrCodeInstance = null;
 
     const verifyKode = (kode, sumberLabel = 'kode tiket') => {
         const now = Date.now();
@@ -360,129 +351,75 @@ fetch(`{{ url('/verify-tiket') }}/${kode}`, {
             });
     };
 
+    const playBeep = () => {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.15);
+        } catch(e) {
+            console.log('🔇 Audio not supported');
+        }
+    };
+
+    const handleDecodedText = (text) => {
+        if (isProcessing) return;
+        const kode = (text || '').trim();
+        if (!kode) return;
+
+        isProcessing = true;
+        playBeep();
+        console.log(`✅ QR detected: ${kode}`);
+        verifyKode(kode, 'QR code');
+    };
+
     const startLiveScanner = () => {
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#barcode-scanner'),
-                constraints: {
-                    width: { min: 640, ideal: 1280, max: 1920 },
-                    height: { min: 480, ideal: 720, max: 1080 },
-                    facingMode: "environment",
-                    aspectRatio: { min: 1, max: 2 }
-                },
-                area: {
-                    top: "25%",
-                    right: "10%",
-                    left: "10%",
-                    bottom: "25%"
-                }
-            },
-            locator: {
-                patchSize: "medium",
-                halfSample: true
-            },
-             numOfWorkers: 2,
-            frequency: 15,
-decoder: {
-    readers: ["code_128_reader"],
-            multiple: false
+        if (liveStarted) return;
 
-},
+        const scannerElement = document.getElementById('barcode-scanner');
+        const qrBoxSize = Math.min(320, Math.max(200, scannerElement.offsetWidth - 80));
 
-            locate: true,
-debug: false
+        html5QrCodeInstance = new Html5Qrcode('barcode-scanner');
+        const config = {
+            fps: 10,
+            qrbox: { width: qrBoxSize, height: qrBoxSize }
+        };
 
-        }, function(err) {
-            if (err) {
-                console.error('Quagga init error:', err);
-                showError('❌ Tidak bisa mengakses kamera. Pastikan:<br>1. Izin kamera sudah diberikan<br>2. Menggunakan HTTPS atau localhost<br>3. Kamera tidak digunakan aplikasi lain');
-                return;
+        html5QrCodeInstance.start(
+            { facingMode: "environment" },
+            config,
+            handleDecodedText,
+            errorMessage => {
+                // Keep silent for most frame errors
+                console.debug('Scan attempt error:', errorMessage);
             }
-            console.log("✅ Quagga initialized successfully");
-            Quagga.start();
+        ).then(() => {
             liveStarted = true;
-            resultBox.innerHTML = '📸 Scanner aktif. Dekatkan barcode ke area hijau dan tahan stabil...';
+            resultBox.innerHTML = '📸 Scanner aktif. Dekatkan QR code ke area hijau dan tahan stabil...';
+        }).catch(err => {
+            console.error('HTML5 QR init error:', err);
+            showError('❌ Tidak bisa menginisiasi scanner. Periksa izin kamera dan coba reload halaman.');
         });
+    };
 
-        let detectionCount = {};
-
-        Quagga.onProcessed(function(result) {
-            const drawingCtx = Quagga.canvas.ctx.overlay;
-            const drawingCanvas = Quagga.canvas.dom.overlay;
-
-            if (result) {
-                drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
-
-                if (result.boxes) {
-                    result.boxes.filter(box => box !== result.box).forEach(box => {
-                        Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {
-                            color: "rgba(0, 255, 0, 0.3)",
-                            lineWidth: 2
-                        });
-                    });
-                }
-
-                if (result.box) {
-                    Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {
-                        color: "#00FF00",
-                        lineWidth: 3
-                    });
-                }
-
-                if (result.codeResult && result.codeResult.code) {
-                    Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {
-                        color: '#FF0000',
-                        lineWidth: 3
-                    });
-                }
-            }
-        });
-
-        Quagga.onDetected(function(result) {
-            if (isProcessing) return;
-
-            const code = result?.codeResult?.code;
-            if (!code) return;
-
-            // Validasi dengan multiple detection untuk akurasi
-            detectionCount[code] = (detectionCount[code] || 0) + 1;
-
-            console.log(`📷 Code detected: ${code}, Count: ${detectionCount[code]}`);
-
-            // Butuh minimal 2 deteksi yang sama untuk konfirmasi
-            if (detectionCount[code] >= 1) {
-                isProcessing = true;
-
-                // Reset counter
-                detectionCount = {};
-
-                // Beep sound feedback
-                try {
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-
-                    oscillator.frequency.value = 800;
-                    oscillator.type = 'sine';
-
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.15);
-                } catch(e) {
-                    console.log('🔇 Audio not supported');
-                }
-
-                console.log(`✅ Verifying code: ${code}`);
-                verifyKode(code, 'kamera');
-            }
-        });
+    const stopLiveScanner = () => {
+        if (html5QrCodeInstance && liveStarted) {
+            html5QrCodeInstance.stop().then(() => {
+                html5QrCodeInstance.clear();
+                liveStarted = false;
+            }).catch(err => console.error('Stop scanner error:', err));
+        }
     };
 
     // Check camera permissions
@@ -511,18 +448,17 @@ debug: false
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
-        if (liveStarted) {
-            console.log('🛑 Stopping Quagga scanner');
-            Quagga.stop();
-        }
+        stopLiveScanner();
     });
 
     // Cleanup on visibility change (tab switch)
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden && liveStarted) {
+        if (document.hidden) {
             console.log('⏸️ Page hidden, pausing scanner');
-        } else if (!document.hidden && liveStarted) {
-            console.log('▶️ Page visible, resuming scanner');
+            stopLiveScanner();
+        } else if (!liveStarted) {
+            console.log('▶️ Page visible, attempting to resume scanner');
+            startLiveScanner();
         }
     });
 
