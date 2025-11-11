@@ -104,7 +104,17 @@ public function index(Request $request)
 
     public function show($id)
     {
-        $lapangan = Lapangan::with('jadwal')->findOrFail($id);
+        $lapangan = Lapangan::with([
+                'jadwal',
+                'sections' => function ($query) {
+                    $query->with([
+                        'jadwal' => function ($jadwalQuery) {
+                            $jadwalQuery->orderBy('tanggal')->orderBy('jam_mulai');
+                        },
+                    ]);
+                },
+            ])
+            ->findOrFail($id);
 
         return view('lapangan.show', compact('lapangan'));
     }

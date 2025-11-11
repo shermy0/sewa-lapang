@@ -216,14 +216,23 @@
                                             <small class="text-muted">ID: {{ $section->id }}</small>
                                         </td>
                                         <td>{{ $section->deskripsi ?? 'Tidak ada deskripsi' }}</td>
+                                        @php
+                                            $hargaDefault = $section->harga_per_jam;
+                                            if ((!$hargaDefault || $hargaDefault <= 0) && !is_null($lapangan->harga_sewa)) {
+                                                $hargaDefault = $lapangan->harga_sewa;
+                                            }
+                                        @endphp
                                         <td class="text-center">
-                                            @if($section->harga_per_jam && $section->harga_per_jam > 0)
+                                            @if($hargaDefault && $hargaDefault > 0)
                                                 <span class="fw-bold text-success">
-                                                    Rp {{ number_format($section->harga_per_jam, 0, ',', '.') }}
+                                                    Rp {{ number_format($hargaDefault, 0, ',', '.') }}
                                                 </span>
                                                 <div class="text-muted small">/ jam</div>
+                                                @if(!$section->harga_per_jam || $section->harga_per_jam <= 0)
+                                                    <small class="text-muted d-block fst-italic">Mengikuti harga lapangan</small>
+                                                @endif
                                             @else
-                                                <span class="text-muted">-</span>
+                                                <span class="text-muted">Belum diatur</span>
                                             @endif
                                         </td>
                                         <td class="text-center">
@@ -251,123 +260,162 @@
             </div>
             @endif
 
-            {{-- Jadwal Lapangan --}}
-            <div class="card shadow-sm border-0 mt-4">
-                <div class="card-header bg-white border-0 py-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                        <div>
-                            <h5 class="fw-bold text-dark mb-1">
-                                <i class="fa-solid fa-calendar-days text-success me-2"></i> Jadwal Lapangan
-                            </h5>
-                            <span class="text-muted">Daftar slot waktu yang tersedia</span>
-                        </div>
-                        <div>
-                            @if(isset($jadwalPaginate) && $jadwalPaginate->total() > 0)
-                                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 me-2">
-                                    Total: {{ $jadwalPaginate->total() }} jadwal
-                                </span>
-                            @endif
+            {{-- Jadwal per Section --}}
+            @if($lapangan->sections && $lapangan->sections->count() > 0)
+                <div class="card shadow-sm border-0 mt-4">
+                    <div class="card-header bg-white border-0 py-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div>
+                                <h5 class="fw-bold text-dark mb-1">
+                                    <i class="fa-solid fa-calendar-days text-success me-2"></i> Jadwal Lapangan
+                                </h5>
+                                <span class="text-muted">Rincian jadwal pada setiap section</span>
+                            </div>
                             <a href="#" class="btn btn-success">
                                 <i class="fa-solid fa-plus me-1"></i> Tambah Jadwal
                             </a>
                         </div>
                     </div>
-                </div>
-
-                <div class="card-body p-0">
-                    @if(isset($jadwalPaginate) && $jadwalPaginate->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-success bg-opacity-10 text-success fw-semibold">
-                                    <tr>
-                                        <th class="text-center">No</th>
-                                        <th>Section</th>
-                                        <th>Tanggal</th>
-                                        <th>Rentang Waktu</th>
-                                        <th class="text-center">Durasi</th>
-                                        <th class="text-center">Harga Total</th>
-                                        <th class="text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($jadwalPaginate as $i => $jadwal)
-                                        @php
-                                            try {
-                                                $mulai = \Carbon\Carbon::parse($jadwal->jam_mulai);
-                                                $selesai = \Carbon\Carbon::parse($jadwal->jam_selesai);
-                                                $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
-                                                $durasiJam = $durasiMenit / 60;
-                                                $hargaTotal = $jadwal->harga_sewa * $durasiJam;
-                                                
-                                                // Cari section untuk jadwal ini
-                                                $sectionName = 'N/A';
-                                                if ($jadwal->section_id && $lapangan->sections) {
-                                                    $section = $lapangan->sections->firstWhere('id', $jadwal->section_id);
-                                                    $sectionName = $section ? $section->nama_section : 'N/A';
-                                                }
-                                            } catch (\Exception $e) {
-                                                $durasiJam = 0;
-                                                $hargaTotal = 0;
-                                                $sectionName = 'N/A';
-                                            }
-                                        @endphp
-                                        <tr>
-                                            <td class="text-center fw-semibold">{{ $jadwalPaginate->firstItem() + $i }}</td>
-                                            <td>
-                                                <span class="badge bg-primary bg-opacity-10 text-primary">
-                                                    {{ $sectionName }}
-                                                </span>
-                                            </td>
-                                            <td class="text-nowrap">
-                                                {{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}
-                                            </td>
-                                            <td class="text-nowrap">
-                                                <div class="d-flex flex-column small fw-semibold">
-                                                    <span>{{ $mulai->format('H:i') }} WIB</span>
-                                                    <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
+                    <div class="card-body">
+                        <div class="accordion" id="jadwalAccordion">
+                            @foreach($lapangan->sections as $idx => $section)
+                                @php
+                                    $accordionId = 'sectionSchedule' . $section->id;
+                                    $totalJadwal = $section->jadwal->count();
+                                    $hargaMin = $section->jadwal->min('harga_sewa');
+                                    $hargaMax = $section->jadwal->max('harga_sewa');
+                                @endphp
+                                <div class="accordion-item border-0 mb-3 shadow-sm rounded-3 overflow-hidden">
+                                    <h2 class="accordion-header" id="heading{{ $accordionId }}">
+                                        <button class="accordion-button {{ $idx === 0 ? '' : 'collapsed' }}" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#collapse{{ $accordionId }}"
+                                            aria-expanded="{{ $idx === 0 ? 'true' : 'false' }}">
+                                            <div class="w-100 d-flex flex-column gap-2">
+                                                <div class="d-flex justify-content-between flex-wrap gap-2">
+                                                    <div>
+                                                        <div class="fw-bold text-dark">{{ $section->nama_section ?? 'Tanpa Nama' }}</div>
+                                                        <small class="text-muted">ID Section: {{ $section->id }}</small>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                                                            {{ $totalJadwal }} Jadwal
+                                                        </span>
+                                                        @if($section->harga_per_jam)
+                                                            <span class="badge bg-success bg-opacity-10 text-success">
+                                                                Default: Rp {{ number_format($section->harga_per_jam, 0, ',', '.') }} / jam
+                                                            </span>
+                                                        @endif
+                                                    </div>
                                                 </div>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-success-subtle text-success px-3 py-2">
-                                                    {{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam
-                                                </span>
-                                            </td>
-                                            <td class="text-center">
-                                                <div class="fw-bold text-success">Rp {{ number_format($hargaTotal, 0, ',', '.') }}</div>
-                                                <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge px-3 py-2 {{ $jadwal->tersedia ? 'bg-gradient bg-success' : 'bg-secondary' }}">
-                                                    {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {{-- Pagination --}}
-                        @if($jadwalPaginate->hasPages())
-                            <div class="d-flex justify-content-between align-items-center p-4 border-top">
-                                <div class="text-muted small">
-                                    Menampilkan {{ $jadwalPaginate->firstItem() }} hingga {{ $jadwalPaginate->lastItem() }} 
-                                    dari {{ $jadwalPaginate->total() }} entri
+                                                <div class="text-muted small">
+                                                    @if($section->deskripsi)
+                                                        {{ $section->deskripsi }} |
+                                                    @endif
+                                                    @if($hargaMin && $hargaMax && $hargaMin !== $hargaMax)
+                                                        Rentang harga jadwal: Rp {{ number_format($hargaMin, 0, ',', '.') }} - Rp {{ number_format($hargaMax, 0, ',', '.') }}
+                                                    @elseif($hargaMin)
+                                                        Harga jadwal: Rp {{ number_format($hargaMin, 0, ',', '.') }}
+                                                    @else
+                                                        Harga jadwal belum diatur
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse{{ $accordionId }}" class="accordion-collapse collapse {{ $idx === 0 ? 'show' : '' }}"
+                                        data-bs-parent="#jadwalAccordion">
+                                        <div class="accordion-body p-0">
+                                            @if($totalJadwal > 0)
+                                                <div class="d-flex flex-wrap align-items-center justify-content-between px-3 pt-3 pb-2 gap-2">
+                                                    <div class="input-group input-group-sm" style="max-width: 320px;">
+                                                        <span class="input-group-text bg-white border-end-0">
+                                                            <i class="fa-solid fa-search text-muted"></i>
+                                                        </span>
+                                                        <input type="text" class="form-control border-start-0"
+                                                            placeholder="Cari tanggal atau jam..."
+                                                            data-section-search="{{ $section->id }}">
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <label class="small text-muted mb-0">Tampil</label>
+                                                        <select class="form-select form-select-sm"
+                                                            data-section-per-page="{{ $section->id }}">
+                                                            @foreach([5, 10, 25, 50] as $option)
+                                                                <option value="{{ $option }}" {{ $option === 10 ? 'selected' : '' }}>
+                                                                    {{ $option }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <span class="small text-muted">per halaman</span>
+                                                    </div>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-striped align-middle mb-0">
+                                                        <thead class="bg-light text-muted">
+                                                            <tr>
+                                                                <th>Tanggal</th>
+                                                                <th>Jam Mulai</th>
+                                                                <th>Jam Selesai</th>
+                                                                <th>Durasi</th>
+                                                                <th>Total Harga</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody data-section-table="{{ $section->id }}">
+                                                            @foreach($section->jadwal as $jadwal)
+                                                                @php
+                                                                    $durasiJam = ($jadwal->durasi_sewa ?? 0) / 60;
+                                                                    $hargaTotal = $durasiJam > 0 ? $jadwal->harga_sewa * $durasiJam : 0;
+                                                                @endphp
+                                                                <tr>
+                                                                    <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
+                                                                    <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
+                                                                    <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+                                                                    <td>{{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam</td>
+                                                                    <td>
+                                                                        <div class="fw-bold text-success">
+                                                                            Rp {{ number_format($hargaTotal, 0, ',', '.') }}
+                                                                        </div>
+                                                                        <small class="text-muted">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
+                                                                            {{ $jadwal->tersedia ? 'Tersedia' : 'Terisi' }}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 border-top bg-light small"
+                                                    data-section-pagination="{{ $section->id }}">
+                                                    <div class="text-muted" data-section-summary="{{ $section->id }}"></div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                            data-section-page="prev" data-section-id="{{ $section->id }}">
+                                                            <i class="fa-solid fa-chevron-left"></i>
+                                                        </button>
+                                                        <span data-section-page-info="{{ $section->id }}"></span>
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                            data-section-page="next" data-section-id="{{ $section->id }}">
+                                                            <i class="fa-solid fa-chevron-right"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="text-center text-muted py-5">
+                                                    <i class="fa-solid fa-calendar-xmark fa-2x mb-3 opacity-50"></i>
+                                                    <p class="mb-0">Belum ada jadwal pada section ini.</p>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    {{ $jadwalPaginate->links('pagination::bootstrap-5') }}
-                                </div>
-                            </div>
-                        @endif
-                    @else
-                        <div class="text-center text-muted py-5">
-                            <i class="fa-solid fa-calendar-xmark fa-3x mb-3 opacity-50"></i>
-                            <h5 class="fw-semibold">Belum ada jadwal</h5>
-                            <p class="mb-4">Tambahkan jadwal untuk mengelola waktu booking lapangan ini.</p>
+                            @endforeach
                         </div>
-                    @endif
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
     </div>
 </div>
@@ -385,4 +433,118 @@
     .carousel-lapangan .carousel-item { height: 400px; }
     .carousel-lapangan .carousel-item img { height: 100%; object-fit: cover; }
 </style>
+
+<script>
+    (function () {
+        const DEFAULT_PER_PAGE = 10;
+        const sectionStates = {};
+
+        function initSectionTables() {
+            document.querySelectorAll('[data-section-table]').forEach(tbody => {
+                const sectionId = tbody.dataset.sectionTable;
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                sectionStates[sectionId] = {
+                    rows,
+                    filteredRows: rows,
+                    search: '',
+                    perPage: DEFAULT_PER_PAGE,
+                    page: 1,
+                };
+                renderSectionTable(sectionId);
+            });
+        }
+
+        function renderSectionTable(sectionId) {
+            const state = sectionStates[sectionId];
+            if (!state) return;
+
+            const total = state.filteredRows.length;
+            const totalPages = Math.max(1, Math.ceil(Math.max(total, 1) / state.perPage));
+            state.page = Math.min(Math.max(state.page, 1), totalPages);
+
+            const startIndex = (state.page - 1) * state.perPage;
+            const visibleRows = state.filteredRows.slice(startIndex, startIndex + state.perPage);
+
+            state.rows.forEach(row => (row.style.display = 'none'));
+            visibleRows.forEach(row => (row.style.display = ''));
+
+            const summaryEl = document.querySelector(`[data-section-summary="${sectionId}"]`);
+            if (summaryEl) {
+                if (total === 0) {
+                    summaryEl.textContent = 'Tidak ada jadwal yang cocok.';
+                } else {
+                    summaryEl.textContent = `Menampilkan ${startIndex + 1} - ${startIndex + visibleRows.length} dari ${total} jadwal`;
+                }
+            }
+
+            const pageInfoEl = document.querySelector(`[data-section-page-info="${sectionId}"]`);
+            if (pageInfoEl) {
+                pageInfoEl.textContent = total === 0
+                    ? 'Halaman 0 / 0'
+                    : `Halaman ${state.page} / ${totalPages}`;
+            }
+
+            const prevBtn = document.querySelector(`[data-section-page="prev"][data-section-id="${sectionId}"]`);
+            const nextBtn = document.querySelector(`[data-section-page="next"][data-section-id="${sectionId}"]`);
+            if (prevBtn) prevBtn.disabled = state.page <= 1 || total === 0;
+            if (nextBtn) nextBtn.disabled = state.page >= totalPages || total === 0;
+        }
+
+        function attachEvents() {
+            document.querySelectorAll('[data-section-search]').forEach(input => {
+                input.addEventListener('input', () => {
+                    const sectionId = input.dataset.sectionSearch;
+                    const state = sectionStates[sectionId];
+                    if (!state) return;
+                    const keyword = input.value.trim().toLowerCase();
+                    state.search = keyword;
+                    state.filteredRows = state.rows.filter(row =>
+                        row.textContent.toLowerCase().includes(keyword)
+                    );
+                    state.page = 1;
+                    renderSectionTable(sectionId);
+                });
+            });
+
+            document.querySelectorAll('[data-section-per-page]').forEach(select => {
+                select.addEventListener('change', () => {
+                    const sectionId = select.dataset.sectionPerPage;
+                    const state = sectionStates[sectionId];
+                    if (!state) return;
+                    const perPage = Number(select.value);
+                    if (!Number.isFinite(perPage) || perPage <= 0) return;
+                    state.perPage = perPage;
+                    state.page = 1;
+                    renderSectionTable(sectionId);
+                });
+            });
+
+            document.querySelectorAll('[data-section-page]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const sectionId = button.dataset.sectionId;
+                    const state = sectionStates[sectionId];
+                    if (!state) return;
+
+                    if (button.dataset.sectionPage === 'prev') {
+                        if (state.page > 1) {
+                            state.page--;
+                            renderSectionTable(sectionId);
+                        }
+                    } else if (button.dataset.sectionPage === 'next') {
+                        const totalPages = Math.max(1, Math.ceil(Math.max(state.filteredRows.length, 1) / state.perPage));
+                        if (state.page < totalPages) {
+                            state.page++;
+                            renderSectionTable(sectionId);
+                        }
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initSectionTables();
+            attachEvents();
+        });
+    })();
+</script>
 @endsection
