@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Midtrans\Snap;
 use Midtrans\Config;
-use Midtrans\Config;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 class PemesananController extends Controller
