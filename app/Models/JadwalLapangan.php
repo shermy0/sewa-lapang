@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class JadwalLapangan extends Model
 {
     use HasFactory;
 
     protected $table = 'jadwal_lapangan';
-    
+
     protected $fillable = [
         'section_id', // ⬅️ Diubah dari lapangan_id ke section_id
         'tanggal',
@@ -64,5 +65,19 @@ class JadwalLapangan extends Model
         $hargaPerJam = (float) $this->harga_sewa;
 
         return round($hargaPerJam * $durasiJam, 2);
+    }
+
+    public function scopeUpcoming($query)
+    {
+        $today = Carbon::today();
+        $nowTime = Carbon::now()->format('H:i:s');
+
+        return $query->where(function ($q) use ($today, $nowTime) {
+            $q->whereDate('tanggal', '>', $today)
+              ->orWhere(function ($q2) use ($today, $nowTime) {
+                  $q2->whereDate('tanggal', $today)
+                     ->where('jam_selesai', '>', $nowTime);
+              });
+        });
     }
 }

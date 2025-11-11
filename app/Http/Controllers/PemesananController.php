@@ -25,7 +25,7 @@ class PemesananController extends Controller
         Config::$isSanitized = true;
         Config::$is3ds = true;
     }
-    
+
 public function boot(): void
 {
     Carbon::setLocale('id');
@@ -289,7 +289,7 @@ public function riwayatBatal()
 }
 
 
-  public function getSnapToken(Request $request)
+    public function getSnapToken(Request $request)
     {
         try {
             \Log::info('📦 Request ke getSnapToken', $request->all());
@@ -301,15 +301,16 @@ public function riwayatBatal()
                 return response()->json(['error' => 'Jadwal sudah dipesan!'], 400);
             }
 
-            $pemesanan = Pemesanan::firstOrCreate([
-                'penyewa_id' => Auth::id(),
-                'lapangan_id' => $lapangan->id,
-                'jadwal_id' => $jadwal->id,
-                'status' => 'menunggu',
-            ]);
+            $pemesanan = Pemesanan::firstOrCreate(
+                [
+                    'penyewa_id' => Auth::id(),
+                    'lapangan_id' => $lapangan->id,
+                    'jadwal_id' => $jadwal->id,
+                ],
+                ['status' => 'menunggu']
+            );
 
             $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
-
             if ($hargaSewa <= 0) {
                 return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
             }
@@ -389,7 +390,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
         }
 
         if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
-            \Log::error('⚠️ MIDTRANS belum dikonfigurasi saat getSnapTokenAgain');
+            \Log::error('⚠ MIDTRANS belum dikonfigurasi saat getSnapTokenAgain');
             return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
         }
 
@@ -513,7 +514,7 @@ public function updateSuccess(Request $request, $id)
         private function generateShortTicketCode()
     {
         $prefix = 'LPN'; // bisa diganti misal "LPN" untuk lapangan
-        $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
+        $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         return $prefix . $random; // contoh hasil: TK7F3C9A
     }
 

@@ -296,17 +296,26 @@
                                                     <div id="section-container-{{ $item->id }}">
                                                         @foreach($item->sections as $index => $section)
                                                             <div class="row g-3 mb-3 section-item">
-                                                                <div class="col-md-5">
+                                                                <div class="col-md-4">
                                                                     <label class="form-label">Nama Section</label>
                                                                     <input type="text" name="sections[{{ $section->id }}][nama_section]" 
                                                                         class="form-control" value="{{ $section->nama_section }}" required>
                                                                 </div>
-                                                                <div class="col-md-5">
+                                                                <div class="col-md-4">
                                                                     <label class="form-label">Deskripsi</label>
                                                                     <input type="text" name="sections[{{ $section->id }}][deskripsi]" 
                                                                         class="form-control" value="{{ $section->deskripsi }}">
                                                                 </div>
-                                                                <div class="col-md-2">
+                                                                <div class="col-md-3">
+                                                                    <label class="form-label">Harga Default / Jam</label>
+                                                                    <div class="input-group">
+                                                                        <span class="input-group-text bg-success text-white">Rp</span>
+                                                                        <input type="number" name="sections[{{ $section->id }}][harga_per_jam]" 
+                                                                            class="form-control" value="{{ old('sections.'.$section->id.'.harga_per_jam', $section->harga_per_jam) }}" min="0" step="1000">
+                                                                        <span class="input-group-text bg-light text-muted">/jam</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-1">
                                                                     <label class="form-label">&nbsp;</label>
                                                                     @if($index > 0)
                                                                         <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
@@ -366,7 +375,8 @@
                 </div>
 
                 {{-- Modal Kelola Jadwal untuk Setiap Lapangan --}}
-                <div class="modal fade" id="kelolaJadwalModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal fade" id="kelolaJadwalModal{{ $item->id }}" tabindex="-1" aria-hidden="true"
+                    data-kelola-jadwal="true" data-lapangan-id="{{ $item->id }}">
                     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                         <div class="modal-content border-0 shadow-lg">
                             <div class="modal-header border-0 bg-gradient"
@@ -389,13 +399,17 @@
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <select class="form-select" id="section-selector-{{ $item->id }}" 
+                                                    data-default-harga="{{ $item->harga_sewa ?? 0 }}"
                                                     onchange="tampilkanJadwalSection({{ $item->id }})">
                                                     <option value="">-- Pilih Section --</option>
                                                     @foreach($item->sections as $section)
-                                                        <option value="{{ $section->id }}">
+                                                        <option value="{{ $section->id }}" data-harga="{{ $section->harga_per_jam ?? '' }}" data-label="{{ $section->nama_section }}">
                                                             {{ $section->nama_section }}
                                                             @if($section->deskripsi)
                                                                  - {{ $section->deskripsi }}
+                                                            @endif
+                                                            @if($section->harga_per_jam)
+                                                                (Rp {{ number_format($section->harga_per_jam, 0, ',', '.') }}/jam)
                                                             @endif
                                                         </option>
                                                     @endforeach
@@ -419,76 +433,283 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
+                                        @php
+                                            $hariOptions = [
+                                                'senin' => 'Senin',
+                                                'selasa' => 'Selasa',
+                                                'rabu' => 'Rabu',
+                                                'kamis' => 'Kamis',
+                                                'jumat' => 'Jumat',
+                                                'sabtu' => 'Sabtu',
+                                                'minggu' => 'Minggu',
+                                            ];
+                                        @endphp
                                         <form action="{{ route('lapangan.jadwal.store', $item->id) }}" method="POST"
-                                            class="form-submit-jadwal" id="formJadwal{{ $item->id }}">
+                                            class="form-submit-jadwal jadwal-create-form" id="formJadwal{{ $item->id }}" data-jadwal-form="create">
                                             @csrf
                                             <input type="hidden" name="section_id" id="section-id-{{ $item->id }}">
-                                            <div class="row g-3">
-                                                <div class="col-md-3">
-                                                    <label class="form-label fw-semibold text-dark">Tanggal</label>
-                                                    <input type="date" name="tanggal" class="form-control"
-                                                        min="{{ date('Y-m-d') }}" required>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label fw-semibold text-dark">Jam Mulai</label>
-                                                    <input type="time" name="jam_mulai" class="form-control" required
-                                                        data-jam-mulai-input>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label fw-semibold text-dark">Jam Selesai</label>
-                                                    <input type="time" name="jam_selesai" class="form-control"
-                                                        required data-jam-selesai-input>
-                                                    <div class="form-text text-muted">Disesuaikan otomatis dari durasi.
+
+                                            <div class="mb-4">
+                                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                                    <div>
+                                                        <small class="text-uppercase text-muted fw-bold d-block">Langkah 1</small>
+                                                        <h6 class="fw-bold text-dark mb-0">Pilih Mode Penjadwalan</h6>
                                                     </div>
+                                                    <span class="badge bg-light text-muted border">Rekomendasi: Mode Sederhana</span>
                                                 </div>
-                                                <div class="col-md-2">
-                                                    @php
-                                                        $durasiInputDefault = old('durasi_sewa', 1);
-                                                        if (!is_null($durasiInputDefault) && $durasiInputDefault !== '') {
-                                                            $numericDefault = is_numeric($durasiInputDefault)
-                                                                ? (float) $durasiInputDefault
-                                                                : 0;
-                                                            $durasiInputDefault = $numericDefault > 24
-                                                                ? $numericDefault / 60
-                                                                : $numericDefault;
-                                                        }
-                                                        $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
-                                                    @endphp
-                                                    <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
-                                                    <input type="text" name="durasi_sewa" inputmode="decimal" pattern="^\d+([,.]\d{1,2})?$" class="form-control"
-                                                        min="0.25" max="24" step="0.25" placeholder="1"
-                                                        value="{{ $durasiInputDefault }}" required data-durasi-jam-input>
-                                                    <div class="form-text text-muted">
-                                                        <span data-durasi-jam-preview>{{ $durasiPreviewDisplay }}</span>
-                                                        jam
+                                                <div class="row g-3" data-jadwal-type-cards>
+                                                    <div class="col-md-6">
+                                                        <input type="radio" class="btn-check" name="tipe_jadwal"
+                                                            id="tipe-simple-{{ $item->id }}" value="simple" checked
+                                                            data-jadwal-type-input>
+                                                        <label class="schedule-type-card h-100" data-jadwal-type-card="simple"
+                                                            for="tipe-simple-{{ $item->id }}">
+                                                            <div class="d-flex align-items-center gap-3 mb-3">
+                                                                <img src="{{ asset('images/logo-sewalap.svg') }}" alt="Logo Mode Sederhana" class="mode-card-logo">
+                                                                <div>
+                                                                    <div class="fw-bold text-dark mb-0">Mode Sederhana (Auto Slot)</div>
+                                                                    <small class="text-muted">Isi jam buka & durasi, sistem membagi otomatis.</small>
+                                                                </div>
+                                                            </div>
+                                                            <ul class="mb-0 ps-3 text-muted small">
+                                                                <li>Tentukan rentang tanggal dan hari aktif</li>
+                                                                <li>Pilih jam buka-tutup, durasi slot, dan (opsional) jeda</li>
+                                                                <li>Cocok untuk set jadwal mingguan hanya sekali klik</li>
+                                                            </ul>
+                                                        </label>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label fw-semibold text-dark">Harga per Jam</label>
-                                                    <div class="input-group">
-                                                        <span class="input-group-text bg-success text-white">Rp</span>
-                                                        <input type="number" name="harga_sewa" class="form-control"
-                                                            placeholder="150000" required data-harga-per-jam-input>
-                                                        <span class="input-group-text bg-light text-muted">/ jam</span>
+                                                    <div class="col-md-6">
+                                                        <input type="radio" class="btn-check" name="tipe_jadwal"
+                                                            id="tipe-custom-{{ $item->id }}" value="custom"
+                                                            data-jadwal-type-input>
+                                                        <label class="schedule-type-card h-100" data-jadwal-type-card="custom"
+                                                            for="tipe-custom-{{ $item->id }}">
+                                                            <div class="d-flex align-items-center gap-3 mb-3">
+                                                                <img src="{{ asset('images/logo-sewalap.svg') }}" alt="Logo Mode Custom" class="mode-card-logo">
+                                                                <div>
+                                                                    <div class="fw-bold text-dark mb-0">Mode Custom (Manual)</div>
+                                                                    <small class="text-muted">Untuk event atau slot khusus satu kali.</small>
+                                                                </div>
+                                                            </div>
+                                                            <ul class="mb-0 ps-3 text-muted small">
+                                                                <li>Tentukan tanggal, jam mulai, jam selesai secara spesifik</li>
+                                                                <li>Cocok untuk turnamen, friendly match, atau blok tanggal tertentu</li>
+                                                            </ul>
+                                                        </label>
                                                     </div>
-                                                    <div class="form-text text-muted">
-                                                        Total: <span class="fw-semibold text-success"
-                                                            data-harga-total-display>Rp 0</span>
-                                                        (<span data-durasi-jam-display>{{ $durasiPreviewDisplay }}</span>
-                                                        jam)
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label fw-semibold text-dark">Status</label>
-                                                    <select name="tersedia" class="form-select" required>
-                                                        <option value="1">Tersedia</option>
-                                                        <option value="0">Tidak Tersedia</option>
-                                                    </select>
                                                 </div>
                                             </div>
-                                            <div class="mt-3">
-                                                <button type="submit" class="btn btn-success">
+
+                                            <div class="card border-0 shadow-sm mb-3" data-jadwal-section="simple">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                                        <div>
+                                                            <small class="text-uppercase text-muted fw-bold d-block">Langkah 2</small>
+                                                            <h6 class="fw-bold text-dark mb-0">Setel Periode & Slot Otomatis</h6>
+                                                        </div>
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary">Sangat cepat</span>
+                                                    </div>
+                                                    <div class="row g-3">
+                                                        <div class="col-lg-3 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Mulai Berlaku</label>
+                                                            <input type="date" name="tanggal_mulai" class="form-control"
+                                                                min="{{ date('Y-m-d') }}" value="{{ date('Y-m-d') }}" required
+                                                                data-required-mode="simple" data-role="tanggal-mulai">
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Sampai</label>
+                                                            <input type="date" name="tanggal_selesai" class="form-control"
+                                                                min="{{ date('Y-m-d') }}" value="{{ date('Y-m-d') }}" required
+                                                                data-required-mode="simple" data-role="tanggal-selesai">
+                                                            <div class="form-text text-muted">
+                                                                Maksimal 90 hari dari tanggal mulai.
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-6">
+                                                            <label class="form-label fw-semibold text-dark">Hari Aktif</label>
+                                                            <div class="d-flex flex-wrap gap-2">
+                                                                @foreach ($hariOptions as $key => $label)
+                                                                    @php
+                                                                        $hariFieldId = 'hari-' . $item->id . '-' . $key;
+                                                                    @endphp
+                                                                    <input type="checkbox" class="btn-check"
+                                                                        name="hari_repetisi[]" value="{{ $key }}"
+                                                                        id="{{ $hariFieldId }}" data-hari-checkbox>
+                                                                    <label class="btn btn-outline-secondary btn-sm"
+                                                                        for="{{ $hariFieldId }}">{{ $label }}</label>
+                                                                @endforeach
+                                                            </div>
+                                                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                                                <button type="button" class="btn btn-sm btn-light border"
+                                                                    data-hari-action="all">Semua hari</button>
+                                                                <button type="button" class="btn btn-sm btn-light border"
+                                                                    data-hari-action="weekday">Senin - Jumat</button>
+                                                                <button type="button" class="btn btn-sm btn-light border"
+                                                                    data-hari-action="weekend">Sabtu - Minggu</button>
+                                                                <button type="button" class="btn btn-sm btn-link text-danger px-2"
+                                                                    data-hari-action="clear">Hapus pilihan</button>
+                                                            </div>
+                                                            <div class="form-text text-muted mt-2">
+                                                                Terpilih <span class="fw-semibold" data-hari-count>0</span> hari aktif.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <hr class="text-muted my-4">
+                                                    <div class="row g-3 align-items-end">
+                                                        <div class="col-lg-3 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Jam Buka</label>
+                                                            <input type="time" name="jam_mulai_harian" class="form-control" required
+                                                                data-required-mode="simple">
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Jam Tutup</label>
+                                                            <input type="time" name="jam_selesai_harian" class="form-control" required
+                                                                data-required-mode="simple">
+                                                            <div class="form-text text-muted">Slot terakhir tidak melewati jam ini.</div>
+                                                        </div>
+                                                        <div class="col-lg-3 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Durasi Slot (jam)</label>
+                                                            <input type="number" name="durasi_slot" class="form-control"
+                                                                min="1" max="8" step="1" placeholder="1" required
+                                                                id="durasi-slot-{{ $item->id }}" data-durasi-slot-input
+                                                                data-required-mode="simple" value="1">
+                                                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                                                @foreach ([1, 2, 3, 4] as $jamPreset)
+                                                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                        data-duration-preset="{{ $jamPreset }}"
+                                                                        data-duration-target="#durasi-slot-{{ $item->id }}"
+                                                                        data-duration-group="simple-{{ $item->id }}">{{ $jamPreset }} jam</button>
+                                                                @endforeach
+                                                            </div>
+                                                            <div class="form-text text-muted">
+                                                                Slot otomatis dibuat dalam kelipatan 1 jam.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            @php
+                                                $durasiInputDefault = old('durasi_sewa', 1);
+                                                if (!is_null($durasiInputDefault) && $durasiInputDefault !== '') {
+                                                    $numericDefault = is_numeric($durasiInputDefault)
+                                                        ? (float) $durasiInputDefault
+                                                        : 0;
+                                                    $durasiInputDefault = $numericDefault > 24
+                                                        ? $numericDefault / 60
+                                                        : $numericDefault;
+                                                }
+                                                $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
+                                            @endphp
+
+                                            <div class="card border-0 shadow-sm mb-3" data-jadwal-section="custom" style="display: none;">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                                        <div>
+                                                            <small class="text-uppercase text-muted fw-bold d-block">Langkah 2</small>
+                                                            <h6 class="fw-bold text-dark mb-0">Atur Slot Custom</h6>
+                                                        </div>
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary">Manual</span>
+                                                    </div>
+                                                    <div class="row g-3">
+                                                        <div class="col-lg-4 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Tanggal</label>
+                                                            <input type="date" name="tanggal" class="form-control"
+                                                                min="{{ date('Y-m-d') }}" data-required-mode="custom">
+                                                        </div>
+                                                        <div class="col-lg-4 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Jam Mulai</label>
+                                                            <input type="time" name="jam_mulai" class="form-control"
+                                                                data-jam-mulai-input data-required-mode="custom">
+                                                        </div>
+                                                        <div class="col-lg-4 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Jam Selesai</label>
+                                                            <input type="time" name="jam_selesai" class="form-control"
+                                                                data-jam-selesai-input data-required-mode="custom">
+                                                            <div class="form-text text-muted">Durasi menyesuaikan otomatis.</div>
+                                                        </div>
+                                                        <div class="col-lg-4 col-md-6">
+                                                            <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
+                                                            <input type="text" name="durasi_sewa" class="form-control"
+                                                                inputmode="decimal" pattern="^\d+([,.]\d{1,2})?$"
+                                                                min="0.25" max="12" step="0.25" placeholder="1"
+                                                                value="{{ $durasiInputDefault }}" data-durasi-jam-input
+                                                                id="durasi-custom-{{ $item->id }}" data-required-mode="custom">
+                                                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                    data-duration-preset="0.5"
+                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
+                                                                    data-duration-group="custom-{{ $item->id }}">30 mnt</button>
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                    data-duration-preset="1"
+                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
+                                                                    data-duration-group="custom-{{ $item->id }}">1 jam</button>
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                    data-duration-preset="1.5"
+                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
+                                                                    data-duration-group="custom-{{ $item->id }}">1.5 jam</button>
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                    data-duration-preset="2"
+                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
+                                                                    data-duration-group="custom-{{ $item->id }}">2 jam</button>
+                                                            </div>
+                                                            <div class="form-text text-muted">
+                                                                <span data-durasi-jam-preview>{{ $durasiPreviewDisplay }}</span> jam.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="card border-0 shadow-sm mb-3">
+                                                <div class="card-body">
+                                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                                        <div>
+                                                            <small class="text-uppercase text-muted fw-bold d-block">Langkah 3</small>
+                                                            <h6 class="fw-bold text-dark mb-0">Harga & Status Slot</h6>
+                                                        </div>
+                                                        <span class="badge bg-success bg-opacity-10 text-success">Siap publish</span>
+                                                    </div>
+                                                    <div class="row g-3 align-items-end">
+                                                        <div class="col-lg-6">
+                                                            <label class="form-label fw-semibold text-dark">Harga per Jam</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text bg-success text-white">Rp</span>
+                                                                <input type="number" name="harga_sewa" class="form-control"
+                                                                    placeholder="150000" value="{{ $item->harga_sewa ?? '' }}" required data-harga-per-jam-input>
+                                                                <span class="input-group-text bg-light text-muted">/ jam</span>
+                                                            </div>
+                                                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                    data-apply-default-harga>
+                                                                    <i class="fa-solid fa-rotate me-1"></i> Pakai harga default section
+                                                                </button>
+                                                                <small class="text-muted" data-default-harga-display>Belum ada harga default section</small>
+                                                            </div>
+                                                            <div class="form-text text-muted mt-2">
+                                                                Nilai per slot: <span class="fw-semibold text-success"
+                                                                    data-harga-total-display>Rp 0</span>
+                                                                (<span data-durasi-jam-display>{{ $durasiPreviewDisplay }}</span> jam).
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-lg-6">
+                                                            <label class="form-label fw-semibold text-dark">Status Slot</label>
+                                                            <select name="tersedia" class="form-select" required>
+                                                                <option value="1">Tersedia</option>
+                                                                <option value="0">Tidak Tersedia</option>
+                                                            </select>
+                                                            <div class="form-text text-muted">Gunakan "Tidak tersedia" untuk blok jadwal tertentu.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-4 d-flex flex-wrap gap-2">
+                                                <button type="submit" class="btn btn-success flex-grow-1 flex-grow-md-0">
                                                     <i class="fa-solid fa-plus me-1"></i> Tambah Jadwal
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" data-reset-jadwal="{{ $item->id }}">
+                                                    <i class="fa-solid fa-arrow-rotate-left me-1"></i> Bersihkan Form
                                                 </button>
                                             </div>
                                         </form>
@@ -731,7 +952,7 @@
                                                 {{-- Section Pertama --}}
                                                 <div class="section-item rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4 mb-3 shadow-sm">
                                                     <div class="row g-3 align-items-end">
-                                                        <div class="col-md-5">
+                                                        <div class="col-md-4">
                                                             <label class="form-label fw-semibold">
                                                                 Nama Section <span class="text-danger">*</span>
                                                             </label>
@@ -742,7 +963,7 @@
                                                                 required>
                                                             <div class="form-text">Contoh: Lapangan A, Court 1</div>
                                                         </div>
-                                                        <div class="col-md-5">
+                                                        <div class="col-md-4">
                                                             <label class="form-label fw-semibold">Deskripsi</label>
                                                             <input type="text" name="sections[0][deskripsi]" 
                                                                 class="form-control" 
@@ -750,7 +971,19 @@
                                                                 value="{{ old('sections.0.deskripsi') }}">
                                                             <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
                                                         </div>
-                                                        <div class="col-md-2 d-flex align-items-end justify-content-md-end">
+                                                        <div class="col-md-3">
+                                                            <label class="form-label fw-semibold">Harga Default / Jam</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text bg-success text-white">Rp</span>
+                                                        <input type="number" name="sections[0][harga_per_jam]" 
+                                                            class="form-control" 
+                                                            placeholder="150000"
+                                                            value="{{ old('sections.0.harga_per_jam', 0) }}"
+                                                            min="0" step="1000">
+                                                                <span class="input-group-text bg-light text-muted">/jam</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-1 d-flex align-items-end justify-content-md-end">
                                                             <span class="text-muted small">Section utama</span>
                                                         </div>
                                                     </div>
@@ -826,6 +1059,499 @@
     <script>
         // ========== SECTION MANAGEMENT ==========
         let sectionCount = 1;
+        const rupiahFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 });
+        const formatRupiahValue = (value) => {
+            const nominal = Number(value);
+            return 'Rp ' + rupiahFormatter.format(nominal > 0 ? nominal : 0);
+        };
+        const jadwalPaginationState = {};
+        const JADWAL_PER_PAGE_OPTIONS = [5, 10, 25, 50];
+        const JADWAL_DEFAULT_PER_PAGE = 10;
+        const getActiveJadwalType = (form) => form?.querySelector('input[name=\"tipe_jadwal\"]:checked')?.value || 'custom';
+
+        function updateDefaultHargaInputs(lapanganId, harga) {
+            const form = document.getElementById(`formJadwal${lapanganId}`);
+            if (!form) return;
+            const hargaInput = form.querySelector('[data-harga-per-jam-input]');
+            const defaultDisplay = form.querySelector('[data-default-harga-display]');
+            const defaultButton = form.querySelector('[data-apply-default-harga]');
+
+            const parsedHarga = Number(harga);
+            const hasValidHarga = !Number.isNaN(parsedHarga) && parsedHarga > 0;
+
+            if (hargaInput) {
+                hargaInput.dataset.defaultHarga = hasValidHarga ? parsedHarga : '';
+                if (hasValidHarga) {
+                    hargaInput.value = parsedHarga;
+                }
+                hargaInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            if (defaultDisplay) {
+                defaultDisplay.textContent = hasValidHarga
+                    ? `${formatRupiahValue(parsedHarga)} / jam`
+                    : 'Belum ada harga default section';
+            }
+
+            if (defaultButton) {
+                defaultButton.disabled = !hasValidHarga;
+                defaultButton.dataset.defaultHarga = hasValidHarga ? parsedHarga : '';
+            }
+
+            if (typeof form.__updateJadwalSummary === 'function') {
+                form.__updateJadwalSummary();
+            }
+        }
+
+        function resetJadwalView(lapanganId) {
+            const formContainer = document.getElementById(`form-jadwal-container-${lapanganId}`);
+            const infoEl = document.getElementById(`section-info-${lapanganId}`);
+            const nameEl = document.getElementById(`section-name-${lapanganId}`);
+            const jadwalContainer = document.getElementById(`jadwal-container-${lapanganId}`);
+            const form = document.getElementById(`formJadwal${lapanganId}`);
+
+            if (formContainer) formContainer.style.display = 'none';
+            if (infoEl) {
+                infoEl.innerHTML = 'Pilih section untuk melihat jadwal';
+            }
+            if (nameEl) {
+                nameEl.textContent = '';
+            }
+            if (jadwalContainer) {
+                jadwalContainer.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
+                        <br>Pilih section untuk melihat jadwal
+                    </div>
+                `;
+            }
+
+            if (form) {
+                if (typeof form.__resetHariCount === 'function') {
+                    form.__resetHariCount();
+                }
+            }
+        }
+
+        function setSectionInfo(lapanganId, sectionName, hargaDefault) {
+            const infoEl = document.getElementById(`section-info-${lapanganId}`);
+            const nameEl = document.getElementById(`section-name-${lapanganId}`);
+            const hargaText = hargaDefault > 0 ? `${formatRupiahValue(hargaDefault)} / jam` : 'harga default belum diatur';
+
+            if (infoEl) {
+                infoEl.innerHTML = `<strong>${sectionName}</strong> - ${hargaText}. Pilih tanggal dan waktu untuk menambah jadwal`;
+            }
+            if (nameEl) {
+                nameEl.textContent = hargaDefault > 0
+                    ? `${sectionName} (${formatRupiahValue(hargaDefault)} / jam)`
+                    : sectionName;
+            }
+        }
+
+        function initJadwalTypeForms() {
+            const hariMeta = {
+                senin: { label: 'Senin', iso: 1 },
+                selasa: { label: 'Selasa', iso: 2 },
+                rabu: { label: 'Rabu', iso: 3 },
+                kamis: { label: 'Kamis', iso: 4 },
+                jumat: { label: 'Jumat', iso: 5 },
+                sabtu: { label: 'Sabtu', iso: 6 },
+                minggu: { label: 'Minggu', iso: 7 },
+            };
+
+            const formatTanggalId = (value) => {
+                if (!value) return '';
+                const dateObj = new Date(`${value}T00:00:00`);
+                if (Number.isNaN(dateObj.getTime())) {
+                    return value;
+                }
+                return dateObj.toLocaleDateString('id-ID', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: 'short',
+                });
+            };
+
+            const normalizeNumber = (value) => {
+                if (typeof value === 'number') {
+                    return Number.isFinite(value) ? value : 0;
+                }
+                if (typeof value !== 'string') {
+                    value = String(value ?? '');
+                }
+                const parsed = parseFloat(value.replace(',', '.'));
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const timeStringToMinutes = (value) => {
+                if (!value || !value.includes(':')) {
+                    return null;
+                }
+                const [jamStr, menitStr] = value.split(':');
+                const jam = Number(jamStr);
+                const menit = Number(menitStr);
+                if (!Number.isInteger(jam) || !Number.isInteger(menit)) {
+                    return null;
+                }
+                if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
+                    return null;
+                }
+                return (jam * 60) + menit;
+            };
+
+            const forms = document.querySelectorAll('[data-jadwal-form="create"]');
+            forms.forEach(form => {
+                const typeInputs = form.querySelectorAll('[data-jadwal-type-input]');
+                if (!typeInputs.length) {
+                    return;
+                }
+
+                const sections = form.querySelectorAll('[data-jadwal-section]');
+                const typeCards = form.querySelectorAll('[data-jadwal-type-card]');
+                const totalDisplay = form.querySelector('[data-harga-total-display]');
+                const hargaInput = form.querySelector('[data-harga-per-jam-input]');
+                const defaultHargaBtn = form.querySelector('[data-apply-default-harga]');
+                const durationButtons = form.querySelectorAll('[data-duration-preset]');
+
+                const slotDurasiInput = form.querySelector('[data-durasi-slot-input]');
+                const jamMulaiHarian = form.querySelector('input[name="jam_mulai_harian"]');
+                const jamSelesaiHarian = form.querySelector('input[name="jam_selesai_harian"]');
+                const rangeStartInput = form.querySelector('input[name="tanggal_mulai"]');
+                const rangeEndInput = form.querySelector('input[name="tanggal_selesai"]');
+                const hariCounter = form.querySelector('[data-hari-count]');
+                const hariCheckboxes = form.querySelectorAll('[data-hari-checkbox]');
+
+                const customDateInput = form.querySelector('input[name="tanggal"]');
+                const customJamMulai = form.querySelector('input[name="jam_mulai"]');
+                const customJamSelesai = form.querySelector('input[name="jam_selesai"]');
+                const customDurasiInput = form.querySelector('[data-durasi-jam-input]');
+
+                const getActiveDurationInput = () => getActiveJadwalType(form) === 'simple'
+                    ? slotDurasiInput
+                    : customDurasiInput;
+
+                const getDurasiJamAktif = () => normalizeNumber(getActiveDurationInput()?.value);
+
+                const getTotalPerSlot = () => {
+                    const durasiJam = getDurasiJamAktif();
+                    const hargaPerJam = normalizeNumber(hargaInput?.value);
+                    if (durasiJam <= 0 || hargaPerJam <= 0) {
+                        return 0;
+                    }
+                    return Math.round(hargaPerJam * durasiJam);
+                };
+
+                const updateSummary = () => {
+                    if (!totalDisplay) {
+                        return;
+                    }
+                    totalDisplay.textContent = formatRupiahValue(getTotalPerSlot());
+                };
+
+                const setSectionVisibility = () => {
+                    const activeType = getActiveJadwalType(form);
+                    sections.forEach(section => {
+                        const isActive = section.dataset.jadwalSection === activeType;
+                        section.style.display = isActive ? '' : 'none';
+                        section.querySelectorAll('input, select, textarea').forEach(input => {
+                            if (isActive) {
+                                input.disabled = false;
+                                if (input.dataset.requiredMode) {
+                                    input.required = input.dataset.requiredMode === activeType;
+                                }
+                            } else {
+                                input.disabled = true;
+                                if (input.dataset.requiredMode) {
+                                    input.required = false;
+                                }
+                            }
+                        });
+                    });
+
+                    typeCards.forEach(card => {
+                        card.classList.toggle('active', card.dataset.jadwalTypeCard === activeType);
+                    });
+                };
+
+                typeInputs.forEach(input => {
+                    input.addEventListener('change', () => {
+                        setSectionVisibility();
+                        updateSummary();
+                    });
+                });
+
+                const updateHariCount = () => {
+                    if (hariCounter) {
+                        hariCounter.textContent = form.querySelectorAll('[data-hari-checkbox]:checked').length;
+                    }
+                };
+
+                form.__resetHariCount = updateHariCount;
+
+                const getSelectedHariIso = () => Array.from(form.querySelectorAll('[data-hari-checkbox]:checked'))
+                    .map(cb => hariMeta[cb.value]?.iso)
+                    .filter(Boolean);
+
+                hariCheckboxes.forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        updateHariCount();
+                        updateSummary();
+                    });
+                });
+
+                form.querySelectorAll('[data-hari-action]').forEach(button => {
+                    button.addEventListener('click', event => {
+                        event.preventDefault();
+                        const action = button.dataset.hariAction;
+                        if (action === 'all') {
+                            hariCheckboxes.forEach(cb => cb.checked = true);
+                        } else if (action === 'weekday') {
+                            hariCheckboxes.forEach(cb => {
+                                const iso = hariMeta[cb.value]?.iso || 0;
+                                cb.checked = iso >= 1 && iso <= 5;
+                            });
+                        } else if (action === 'weekend') {
+                            hariCheckboxes.forEach(cb => {
+                                const iso = hariMeta[cb.value]?.iso || 0;
+                                cb.checked = iso === 6 || iso === 7;
+                            });
+                        } else if (action === 'clear') {
+                            hariCheckboxes.forEach(cb => cb.checked = false);
+                        }
+                        updateHariCount();
+                        updateSummary();
+                    });
+                });
+
+                const calculateSimpleSlots = () => {
+                    const selectedIso = getSelectedHariIso();
+                    if (!selectedIso.length) {
+                        return 0;
+                    }
+                    if (!rangeStartInput?.value || !rangeEndInput?.value) {
+                        return 0;
+                    }
+                    const startDate = new Date(`${rangeStartInput.value}T00:00:00`);
+                    const endDate = new Date(`${rangeEndInput.value}T00:00:00`);
+                    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) {
+                        return 0;
+                    }
+                    const slotMinutes = Math.round(normalizeNumber(slotDurasiInput?.value) * 60);
+                    if (!slotMinutes || slotMinutes <= 0) {
+                        return 0;
+                    }
+                    const startMinutes = timeStringToMinutes(jamMulaiHarian?.value);
+                    const endMinutes = timeStringToMinutes(jamSelesaiHarian?.value);
+                    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+                        return 0;
+                    }
+                    if (slotMinutes > endMinutes - startMinutes) {
+                        return 0;
+                    }
+                    const slotsPerDay = Math.floor((endMinutes - startMinutes) / slotMinutes);
+                    if (slotsPerDay <= 0) {
+                        return 0;
+                    }
+                    let dayMatches = 0;
+                    for (let cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+                        const iso = cursor.getDay() === 0 ? 7 : cursor.getDay();
+                        if (selectedIso.includes(iso)) {
+                            dayMatches += 1;
+                        }
+                    }
+                    return dayMatches * slotsPerDay;
+                };
+
+                const calculateCustomSlots = () => {
+                    if (!customDateInput?.value) {
+                        return 0;
+                    }
+                    if (!customJamMulai?.value || !customJamSelesai?.value) {
+                        return 0;
+                    }
+                    const startMinutes = timeStringToMinutes(customJamMulai.value);
+                    const endMinutes = timeStringToMinutes(customJamSelesai.value);
+                    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+                        return 0;
+                    }
+                    const durasiJam = normalizeNumber(customDurasiInput?.value);
+                    if (!durasiJam || durasiJam <= 0) {
+                        return 0;
+                    }
+                    return 1;
+                };
+
+                const handleDurationPreset = (event) => {
+                    event.preventDefault();
+                    const value = parseFloat(event.currentTarget.dataset.durationPreset);
+                    const targetSelector = event.currentTarget.dataset.durationTarget;
+                    if (!targetSelector || Number.isNaN(value) || value <= 0) {
+                        return;
+                    }
+                    const targetInput = form.querySelector(targetSelector);
+                    if (!targetInput) {
+                        return;
+                    }
+                    targetInput.value = value;
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    const group = event.currentTarget.dataset.durationGroup;
+                    if (group) {
+                        durationButtons.forEach(btn => {
+                            if (btn.dataset.durationGroup === group) {
+                                btn.classList.toggle('active', btn === event.currentTarget);
+                            }
+                        });
+                    }
+                    updateSummary();
+                };
+
+                durationButtons.forEach(btn => btn.addEventListener('click', handleDurationPreset));
+
+                const clearPresetState = (inputEl) => {
+                    if (!inputEl?.id) {
+                        return;
+                    }
+                    durationButtons.forEach(btn => {
+                        if (btn.dataset.durationTarget === `#${inputEl.id}`) {
+                            btn.classList.remove('active');
+                        }
+                    });
+                };
+
+                slotDurasiInput?.addEventListener('input', () => {
+                    clearPresetState(slotDurasiInput);
+                    updateSummary();
+                });
+                customDurasiInput?.addEventListener('input', () => {
+                    clearPresetState(customDurasiInput);
+                    updateSummary();
+                });
+
+                if (defaultHargaBtn && hargaInput) {
+                    defaultHargaBtn.addEventListener('click', event => {
+                        event.preventDefault();
+                        const defaultHarga = Number(defaultHargaBtn.dataset.defaultHarga);
+                        if (!defaultHarga || defaultHarga <= 0) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Harga default belum tersedia',
+                                text: 'Pilih section dengan harga default atau isi manual.',
+                                confirmButtonColor: '#0d6efd',
+                            });
+                            return;
+                        }
+                        hargaInput.value = defaultHarga;
+                        hargaInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (typeof Toast !== 'undefined') {
+                            Toast.fire({
+                                icon: 'success',
+                                title: 'Harga default section diterapkan',
+                            });
+                        }
+                        updateSummary();
+                    });
+                }
+
+                const summarySelectors = [
+                    '[name="tanggal"]',
+                    '[name="tanggal_mulai"]',
+                    '[name="tanggal_selesai"]',
+                    '[name="jam_mulai"]',
+                    '[name="jam_selesai"]',
+                    '[name="jam_mulai_harian"]',
+                    '[name="jam_selesai_harian"]',
+                    '[name="durasi_sewa"]',
+                    '[name="durasi_slot"]',
+                    '[name="harga_sewa"]',
+                    '[name="tersedia"]',
+                ];
+
+                summarySelectors.forEach(selector => {
+                    form.querySelectorAll(selector).forEach(element => {
+                        element.addEventListener('input', updateSummary);
+                        element.addEventListener('change', updateSummary);
+                    });
+                });
+
+                if (rangeStartInput && rangeEndInput) {
+                    const syncEndMin = () => {
+                        const minValue = rangeStartInput.value || rangeStartInput.min;
+                        if (minValue) {
+                            rangeEndInput.min = minValue;
+                            if (rangeEndInput.value && rangeEndInput.value < minValue) {
+                                rangeEndInput.value = minValue;
+                            }
+                        }
+                        updateSummary();
+                    };
+                    rangeStartInput.addEventListener('change', syncEndMin);
+                    syncEndMin();
+                }
+
+                setSectionVisibility();
+                updateHariCount();
+                updateSummary();
+            });
+        }
+
+        initJadwalTypeForms();
+
+
+        function resetJadwalFormValues(lapanganId) {
+            if (!lapanganId) return;
+            const form = document.getElementById(`formJadwal${lapanganId}`);
+            if (!form) return;
+
+            const sectionInput = form.querySelector('input[name="section_id"]');
+            const currentSectionId = sectionInput ? sectionInput.value : '';
+
+            form.reset();
+
+            if (sectionInput && currentSectionId) {
+                sectionInput.value = currentSectionId;
+            }
+
+            const defaultMode = form.querySelector('input[name="tipe_jadwal"][value="simple"]');
+            if (defaultMode) {
+                defaultMode.checked = true;
+            }
+
+            form.querySelectorAll('[data-jadwal-type-input]').forEach(input => {
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            form.querySelector('[data-durasi-jam-input]')?.dispatchEvent(new Event('input', { bubbles: true }));
+            form.querySelector('[data-durasi-slot-input]')?.dispatchEvent(new Event('input', { bubbles: true }));
+            form.querySelector('[data-harga-per-jam-input]')?.dispatchEvent(new Event('input', { bubbles: true }));
+            form.querySelector('input[name="jam_mulai_harian"]')?.dispatchEvent(new Event('input', { bubbles: true }));
+            form.querySelector('input[name="jam_selesai_harian"]')?.dispatchEvent(new Event('input', { bubbles: true }));
+            form.querySelector('input[name="jam_mulai"]')?.dispatchEvent(new Event('input', { bubbles: true }));
+            form.querySelector('input[name="jam_selesai"]')?.dispatchEvent(new Event('input', { bubbles: true }));
+
+            if (typeof form.__resetHariCount === 'function') {
+                form.__resetHariCount();
+            }
+
+            if (typeof form.__updateJadwalSummary === 'function') {
+                form.__updateJadwalSummary();
+            }
+
+            form.querySelectorAll('[data-duration-preset]').forEach(btn => btn.classList.remove('active'));
+        }
+
+        document.querySelectorAll('[data-reset-jadwal]').forEach(button => {
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                const lapanganId = button.dataset.resetJadwal;
+                resetJadwalFormValues(lapanganId);
+                if (typeof Toast !== 'undefined') {
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Form jadwal dibersihkan',
+                    });
+                }
+            });
+        });
         
         // Tambah section baru di form tambah lapangan
         document.getElementById('tambah-section').addEventListener('click', function() {
@@ -845,21 +1571,30 @@
             );
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
                         <input type="text" name="sections[${sectionCount}][nama_section]" 
                             class="form-control" 
                             placeholder="Contoh: Lapangan B, Court 2" required>
                         <div class="form-text">Contoh: Lapangan B, Court 2</div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[${sectionCount}][deskripsi]" 
                             class="form-control" 
                             placeholder="Deskripsi singkat section...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end justify-content-md-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Harga Default / Jam</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white">Rp</span>
+                            <input type="number" name="sections[${sectionCount}][harga_per_jam]" 
+                                class="form-control" min="0" step="1000" placeholder="150000">
+                            <span class="input-group-text bg-light text-muted">/jam</span>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end justify-content-md-end">
                         <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
                             <i class="fa-solid fa-trash me-1"></i> Hapus
                         </button>
@@ -901,21 +1636,30 @@
             );
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
                         <input type="text" name="sections[new_${sectionCount}][nama_section]" 
                             class="form-control" 
                             placeholder="Contoh: Lapangan Baru" required>
                         <div class="form-text">Contoh: Lapangan Baru atau Court Ekstra.</div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[new_${sectionCount}][deskripsi]" 
                             class="form-control" 
                             placeholder="Deskripsi singkat section...">
                         <div class="form-text">Opsional, gunakan untuk catatan khusus.</div>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end justify-content-md-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Harga Default / Jam</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white">Rp</span>
+                            <input type="number" name="sections[new_${sectionCount}][harga_per_jam]" 
+                                class="form-control" min="0" step="1000" placeholder="150000">
+                            <span class="input-group-text bg-light text-muted">/jam</span>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end justify-content-md-end">
                         <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
                             <i class="fa-solid fa-trash me-1"></i> Hapus
                         </button>
@@ -929,29 +1673,26 @@
         // ========== TAMPILKAN JADWAL PER SECTION ==========
         function tampilkanJadwalSection(lapanganId) {
             const selector = document.getElementById(`section-selector-${lapanganId}`);
+            if (!selector) return;
             const sectionId = selector.value;
-            const sectionName = selector.options[selector.selectedIndex].text;
+            const defaultHargaLapangan = Number(selector.dataset.defaultHarga || 0);
             
             if (!sectionId) {
-                document.getElementById(`form-jadwal-container-${lapanganId}`).style.display = 'none';
-                document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
-                    <div class="text-center text-muted py-4">
-                        <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                        <br>Pilih section untuk melihat jadwal
-                    </div>
-                `;
+                resetJadwalView(lapanganId);
+                updateDefaultHargaInputs(lapanganId, defaultHargaLapangan);
                 return;
             }
 
+            const selectedOption = selector.options[selector.selectedIndex];
+            const sectionName = selectedOption?.dataset.label || selectedOption?.text || 'Section';
+            const sectionHarga = Number(selectedOption?.dataset.harga || 0);
+            const hargaTerpilih = sectionHarga > 0 ? sectionHarga : defaultHargaLapangan;
+
             // Tampilkan form jadwal
             document.getElementById(`form-jadwal-container-${lapanganId}`).style.display = 'block';
-            document.getElementById(`section-name-${lapanganId}`).textContent = sectionName;
             document.getElementById(`section-id-${lapanganId}`).value = sectionId;
-
-            // Update info section
-            document.getElementById(`section-info-${lapanganId}`).innerHTML = `
-                <strong>${sectionName}</strong> - Pilih tanggal dan waktu untuk menambah jadwal
-            `;
+            setSectionInfo(lapanganId, sectionName, hargaTerpilih);
+            updateDefaultHargaInputs(lapanganId, hargaTerpilih);
 
             // Load jadwal via AJAX
             fetch(`/lapangan/${lapanganId}/section/${sectionId}/jadwal`, {
@@ -983,88 +1724,8 @@
                     return payload;
                 })
                 .then(data => {
-                    if (data.jadwal.length > 0) {
-                        let html = `
-                            <h6 class="fw-bold text-dark mb-3">
-                                <i class="fa-solid fa-list me-2"></i> Daftar Jadwal (${data.jadwal.length})
-                            </h6>
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Tanggal</th>
-                                            <th>Jam Mulai</th>
-                                            <th>Jam Selesai</th>
-                                            <th>Durasi (Jam)</th>
-                                            <th>Total Harga</th>
-                                            <th>Status</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                        `;
-                        
-                        data.jadwal.forEach(jadwal => {
-                            const durasiJam = jadwal.durasi_sewa / 60;
-                            const durasiFormatted = durasiJam % 1 === 0 ? durasiJam : durasiJam.toFixed(2);
-                            const totalHarga = jadwal.harga_sewa * durasiJam;
-                            
-                            html += `
-                                <tr>
-                                    <td>${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}</td>
-                                    <td>${jadwal.jam_mulai}</td>
-                                    <td>${jadwal.jam_selesai}</td>
-                                    <td>${durasiFormatted} jam</td>
-                                    <td>
-                                        <span class="fw-bold text-success d-block">
-                                            Rp ${totalHarga.toLocaleString('id-ID')}
-                                        </span>
-                                        <small class="text-muted d-block">
-                                            Rp ${jadwal.harga_sewa.toLocaleString('id-ID')} / jam
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <span class="badge ${jadwal.tersedia ? 'bg-success' : 'bg-danger'}">
-                                            ${jadwal.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
-                                        </span>
-                                    </td>
-                                    <td class="text-nowrap">
-                                        <button type="button" class="btn btn-sm btn-outline-primary me-1"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editJadwalModal${jadwal.id}">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </button>
-                                        <button type="button"
-                                            class="btn btn-sm btn-outline-danger delete-jadwal-btn"
-                                            data-lapangan-id="${lapanganId}"
-                                            data-jadwal-id="${jadwal.id}"
-                                            data-tanggal="${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}"
-                                            data-jam="${jadwal.jam_mulai} - ${jadwal.jam_selesai}">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                        
-                        html += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        `;
-                        
-                        document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = html;
-                        
-                        // Re-attach delete event listeners
-                        attachDeleteJadwalEvents();
-                    } else {
-                        document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
-                            <div class="text-center text-muted py-4">
-                                <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                                <br>Belum ada jadwal untuk section ini
-                            </div>
-                        `;
-                    }
+                    const defaultHargaSection = Number(data.section.harga_per_jam || 0);
+                    setJadwalPaginationState(lapanganId, data.jadwal || [], defaultHargaSection);
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -1076,6 +1737,29 @@
                     `;
                 });
         }
+
+        document.querySelectorAll('[data-kelola-jadwal=\"true\"]').forEach(modalEl => {
+            modalEl.addEventListener('shown.bs.modal', function () {
+                const lapanganId = this.dataset.lapanganId;
+                const selector = document.getElementById(`section-selector-${lapanganId}`);
+                if (!selector) {
+                    resetJadwalView(lapanganId);
+                    return;
+                }
+
+                if (!selector.value) {
+                    const firstOption = Array.from(selector.options).find(opt => opt.value);
+                    if (firstOption) {
+                        selector.value = firstOption.value;
+                    } else {
+                        resetJadwalView(lapanganId);
+                        return;
+                    }
+                }
+
+                tampilkanJadwalSection(lapanganId);
+            });
+        });
 
         // ========== SWEETALERT CONFIGURATION ==========
         const Toast = Swal.mixin({
@@ -1156,6 +1840,16 @@
                 const id = this.dataset.id;
                 const nama = this.dataset.nama;
 
+                if (!id) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'ID lapangan tidak ditemukan. Muat ulang halaman dan coba lagi.',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    return;
+                }
+
                 Swal.fire({
                     title: 'Hapus Lapangan?',
                     html: `Apakah Anda yakin ingin menghapus<br><strong style="color: #dc3545;">${nama}</strong>?<br><br><small class="text-muted">Data ini tidak dapat dikembalikan!</small>`,
@@ -1177,7 +1871,7 @@
                         return new Promise((resolve) => {
                             setTimeout(() => {
                                 const form = document.getElementById('deleteLapanganForm');
-                                form.action = '{{ url('lapangan') }}/' + id;
+                                form.action = "{{ url('lapangan') }}/" + id;
                                 form.submit();
                                 resolve();
                             }, 500);
@@ -1198,6 +1892,42 @@
                     }
                 });
             });
+        });
+
+        document.addEventListener('input', event => {
+            const searchInput = event.target.closest('[data-jadwal-search]');
+            if (searchInput) {
+                filterJadwalData(searchInput.dataset.jadwalSearch, searchInput.value);
+            }
+        });
+
+        document.addEventListener('change', event => {
+            const perPageSelect = event.target.closest('[data-jadwal-per-page]');
+            if (perPageSelect) {
+                updateJadwalPerPage(perPageSelect.dataset.jadwalPerPage, perPageSelect.value);
+            }
+        });
+
+        document.addEventListener('click', event => {
+            const pageButton = event.target.closest('[data-jadwal-page]');
+            if (pageButton) {
+                event.preventDefault();
+                const lapanganId = pageButton.dataset.lapanganId;
+                const state = jadwalPaginationState[lapanganId];
+                if (!state) {
+                    return;
+                }
+
+                let targetPage = state.page;
+                if (pageButton.dataset.jadwalPage === 'prev') {
+                    targetPage = state.page - 1;
+                } else if (pageButton.dataset.jadwalPage === 'next') {
+                    targetPage = state.page + 1;
+                } else {
+                    targetPage = Number(pageButton.dataset.jadwalPage);
+                }
+                renderJadwalPage(lapanganId, targetPage);
+            }
         });
 
         // ========== DELETE JADWAL WITH SWEETALERT ==========
@@ -1253,6 +1983,218 @@
                     });
                 });
             });
+        }
+
+        function setJadwalPaginationState(lapanganId, data, defaultHargaSection) {
+            jadwalPaginationState[lapanganId] = {
+                allData: data,
+                filteredData: data,
+                perPage: JADWAL_DEFAULT_PER_PAGE,
+                page: 1,
+                search: '',
+                defaultHargaSection,
+            };
+            renderJadwalPage(lapanganId);
+        }
+
+        function renderJadwalPage(lapanganId, targetPage = 1) {
+            const state = jadwalPaginationState[lapanganId];
+            if (!state) {
+                return;
+            }
+
+            const container = document.getElementById(`jadwal-container-${lapanganId}`);
+            if (!container) {
+                return;
+            }
+
+            const totalItems = state.filteredData.length;
+            const totalPages = Math.max(1, Math.ceil(Math.max(totalItems, 1) / state.perPage));
+            state.page = Math.min(Math.max(targetPage, 1), totalPages);
+
+            const startIndex = (state.page - 1) * state.perPage;
+            const rows = state.filteredData.slice(startIndex, startIndex + state.perPage);
+
+            const searchValue = state.search || '';
+
+            const headingHtml = `
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-list me-2"></i> Daftar Jadwal (${totalItems})
+                    </h6>
+                </div>
+            `;
+
+            const controlsHtml = `
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div class="input-group input-group-sm" style="max-width: 280px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fa-solid fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" placeholder="Cari tanggal atau jam..."
+                            value="${searchValue}" data-jadwal-search="${lapanganId}">
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="text-muted small mb-0">Tampil</label>
+                        <select class="form-select form-select-sm" data-jadwal-per-page="${lapanganId}">
+                            ${JADWAL_PER_PAGE_OPTIONS.map(option => `
+                                <option value="${option}" ${option === state.perPage ? 'selected' : ''}>${option}</option>
+                            `).join('')}
+                        </select>
+                        <span class="text-muted small">per halaman</span>
+                    </div>
+                </div>
+            `;
+
+            if (totalItems === 0) {
+                container.innerHTML = `
+                    ${headingHtml}
+                    ${controlsHtml}
+                    <div class="alert alert-light border text-center mb-0">
+                        <i class="fa-solid fa-circle-info me-1 text-muted"></i>
+                        Belum ada jadwal untuk section ini.
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHtml = `
+                ${headingHtml}
+                ${controlsHtml}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-nowrap">Tanggal</th>
+                                <th>Jam Mulai</th>
+                                <th>Jam Selesai</th>
+                                <th class="text-nowrap">Durasi (Jam)</th>
+                                <th>Total Harga</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            rows.forEach(jadwal => {
+                const durasiJam = jadwal.durasi_sewa / 60;
+                const durasiFormatted = durasiJam % 1 === 0 ? durasiJam : durasiJam.toFixed(2);
+                const totalHarga = jadwal.harga_sewa * durasiJam;
+                const defaultHargaSection = state.defaultHargaSection;
+                const isDefaultPrice = defaultHargaSection > 0 && Number(jadwal.harga_sewa) === defaultHargaSection;
+                const hargaBadge = defaultHargaSection > 0
+                    ? `<span class="badge ${isDefaultPrice ? 'bg-primary' : 'bg-warning text-dark'} ms-1">
+                           ${isDefaultPrice ? 'Default' : 'Custom'}
+                       </span>`
+                    : '';
+
+                tableHtml += `
+                    <tr>
+                        <td>${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}</td>
+                        <td>${jadwal.jam_mulai}</td>
+                        <td>${jadwal.jam_selesai}</td>
+                        <td>${durasiFormatted} jam</td>
+                        <td>
+                            <span class="fw-bold text-success d-block">
+                                ${formatRupiahValue(totalHarga)}
+                            </span>
+                            <small class="text-muted d-block">
+                                ${formatRupiahValue(jadwal.harga_sewa)} / jam ${hargaBadge}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge ${jadwal.tersedia ? 'bg-success' : 'bg-danger'}">
+                                ${jadwal.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
+                            </span>
+                        </td>
+                        <td class="text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editJadwalModal${jadwal.id}">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button type="button"
+                                class="btn btn-sm btn-outline-danger delete-jadwal-btn"
+                                data-lapangan-id="${lapanganId}"
+                                data-jadwal-id="${jadwal.id}"
+                                data-tanggal="${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}"
+                                data-jam="${jadwal.jam_mulai} - ${jadwal.jam_selesai}">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            const showingStart = startIndex + 1;
+            const showingEnd = startIndex + rows.length;
+
+            const paginationHtml = `
+                <div class="d-flex flex-wrap align-items-center justify-content-between mt-3 gap-2">
+                    <small class="text-muted">
+                        Menampilkan ${showingStart} - ${showingEnd} dari ${totalItems} jadwal
+                    </small>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-secondary"
+                            data-jadwal-page="prev"
+                            data-lapangan-id="${lapanganId}"
+                            ${state.page === 1 ? 'disabled' : ''}>
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <span class="small text-muted">Halaman ${state.page} / ${totalPages}</span>
+                        <button class="btn btn-sm btn-outline-secondary"
+                            data-jadwal-page="next"
+                            data-lapangan-id="${lapanganId}"
+                            ${state.page === totalPages ? 'disabled' : ''}>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = tableHtml + paginationHtml;
+            attachDeleteJadwalEvents();
+        }
+
+        function filterJadwalData(lapanganId, keyword) {
+            const state = jadwalPaginationState[lapanganId];
+            if (!state) {
+                return;
+            }
+            state.search = keyword.toLowerCase();
+            if (!state.search) {
+                state.filteredData = state.allData;
+            } else {
+                state.filteredData = state.allData.filter(item => {
+                    const target = [
+                        item.tanggal,
+                        item.jam_mulai,
+                        item.jam_selesai,
+                        item.tersedia ? 'tersedia' : 'tidak tersedia'
+                    ].join(' ').toLowerCase();
+                    return target.includes(state.search);
+                });
+            }
+            state.page = 1;
+            renderJadwalPage(lapanganId);
+        }
+
+        function updateJadwalPerPage(lapanganId, perPage) {
+            const state = jadwalPaginationState[lapanganId];
+            const parsed = Number(perPage);
+            if (!state || !Number.isFinite(parsed) || parsed <= 0) {
+                return;
+            }
+            state.perPage = parsed;
+            state.page = 1;
+            renderJadwalPage(lapanganId);
         }
 
         // Panggil pertama kali
@@ -1378,182 +2320,223 @@
         });
 
         // ========== DYNAMIC PRICE CALCULATION ==========
-        document.querySelectorAll('form').forEach(form => {
+        document.querySelectorAll('[data-jadwal-form="create"]').forEach(form => {
             const hargaPerJamInput = form.querySelector('[data-harga-per-jam-input]');
-            const durasiInput = form.querySelector('[data-durasi-jam-input]');
+            const customDurasiInput = form.querySelector('[data-durasi-jam-input]');
+            const slotDurasiInput = form.querySelector('[data-durasi-slot-input]');
             const jamMulaiInput = form.querySelector('[data-jam-mulai-input]');
             const jamSelesaiInput = form.querySelector('[data-jam-selesai-input]');
             const totalDisplay = form.querySelector('[data-harga-total-display]');
             const durasiJamPreview = form.querySelector('[data-durasi-jam-preview]');
             const durasiJamDisplay = form.querySelector('[data-durasi-jam-display]');
 
-            if (hargaPerJamInput && totalDisplay) {
-                const formatRupiah = (value) => {
-                    const safeValue = Number.isFinite(value) ? value : 0;
-                    const nominal = Math.max(0, Math.round(safeValue));
-                    return 'Rp ' + new Intl.NumberFormat('id-ID', {
-                        minimumFractionDigits: 0
-                    }).format(nominal);
-                };
+            if (!hargaPerJamInput || !totalDisplay) {
+                return;
+            }
 
-                const formatJam = (value) => {
-                    if (!Number.isFinite(value) || value <= 0) {
-                        return '0';
-                    }
-                    const rounded = Math.round(value * 100) / 100;
-                    return new Intl.NumberFormat('id-ID', {
-                        minimumFractionDigits: rounded < 1 ? 1 : 0,
-                        maximumFractionDigits: 2,
-                    }).format(rounded);
-                };
+            const formatRupiah = (value) => {
+                const safeValue = Number.isFinite(value) ? value : 0;
+                const nominal = Math.max(0, Math.round(safeValue));
+                return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(nominal);
+            };
 
-                const normalizeNumber = (value) => {
-                    if (typeof value !== 'string') {
-                        value = String(value ?? '');
-                    }
-                    const parsed = parseFloat(value.replace(',', '.'));
-                    return Number.isFinite(parsed) ? parsed : 0;
-                };
-
-                const updateDurationDisplays = (durasiJam) => {
-                    const formattedJam = formatJam(durasiJam);
-                    if (durasiJamPreview) {
-                        durasiJamPreview.textContent = formattedJam;
-                    }
-                    if (durasiJamDisplay) {
-                        durasiJamDisplay.textContent = formattedJam;
-                    }
-                };
-
-                const setDurasiInputValue = (jam) => {
-                    if (!durasiInput) {
-                        return;
-                    }
-                    const numericJam = Number.isFinite(jam) ? Math.max(0, jam) : 0;
-                    const decimals = Number.isInteger(numericJam) ? 0 : 2;
-                    durasiInput.value = numericJam.toFixed(decimals);
-                    updateDurationDisplays(numericJam);
-                };
-
-                const getMinutesFromTime = (value) => {
-                    if (!value || !value.includes(':')) {
-                        return null;
-                    }
-                    const [jamStr, menitStr] = value.split(':');
-                    const jam = parseInt(jamStr, 10);
-                    const menit = parseInt(menitStr, 10);
-
-                    if (!Number.isInteger(jam) || !Number.isInteger(menit)) {
-                        return null;
-                    }
-
-                    if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
-                        return null;
-                    }
-
-                    return (jam * 60) + menit;
-                };
-
-                const setTimeFromMinutes = (input, minutesTotal) => {
-                    if (!input) {
-                        return;
-                    }
-
-                    const clampedMinutes = Math.max(0, Math.min(minutesTotal, (23 * 60) + 59));
-                    const jam = String(Math.floor(clampedMinutes / 60)).padStart(2, '0');
-                    const menit = String(clampedMinutes % 60).padStart(2, '0');
-                    input.value = `${jam}:${menit}`;
-                };
-
-                let isSyncing = false;
-
-                const syncDurationFromTimes = () => {
-                    if (isSyncing || !jamMulaiInput || !jamSelesaiInput) {
-                        return;
-                    }
-                    const mulai = getMinutesFromTime(jamMulaiInput.value);
-                    const selesai = getMinutesFromTime(jamSelesaiInput.value);
-
-                    if (mulai === null || selesai === null || selesai <= mulai) {
-                        if (durasiInput) {
-                            durasiInput.value = '';
-                        }
-                        updateDurationDisplays(0);
-                        return;
-                    }
-
-                    const selisihJam = (selesai - mulai) / 60;
-                    isSyncing = true;
-                    setDurasiInputValue(selisihJam);
-                    isSyncing = false;
-                };
-
-                const syncEndTimeFromDuration = () => {
-                    if (isSyncing || !jamMulaiInput || !jamSelesaiInput || !durasiInput) {
-                        return;
-                    }
-
-                    const mulai = getMinutesFromTime(jamMulaiInput.value);
-                    const durasiJam = normalizeNumber(durasiInput.value);
-
-                    if (mulai === null || durasiJam <= 0) {
-                        return;
-                    }
-
-                    let selesai = mulai + Math.round(durasiJam * 60);
-                    selesai = Math.max(selesai, mulai + 1);
-                    isSyncing = true;
-                    setTimeFromMinutes(jamSelesaiInput, selesai);
-                    isSyncing = false;
-                    syncDurationFromTimes();
-                };
-
-                const updateTotalHarga = () => {
-                    const durasiJam = normalizeNumber(durasiInput?.value ?? '0');
-                    const safeDurasiJam = durasiJam > 0 ? durasiJam : 0;
-                    const hargaPerJam = parseFloat(hargaPerJamInput.value || '0');
-                    const total = hargaPerJam * safeDurasiJam;
-
-                    totalDisplay.textContent = formatRupiah(total);
-                    updateDurationDisplays(safeDurasiJam);
-                };
-
-                const handleJamChange = () => {
-                    syncDurationFromTimes();
-                    updateTotalHarga();
-                };
-
-                const handleDurasiChange = () => {
-                    syncEndTimeFromDuration();
-                    updateTotalHarga();
-                };
-
-                [hargaPerJamInput].forEach(input => {
-                    input.addEventListener('input', updateTotalHarga);
-                    input.addEventListener('change', updateTotalHarga);
-                });
-
-                if (durasiInput) {
-                    ['input', 'change'].forEach(eventName => {
-                        durasiInput.addEventListener(eventName, handleDurasiChange);
-                    });
+            const formatJam = (value) => {
+                if (!Number.isFinite(value) || value <= 0) {
+                    return '0';
                 }
+                const rounded = Math.round(value * 100) / 100;
+                return new Intl.NumberFormat('id-ID', {
+                    minimumFractionDigits: rounded < 1 ? 1 : 0,
+                    maximumFractionDigits: 2,
+                }).format(rounded);
+            };
 
-                [jamMulaiInput, jamSelesaiInput]
-                .filter(Boolean)
-                    .forEach(input => {
-                        ['input', 'change'].forEach(eventName => {
-                            input.addEventListener(eventName, handleJamChange);
-                        });
-                    });
+            const normalizeNumber = (value) => {
+                if (typeof value !== 'string') {
+                    value = String(value ?? '');
+                }
+                const parsed = parseFloat(value.replace(',', '.'));
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
 
+            const getMinutesFromTime = (value) => {
+                if (!value || !value.includes(':')) {
+                    return null;
+                }
+                const [jamStr, menitStr] = value.split(':');
+                const jam = parseInt(jamStr, 10);
+                const menit = parseInt(menitStr, 10);
+                if (!Number.isInteger(jam) || !Number.isInteger(menit)) {
+                    return null;
+                }
+                if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
+                    return null;
+                }
+                return (jam * 60) + menit;
+            };
+
+            const setTimeFromMinutes = (input, minutesTotal) => {
+                if (!input) {
+                    return;
+                }
+                const clampedMinutes = Math.max(0, Math.min(minutesTotal, (23 * 60) + 59));
+                const jam = String(Math.floor(clampedMinutes / 60)).padStart(2, '0');
+                const menit = String(clampedMinutes % 60).padStart(2, '0');
+                input.value = `${jam}:${menit}`;
+            };
+
+            const updateDurationDisplays = (durasiJam) => {
+                const formattedJam = formatJam(durasiJam);
+                if (durasiJamPreview) {
+                    durasiJamPreview.textContent = formattedJam;
+                }
+                if (durasiJamDisplay) {
+                    durasiJamDisplay.textContent = formattedJam;
+                }
+            };
+
+            const getActiveDurationInput = () => getActiveJadwalType(form) === 'simple' ? slotDurasiInput : customDurasiInput;
+            const getActiveDurationValue = () => normalizeNumber(getActiveDurationInput()?.value ?? '0');
+
+            const setCustomDurasiValue = (jam) => {
+                if (!customDurasiInput) {
+                    return;
+                }
+                const numericJam = Number.isFinite(jam) ? Math.max(0, jam) : 0;
+                const decimals = Number.isInteger(numericJam) ? 0 : 2;
+                customDurasiInput.value = numericJam.toFixed(decimals);
+                updateDurationDisplays(numericJam);
+            };
+
+            let isSyncing = false;
+
+            const syncDurationFromTimes = () => {
+                if (getActiveJadwalType(form) !== 'custom' || isSyncing || !jamMulaiInput || !jamSelesaiInput) {
+                    return;
+                }
+                const mulai = getMinutesFromTime(jamMulaiInput.value);
+                const selesai = getMinutesFromTime(jamSelesaiInput.value);
+                if (mulai === null || selesai === null || selesai <= mulai) {
+                    if (customDurasiInput) {
+                        customDurasiInput.value = '';
+                    }
+                    updateDurationDisplays(0);
+                    return;
+                }
+                const selisihJam = (selesai - mulai) / 60;
+                isSyncing = true;
+                setCustomDurasiValue(selisihJam);
+                isSyncing = false;
+            };
+
+            const syncEndTimeFromDuration = () => {
+                if (getActiveJadwalType(form) !== 'custom' || isSyncing || !jamMulaiInput || !jamSelesaiInput || !customDurasiInput) {
+                    return;
+                }
+                const mulai = getMinutesFromTime(jamMulaiInput.value);
+                const durasiJam = normalizeNumber(customDurasiInput.value);
+                if (mulai === null || durasiJam <= 0) {
+                    return;
+                }
+                let selesai = mulai + Math.round(durasiJam * 60);
+                selesai = Math.max(selesai, mulai + 1);
+                isSyncing = true;
+                setTimeFromMinutes(jamSelesaiInput, selesai);
+                isSyncing = false;
+                syncDurationFromTimes();
+            };
+
+            const updateTotalHarga = () => {
+                const durasiJam = getActiveDurationValue();
+                const safeDurasiJam = durasiJam > 0 ? durasiJam : 0;
+                const hargaPerJam = parseFloat(hargaPerJamInput.value || '0');
+                const total = hargaPerJam * safeDurasiJam;
+                totalDisplay.textContent = formatRupiah(total);
+                updateDurationDisplays(safeDurasiJam);
+                if (typeof form.__updateJadwalSummary === 'function') {
+                    form.__updateJadwalSummary();
+                }
+            };
+
+            const handleJamChange = () => {
                 syncDurationFromTimes();
                 updateTotalHarga();
-            }
+            };
+
+            const handleDurationChange = (event) => {
+                if (event?.currentTarget === customDurasiInput) {
+                    syncEndTimeFromDuration();
+                }
+                updateTotalHarga();
+            };
+
+            hargaPerJamInput.addEventListener('input', updateTotalHarga);
+            hargaPerJamInput.addEventListener('change', updateTotalHarga);
+
+            [slotDurasiInput, customDurasiInput].forEach(input => {
+                if (!input) return;
+                ['input', 'change'].forEach(evt => input.addEventListener(evt, handleDurationChange));
+            });
+
+            [jamMulaiInput, jamSelesaiInput].filter(Boolean).forEach(input => {
+                ['input', 'change'].forEach(evt => input.addEventListener(evt, handleJamChange));
+            });
+
+            syncDurationFromTimes();
+            updateTotalHarga();
         });
     </script>
 
     <style>
+        .schedule-type-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #fff;
+        }
+
+        .schedule-type-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 .5rem 1rem rgba(13, 110, 253, .15);
+        }
+
+        .schedule-type-card.active {
+            border-color: #0d6efd;
+            box-shadow: 0 .65rem 1.2rem rgba(13, 110, 253, .2);
+        }
+
+        .schedule-type-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .mode-card-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: contain;
+            padding: 6px;
+            background: #f8f9fa;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-duration-preset] {
+            transition: all 0.15s ease;
+        }
+
+        [data-duration-preset].active {
+            background-color: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+
         .hover-lift {
             transition: all 0.3s ease;
         }
@@ -1615,4 +2598,3 @@
         }
     </style>
 @endsection
-
