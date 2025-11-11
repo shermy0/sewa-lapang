@@ -1,4 +1,3 @@
-
 @extends('layouts.sidebar')
 
 @section('title', 'Detail Lapangan')
@@ -123,7 +122,7 @@
                 }
             @endphp
             <div class="mb-3">
-                <i class="fa-solid fa-tag text-success me-2"></i>
+                <i class="fa-solid fa-tag text-success me-2"></i><b>Harga Rata-Rata:</b>
                 @if($hargaPerJam > 0)
                     <span class="text-danger fw-semibold">
                         Rp {{ number_format($hargaPerJam, 0, ',', '.') }} / jam
@@ -159,7 +158,11 @@
             <div class="d-flex gap-2 mt-3">
                 {{-- Lihat (ulasan) --}}
                 <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">
-                    <i class="fa-solid fa-comment-dots me-1"></i> Lihat Ulasan
+                    <i class="fa-solid fa-comment-dots me-1"></i> Ulasan
+                </button>
+
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#jadwalModal">
+                    <i class="fa-solid fa-calendar-days me-1"></i> Jadwal
                 </button>
 
                 {{-- Pesan --}}
@@ -169,10 +172,22 @@
 
                 {{-- Favorit (hanya untuk user penyewa) --}}
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
-                    <button type="button" class="btn btn-outline-danger favorit-btn" data-lapangan-id="{{ $lapangan->id }}" data-is-favorit="{{ !empty($isFavorit) && $isFavorit ? 'true' : 'false' }}">
-                        <i class="fa-solid {{ !empty($isFavorit) && $isFavorit ? 'fa-heart-crack' : 'fa-heart' }} me-1"></i>
-                        <span class="favorit-text">{{ !empty($isFavorit) && $isFavorit ? 'Hapus Favorit' : 'Favorit' }}</span>
-                    </button>
+                    @if (!empty($isFavorit) && $isFavorit)
+                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="m-0 p-0">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fa-solid fa-heart-crack me-1"></i> Hapus Favorit
+                            </button>
+                        </form>
+                    @else
+                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="m-0 p-0">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fa-solid fa-heart me-1"></i> Favorit
+                            </button>
+                        </form>
+                    @endif
                 @endif
             </div>
         </div>
@@ -333,25 +348,94 @@
         @endforeach
     @endauth
 
-    {{-- Modal Lapangan (konfirmasi favorit) --}}
-    <div class="modal fade" id="lapanganModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    {{-- MODAL JADWAL LAPANGANG --}}
+    <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Lapangan Ditambahkan ke Favorit</h5>
+                        <div class="modal-header border-0 d-flex align-items-center justify-content-between">
+                <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
+                    Jadwal Lapangan {{ $lapangan->nama_lapangan }}
+                </h5>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                        Total jadwal: {{ $lapangan->jadwal->count() }}
+                    </span>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center">
-                    <i class="fa-solid fa-check-circle text-success" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                    <h6 class="mt-3">{{ $lapangan->nama_lapangan }}</h6>
-                    <p class="text-muted">Lapangan ini telah ditambahkan ke daftar favorit Anda.</p>
+            </div>
+
+            <div class="modal-body">
+                {{-- Card Jadwal Lapangan --}}
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        @php
+                            use Carbon\Carbon;
+
+                            // Ambil jadwal tersedia dan sort
+                            $jadwalTersedia = $lapangan->jadwal->sortBy(['tanggal', 'jam_mulai']);
+                        @endphp
+
+                        @if($jadwalTersedia->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 table-bordered">
+                                    <thead class="text-white fw-semibold text-center align-middle" style="background-color: #198754;">
+                                        <tr>
+                                            <th class="text-center align-middle">No</th>
+                                            <th class="text-center align-middle">Tanggal</th>
+                                            <th class="text-center align-middle">Section</th>
+                                            <th class="text-center align-middle">Rentang Waktu</th>
+                                            <th class="text-center align-middle">Durasi</th>
+                                            <th class="text-center align-middle">Harga Total</th>
+                                            <th class="text-center align-middle">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-center">
+                                        @foreach($jadwalTersedia as $i => $jadwal)
+                                            @php
+                                                $mulai = Carbon::parse($jadwal->jam_mulai);
+                                                $selesai = Carbon::parse($jadwal->jam_selesai);
+                                                $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
+                                                $durasiJam = $durasiMenit / 60;
+                                            @endphp
+                                            <tr>
+                                                <td class="fw-semibold">{{ $i + 1 }}</td>
+                                                <td class="text-nowrap">{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
+                                                <td class="align-middle">{{ $jadwal->section->nama_section ?? '-' }}</td>
+                                                <td class="text-nowrap">
+                                                    <div class="d-flex flex-column small fw-semibold">
+                                                        <span>{{ $mulai->format('H:i') }} WIB</span>
+                                                        <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-success-subtle text-success px-3 py-2">
+                                                        {{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold text-success">Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}</div>
+                                                    <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge px-3 py-2 {{ $jadwal->tersedia ? 'bg-gradient bg-success' : 'bg-secondary' }}">
+                                                        {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="p-5 text-center text-muted">
+                                <i class="fa-solid fa-calendar-xmark fa-2x mb-3"></i>
+                                <p class="mb-0">Belum ada jadwal yang ditambahkan untuk lapangan ini.</p>
+                            </div>
+                        @endif
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <a href="{{ route('favorit.index') }}" class="btn btn-success">
-                        <i class="fa-solid fa-heart me-1"></i> Lihat Favorit
-                    </a>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
-                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -434,73 +518,5 @@
         const alertSuccess = document.getElementById('alert-success');
         if (alertSuccess) alertSuccess.style.display = 'none';
     }, 3000);
-
-    // Handle favorit button click
-    document.addEventListener('DOMContentLoaded', function () {
-        const favoritBtn = document.querySelector('.favorit-btn');
-        if (favoritBtn) {
-            favoritBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-
-                const lapanganId = this.getAttribute('data-lapangan-id');
-                const isFavorit = this.getAttribute('data-is-favorit') === 'true';
-                const btnElement = this;
-                const isAdding = !isFavorit; // true jika sedang menambah favorit
-
-                // Determine route based on current state - sesuai dengan Laravel route
-                const route = `/lapangan/${lapanganId}/favorit`;
-                const method = isFavorit ? 'DELETE' : 'POST';
-
-                // Get CSRF token
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-                // Make AJAX request
-                fetch(route, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update button state
-                        const newIsFavorit = data.is_favorit;
-                        btnElement.setAttribute('data-is-favorit', newIsFavorit ? 'true' : 'false');
-
-                        // Update icon and text
-                        const icon = btnElement.querySelector('i');
-                        const text = btnElement.querySelector('.favorit-text');
-
-                        if (newIsFavorit) {
-                            icon.classList.remove('fa-heart');
-                            icon.classList.add('fa-heart-crack');
-                            text.textContent = 'Hapus Favorit';
-                        } else {
-                            icon.classList.remove('fa-heart-crack');
-                            icon.classList.add('fa-heart');
-                            text.textContent = 'Favorit';
-                        }
-
-                        // Show modal HANYA ketika menambahkan favorit (bukan saat menghapus)
-                        if (isAdding) {
-                            setTimeout(() => {
-                                const modalElement = new bootstrap.Modal(document.getElementById('lapanganModal'));
-                                modalElement.show();
-                            }, 300);
-                        }
-                    } else {
-                        alert(data.message || 'Terjadi kesalahan.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan. Silakan coba lagi.');
-                });
-            });
-        }
-    });
 </script>
 @endsection

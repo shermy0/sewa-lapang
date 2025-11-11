@@ -8,6 +8,8 @@ use App\Models\Kategori;
 use App\Models\Ulasan;
 use App\Models\Pemesanan;
 use App\Models\User;
+use App\Models\Banner;
+use Carbon\Carbon;
 
 class BerandaController extends Controller
 {
@@ -15,6 +17,7 @@ class BerandaController extends Controller
     {
         $keyword = $request->input('search');
         $kategori = $request->input('kategori');
+        $banners = Banner::where('status', 'aktif')->get();
 
         // Ambil semua kategori
         $kategoris = Kategori::all();
@@ -32,7 +35,7 @@ class BerandaController extends Controller
             ->limit(12)
             ->get();
 
-        return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris'));
+        return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris', 'banners'));
     }
 
     public function detail($id)
