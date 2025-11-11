@@ -48,6 +48,9 @@ Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsB
 Route::get('/permintaan-perubahan/{id}', [App\Http\Controllers\PemesananController::class, 'getDetailPermintaan']);
 Route::post('/permintaan-perubahan/{id}/setujui', [App\Http\Controllers\PemesananController::class, 'setujuiPermintaan'])
     ->name('permintaan-perubahan.setujui');
+Route::post('/pemesanan/{id}/ajukan-perubahan', [PemesananController::class, 'ajukanPerubahan'])->name('pemesanan.ajukanPerubahan');
+Route::get('/lapangan/{id}/sections', [PemesananController::class, 'getSectionsByLapangan']);
+Route::get('/jadwal/{id}', [PemesananController::class, 'getJadwalBySection']);
 
 Route::post('/permintaan-perubahan/{pemesananId}', [PemesananController::class, 'ajukanPerubahan'])
     ->name('permintaan-perubahan.store');

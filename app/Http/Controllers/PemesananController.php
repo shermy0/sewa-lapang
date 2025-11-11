@@ -171,7 +171,16 @@ public function create($lapangan_id)
 }
 public function getJadwalBySection($section_id)
 {
+    $now = Carbon::now('Asia/Jakarta'); // waktu sekarang
     $jadwal = JadwalLapangan::where('section_id', $section_id)
+        ->where(function ($q) use ($now) {
+            $q->where('tanggal', '>', $now->toDateString()) // tanggal di masa depan
+              ->orWhere(function ($q2) use ($now) {
+                  // kalau tanggal sama, cek jam_selesai belum lewat
+                  $q2->where('tanggal', '=', $now->toDateString())
+                     ->where('jam_selesai', '>', $now->format('H:i:s'));
+              });
+        })
         ->orderBy('tanggal')
         ->orderBy('jam_mulai')
         ->get();
@@ -179,11 +188,40 @@ public function getJadwalBySection($section_id)
     return response()->json($jadwal);
 }
 
+
     // ========================== HALAMAN TIKET ==========================
 public function riwayatTiket()
 {
     $userId = Auth::id();
+    $now = Carbon::now('Asia/Jakarta');
 
+    // Ambil semua tiket yang sudah dibayar
+    $sudahDibayar = Pemesanan::with([
+        'lapangan',
+        'jadwal.section',
+        'permintaanPerubahan.jadwalBaru.section',
+        'permintaanPerubahan.sectionBaru',
+    ])
+    ->where('penyewa_id', $userId)
+    ->where('status', 'dibayar')
+    ->get();
+
+    // 🔹 Cek apakah sudah lewat waktu tapi belum di-scan
+    foreach ($sudahDibayar as $p) {
+        if ($p->jadwal && $p->status_scan === 'belum_scan') {
+            $tanggal = Carbon::parse($p->jadwal->tanggal)->format('Y-m-d');
+            $jamSelesai = $p->jadwal->jam_selesai;
+            $tanggalWaktuMain = Carbon::parse("$tanggal $jamSelesai", 'Asia/Jakarta');
+
+            // Kalau waktu main sudah lewat
+            if ($tanggalWaktuMain->lt($now)) {
+                $p->update(['status' => 'kadaluarsa']);
+                $p->jadwal->update(['tersedia' => true]); // buka jadwal lagi
+            }
+        }
+    }
+
+    // 🔹 Ambil ulang tiket yang masih aktif (belum kadaluarsa)
     $sudahDibayar = Pemesanan::with([
         'lapangan',
         'jadwal.section',
@@ -194,9 +232,8 @@ public function riwayatTiket()
     ->where('status', 'dibayar')
     ->get()
     ->map(function ($p) {
-        // kalau ada perubahan disetujui, pastikan jadwalnya sudah ke-update
         if ($p->permintaanPerubahan && $p->permintaanPerubahan->status === 'disetujui') {
-            $p->refresh(); // ✅ ambil ulang data pemesanan + relasi terbaru
+            $p->refresh();
         }
         return $p;
     });
@@ -207,27 +244,50 @@ public function riwayatTiket()
 
 
     // ========================== HALAMAN MENUNGGU PEMBAYARAN ==========================
-    public function riwayatBelum()
-    {
-        $userId = Auth::id();
-        $belumDibayar = Pemesanan::where('penyewa_id', $userId)
-                        ->where('status', 'menunggu')
-                        ->get();
+public function riwayatBelum()
+{
+    $userId = Auth::id();
+    $now = Carbon::now('Asia/Jakarta');
 
-        return view('penyewa.pembayaran', compact('belumDibayar'));
+    $belumDibayar = Pemesanan::with('jadwal')
+        ->where('penyewa_id', $userId)
+        ->where('status', 'menunggu')
+        ->get();
+
+    foreach ($belumDibayar as $p) {
+        if ($p->jadwal) {
+            $tanggal = Carbon::parse($p->jadwal->tanggal)->format('Y-m-d');
+            $tanggalJadwal = Carbon::parse("$tanggal {$p->jadwal->jam_selesai}", 'Asia/Jakarta');
+
+            if ($tanggalJadwal->lt($now)) {
+                $p->update(['status' => 'kadaluarsa']);
+                $p->jadwal->update(['tersedia' => true]);
+            }
+        }
     }
+
+    $belumDibayar = Pemesanan::where('penyewa_id', $userId)
+        ->where('status', 'menunggu')
+        ->get();
+
+    return view('penyewa.pembayaran', compact('belumDibayar'));
+}
+
+
 
     // ========================== HALAMAN RIWAYAT / DIBATALKAN ==========================
-    public function riwayatBatal()
-    {
-        $userId = Auth::id();
-        $dibatalkan = Pemesanan::where('penyewa_id', $userId)
-                        ->where('status', 'batal')
-                        ->orWhere('status', 'di-scan')
-                        ->get();
+public function riwayatBatal()
+{
+    $userId = Auth::id();
 
-        return view('penyewa.riwayat', compact('dibatalkan'));
-    }
+    $dibatalkan = Pemesanan::with('lapangan', 'jadwal')
+        ->where('penyewa_id', $userId)
+        ->whereIn('status', ['batal', 'kadaluarsa', 'di-scan'])
+        ->get();
+
+    return view('penyewa.riwayat', compact('dibatalkan'));
+}
+
 
   public function getSnapToken(Request $request)
     {
