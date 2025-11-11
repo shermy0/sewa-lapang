@@ -82,7 +82,7 @@ class ScanTiketController extends Controller
                 'status_pembayaran' => $pemesanan->status,
                 'status_pembayaran_label' => $statusPembayaranLabel,
                 'tanggal_main' => $tanggalMain,
-                'waktu_scan' => $pemesanan->waktu_scan ? $pemesanan->waktu_scan->format('d M Y H:i') : '-',
+                'waktu_sca n' => $pemesanan?->waktu_scan ? $pemesanan?->waktu_scan?->format('d M Y H:i') : '-',
                 'lapangan' => $lapangan ? ($lapangan->nama_lapangan ?? $lapangan->nama ?? '-') : '-',
                 'jam_main' => $jamMain,
                 'durasi' => $durasi,
