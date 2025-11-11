@@ -1064,6 +1064,9 @@
             const nominal = Number(value);
             return 'Rp ' + rupiahFormatter.format(nominal > 0 ? nominal : 0);
         };
+        const jadwalPaginationState = {};
+        const JADWAL_PER_PAGE_OPTIONS = [5, 10, 25, 50];
+        const JADWAL_DEFAULT_PER_PAGE = 10;
         const getActiveJadwalType = (form) => form?.querySelector('input[name=\"tipe_jadwal\"]:checked')?.value || 'custom';
 
         function updateDefaultHargaInputs(lapanganId, harga) {
@@ -1126,21 +1129,6 @@
             if (form) {
                 if (typeof form.__resetHariCount === 'function') {
                     form.__resetHariCount();
-                }
-                if (typeof form.__updateJadwalSummary === 'function') {
-                    form.__updateJadwalSummary();
-                } else {
-                    const summaryTitle = form.querySelector('[data-summary-title]');
-                    const summaryDesc = form.querySelector('[data-summary-desc]');
-                    const summarySlot = form.querySelector('[data-summary-slot]');
-                    const summaryTotal = form.querySelector('[data-summary-total]');
-
-                    if (summaryTitle) summaryTitle.textContent = 'Menunggu Section';
-                    if (summaryDesc) summaryDesc.textContent = 'Pilih section dan mode jadwal untuk mulai membuat slot.';
-                    if (summarySlot) summarySlot.textContent = 'Slot belum lengkap';
-                    if (summaryTotal) summaryTotal.textContent = 'Rp 0';
-                    const summaryGrand = form.querySelector('[data-summary-grand]');
-                    if (summaryGrand) summaryGrand.textContent = '';
                 }
             }
         }
@@ -1237,6 +1225,28 @@
                 const customJamMulai = form.querySelector('input[name="jam_mulai"]');
                 const customJamSelesai = form.querySelector('input[name="jam_selesai"]');
                 const customDurasiInput = form.querySelector('[data-durasi-jam-input]');
+
+                const getActiveDurationInput = () => getActiveJadwalType(form) === 'simple'
+                    ? slotDurasiInput
+                    : customDurasiInput;
+
+                const getDurasiJamAktif = () => normalizeNumber(getActiveDurationInput()?.value);
+
+                const getTotalPerSlot = () => {
+                    const durasiJam = getDurasiJamAktif();
+                    const hargaPerJam = normalizeNumber(hargaInput?.value);
+                    if (durasiJam <= 0 || hargaPerJam <= 0) {
+                        return 0;
+                    }
+                    return Math.round(hargaPerJam * durasiJam);
+                };
+
+                const updateSummary = () => {
+                    if (!totalDisplay) {
+                        return;
+                    }
+                    totalDisplay.textContent = formatRupiahValue(getTotalPerSlot());
+                };
 
                 const setSectionVisibility = () => {
                     const activeType = getActiveJadwalType(form);
@@ -1715,94 +1725,7 @@
                 })
                 .then(data => {
                     const defaultHargaSection = Number(data.section.harga_per_jam || 0);
-                    if (data.jadwal.length > 0) {
-                        let html = `
-                            <h6 class="fw-bold text-dark mb-3">
-                                <i class="fa-solid fa-list me-2"></i> Daftar Jadwal (${data.jadwal.length})
-                            </h6>
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Tanggal</th>
-                                            <th>Jam Mulai</th>
-                                            <th>Jam Selesai</th>
-                                            <th>Durasi (Jam)</th>
-                                            <th>Total Harga</th>
-                                            <th>Status</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                        `;
-                        
-                        data.jadwal.forEach(jadwal => {
-                            const durasiJam = jadwal.durasi_sewa / 60;
-                            const durasiFormatted = durasiJam % 1 === 0 ? durasiJam : durasiJam.toFixed(2);
-                            const totalHarga = jadwal.harga_sewa * durasiJam;
-                            const isDefaultPrice = defaultHargaSection > 0 && Number(jadwal.harga_sewa) === defaultHargaSection;
-                            const hargaBadge = defaultHargaSection > 0
-                                ? `<span class="badge ${isDefaultPrice ? 'bg-primary' : 'bg-warning text-dark'} ms-1">
-                                       ${isDefaultPrice ? 'Default' : 'Custom'}
-                                   </span>`
-                                : '';
-                            
-                            html += `
-                                <tr>
-                                    <td>${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}</td>
-                                    <td>${jadwal.jam_mulai}</td>
-                                    <td>${jadwal.jam_selesai}</td>
-                                    <td>${durasiFormatted} jam</td>
-                                    <td>
-                                        <span class="fw-bold text-success d-block">
-                                            Rp ${totalHarga.toLocaleString('id-ID')}
-                                        </span>
-                                        <small class="text-muted d-block">
-                                            Rp ${jadwal.harga_sewa.toLocaleString('id-ID')} / jam ${hargaBadge}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <span class="badge ${jadwal.tersedia ? 'bg-success' : 'bg-danger'}">
-                                            ${jadwal.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
-                                        </span>
-                                    </td>
-                                    <td class="text-nowrap">
-                                        <button type="button" class="btn btn-sm btn-outline-primary me-1"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editJadwalModal${jadwal.id}">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </button>
-                                        <button type="button"
-                                            class="btn btn-sm btn-outline-danger delete-jadwal-btn"
-                                            data-lapangan-id="${lapanganId}"
-                                            data-jadwal-id="${jadwal.id}"
-                                            data-tanggal="${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}"
-                                            data-jam="${jadwal.jam_mulai} - ${jadwal.jam_selesai}">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                        
-                        html += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        `;
-                        
-                        document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = html;
-                        
-                        // Re-attach delete event listeners
-                        attachDeleteJadwalEvents();
-                    } else {
-                        document.getElementById(`jadwal-container-${lapanganId}`).innerHTML = `
-                            <div class="text-center text-muted py-4">
-                                <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                                <br>Belum ada jadwal untuk section ini
-                            </div>
-                        `;
-                    }
+                    setJadwalPaginationState(lapanganId, data.jadwal || [], defaultHargaSection);
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -1917,6 +1840,16 @@
                 const id = this.dataset.id;
                 const nama = this.dataset.nama;
 
+                if (!id) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'ID lapangan tidak ditemukan. Muat ulang halaman dan coba lagi.',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    return;
+                }
+
                 Swal.fire({
                     title: 'Hapus Lapangan?',
                     html: `Apakah Anda yakin ingin menghapus<br><strong style="color: #dc3545;">${nama}</strong>?<br><br><small class="text-muted">Data ini tidak dapat dikembalikan!</small>`,
@@ -1938,7 +1871,7 @@
                         return new Promise((resolve) => {
                             setTimeout(() => {
                                 const form = document.getElementById('deleteLapanganForm');
-                                form.action = '{{ url('lapangan') }}/' + id;
+                                form.action = "{{ url('lapangan') }}/" + id;
                                 form.submit();
                                 resolve();
                             }, 500);
@@ -1959,6 +1892,42 @@
                     }
                 });
             });
+        });
+
+        document.addEventListener('input', event => {
+            const searchInput = event.target.closest('[data-jadwal-search]');
+            if (searchInput) {
+                filterJadwalData(searchInput.dataset.jadwalSearch, searchInput.value);
+            }
+        });
+
+        document.addEventListener('change', event => {
+            const perPageSelect = event.target.closest('[data-jadwal-per-page]');
+            if (perPageSelect) {
+                updateJadwalPerPage(perPageSelect.dataset.jadwalPerPage, perPageSelect.value);
+            }
+        });
+
+        document.addEventListener('click', event => {
+            const pageButton = event.target.closest('[data-jadwal-page]');
+            if (pageButton) {
+                event.preventDefault();
+                const lapanganId = pageButton.dataset.lapanganId;
+                const state = jadwalPaginationState[lapanganId];
+                if (!state) {
+                    return;
+                }
+
+                let targetPage = state.page;
+                if (pageButton.dataset.jadwalPage === 'prev') {
+                    targetPage = state.page - 1;
+                } else if (pageButton.dataset.jadwalPage === 'next') {
+                    targetPage = state.page + 1;
+                } else {
+                    targetPage = Number(pageButton.dataset.jadwalPage);
+                }
+                renderJadwalPage(lapanganId, targetPage);
+            }
         });
 
         // ========== DELETE JADWAL WITH SWEETALERT ==========
@@ -2014,6 +1983,218 @@
                     });
                 });
             });
+        }
+
+        function setJadwalPaginationState(lapanganId, data, defaultHargaSection) {
+            jadwalPaginationState[lapanganId] = {
+                allData: data,
+                filteredData: data,
+                perPage: JADWAL_DEFAULT_PER_PAGE,
+                page: 1,
+                search: '',
+                defaultHargaSection,
+            };
+            renderJadwalPage(lapanganId);
+        }
+
+        function renderJadwalPage(lapanganId, targetPage = 1) {
+            const state = jadwalPaginationState[lapanganId];
+            if (!state) {
+                return;
+            }
+
+            const container = document.getElementById(`jadwal-container-${lapanganId}`);
+            if (!container) {
+                return;
+            }
+
+            const totalItems = state.filteredData.length;
+            const totalPages = Math.max(1, Math.ceil(Math.max(totalItems, 1) / state.perPage));
+            state.page = Math.min(Math.max(targetPage, 1), totalPages);
+
+            const startIndex = (state.page - 1) * state.perPage;
+            const rows = state.filteredData.slice(startIndex, startIndex + state.perPage);
+
+            const searchValue = state.search || '';
+
+            const headingHtml = `
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-list me-2"></i> Daftar Jadwal (${totalItems})
+                    </h6>
+                </div>
+            `;
+
+            const controlsHtml = `
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div class="input-group input-group-sm" style="max-width: 280px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fa-solid fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" placeholder="Cari tanggal atau jam..."
+                            value="${searchValue}" data-jadwal-search="${lapanganId}">
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="text-muted small mb-0">Tampil</label>
+                        <select class="form-select form-select-sm" data-jadwal-per-page="${lapanganId}">
+                            ${JADWAL_PER_PAGE_OPTIONS.map(option => `
+                                <option value="${option}" ${option === state.perPage ? 'selected' : ''}>${option}</option>
+                            `).join('')}
+                        </select>
+                        <span class="text-muted small">per halaman</span>
+                    </div>
+                </div>
+            `;
+
+            if (totalItems === 0) {
+                container.innerHTML = `
+                    ${headingHtml}
+                    ${controlsHtml}
+                    <div class="alert alert-light border text-center mb-0">
+                        <i class="fa-solid fa-circle-info me-1 text-muted"></i>
+                        Belum ada jadwal untuk section ini.
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHtml = `
+                ${headingHtml}
+                ${controlsHtml}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-nowrap">Tanggal</th>
+                                <th>Jam Mulai</th>
+                                <th>Jam Selesai</th>
+                                <th class="text-nowrap">Durasi (Jam)</th>
+                                <th>Total Harga</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            rows.forEach(jadwal => {
+                const durasiJam = jadwal.durasi_sewa / 60;
+                const durasiFormatted = durasiJam % 1 === 0 ? durasiJam : durasiJam.toFixed(2);
+                const totalHarga = jadwal.harga_sewa * durasiJam;
+                const defaultHargaSection = state.defaultHargaSection;
+                const isDefaultPrice = defaultHargaSection > 0 && Number(jadwal.harga_sewa) === defaultHargaSection;
+                const hargaBadge = defaultHargaSection > 0
+                    ? `<span class="badge ${isDefaultPrice ? 'bg-primary' : 'bg-warning text-dark'} ms-1">
+                           ${isDefaultPrice ? 'Default' : 'Custom'}
+                       </span>`
+                    : '';
+
+                tableHtml += `
+                    <tr>
+                        <td>${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}</td>
+                        <td>${jadwal.jam_mulai}</td>
+                        <td>${jadwal.jam_selesai}</td>
+                        <td>${durasiFormatted} jam</td>
+                        <td>
+                            <span class="fw-bold text-success d-block">
+                                ${formatRupiahValue(totalHarga)}
+                            </span>
+                            <small class="text-muted d-block">
+                                ${formatRupiahValue(jadwal.harga_sewa)} / jam ${hargaBadge}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge ${jadwal.tersedia ? 'bg-success' : 'bg-danger'}">
+                                ${jadwal.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
+                            </span>
+                        </td>
+                        <td class="text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editJadwalModal${jadwal.id}">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button type="button"
+                                class="btn btn-sm btn-outline-danger delete-jadwal-btn"
+                                data-lapangan-id="${lapanganId}"
+                                data-jadwal-id="${jadwal.id}"
+                                data-tanggal="${new Date(jadwal.tanggal).toLocaleDateString('id-ID')}"
+                                data-jam="${jadwal.jam_mulai} - ${jadwal.jam_selesai}">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            const showingStart = startIndex + 1;
+            const showingEnd = startIndex + rows.length;
+
+            const paginationHtml = `
+                <div class="d-flex flex-wrap align-items-center justify-content-between mt-3 gap-2">
+                    <small class="text-muted">
+                        Menampilkan ${showingStart} - ${showingEnd} dari ${totalItems} jadwal
+                    </small>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-secondary"
+                            data-jadwal-page="prev"
+                            data-lapangan-id="${lapanganId}"
+                            ${state.page === 1 ? 'disabled' : ''}>
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <span class="small text-muted">Halaman ${state.page} / ${totalPages}</span>
+                        <button class="btn btn-sm btn-outline-secondary"
+                            data-jadwal-page="next"
+                            data-lapangan-id="${lapanganId}"
+                            ${state.page === totalPages ? 'disabled' : ''}>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = tableHtml + paginationHtml;
+            attachDeleteJadwalEvents();
+        }
+
+        function filterJadwalData(lapanganId, keyword) {
+            const state = jadwalPaginationState[lapanganId];
+            if (!state) {
+                return;
+            }
+            state.search = keyword.toLowerCase();
+            if (!state.search) {
+                state.filteredData = state.allData;
+            } else {
+                state.filteredData = state.allData.filter(item => {
+                    const target = [
+                        item.tanggal,
+                        item.jam_mulai,
+                        item.jam_selesai,
+                        item.tersedia ? 'tersedia' : 'tidak tersedia'
+                    ].join(' ').toLowerCase();
+                    return target.includes(state.search);
+                });
+            }
+            state.page = 1;
+            renderJadwalPage(lapanganId);
+        }
+
+        function updateJadwalPerPage(lapanganId, perPage) {
+            const state = jadwalPaginationState[lapanganId];
+            const parsed = Number(perPage);
+            if (!state || !Number.isFinite(parsed) || parsed <= 0) {
+                return;
+            }
+            state.perPage = parsed;
+            state.page = 1;
+            renderJadwalPage(lapanganId);
         }
 
         // Panggil pertama kali
