@@ -19,73 +19,98 @@ class ScanTiketController extends Controller
             ->where('kode_tiket', $kode)
             ->first();
 
-        if(!$pemesanan){
-            return response()->json(['status' => 'error', 'message' => 'Tiket tidak ditemukan']);
-        }
-
-        // Update status scan kalau perlu
-        if($pemesanan->status_scan === 'belum_scan'){
-            $pemesanan->update([
-                'status_scan' => 'sudah_scan',
-                'waktu_scan' => now()
+        if (!$pemesanan) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tiket tidak ditemukan'
             ]);
         }
 
         $jadwal = $pemesanan->jadwal;
         $lapangan = $pemesanan->lapangan;
-        $tanggalMain = $pemesanan->created_at->format('d M Y H:i');
 
-        if ($jadwal) {
-            $tanggalFormatted = $jadwal->tanggal
-                ? $jadwal->tanggal->format('d M Y')
-                : null;
+        // Ambil tanggal dan jam jadwal main
+        $tanggalMain = $jadwal?->tanggal;
+        $jamMulai = $jadwal?->jam_mulai;
+        $jamSelesai = $jadwal?->jam_selesai;
 
-            $jamMulai = $jadwal->jam_mulai
-                ? Carbon::parse($jadwal->jam_mulai)->format('H:i')
-                : null;
+        // Gabungkan tanggal dan jam mulai ke dalam satu waktu untuk validasi
+$tanggalOnly = Carbon::parse($tanggalMain)->format('Y-m-d');
 
-            $tanggalMain = trim(collect([$tanggalFormatted, $jamMulai])->filter()->join(' ')) ?: $tanggalMain;
+$waktuMainMulai = $tanggalMain && $jamMulai ? Carbon::parse("$tanggalOnly $jamMulai") : null;
+$waktuMainSelesai = $tanggalMain && $jamSelesai ? Carbon::parse("$tanggalOnly $jamSelesai") : null;
+
+
+        $now = Carbon::now();
+
+        // 💡 Cek kondisi kadaluwarsa
+        if ($waktuMainSelesai && $waktuMainSelesai->lt($now)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tiket sudah kadaluwarsa',
+                'data' => [
+                    'kode_tiket' => $pemesanan->kode_tiket,
+                    'nama_penyewa' => $pemesanan->penyewa->name,
+                    'lapangan' => $lapangan?->nama_lapangan ?? '-',
+                    'tanggal_main' => $waktuMainMulai ? $waktuMainMulai->format('d M Y') : '-',
+                    'jam_main' => $waktuMainMulai && $waktuMainSelesai
+                        ? $waktuMainMulai->format('H:i') . ' - ' . $waktuMainSelesai->format('H:i')
+                        : '-',
+                    'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
+                    'status_scan' => 'belum_scan',
+                    'status_scan_label' => 'Belum Scan',
+                    'status_pembayaran' => $pemesanan->status,
+                    'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),
+                    'waktu_scan' => $pemesanan->waktu_scan ? $pemesanan->waktu_scan->format('d M Y H:i') : '-',
+                ]
+            ]);
         }
 
-        $jamMain = null;
-        if ($jadwal && $jadwal->jam_mulai) {
-            $mulai = Carbon::parse($jadwal->jam_mulai)->format('H:i');
-            $selesai = $jadwal->jam_selesai
-                ? Carbon::parse($jadwal->jam_selesai)->format('H:i')
-                : null;
-            $jamMain = $selesai ? "{$mulai} - {$selesai}" : $mulai;
+        // 💡 Jika tiket sudah pernah di-scan sebelumnya
+        if ($pemesanan->status_scan === 'sudah_scan') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tiket sudah di-scan sebelumnya',
+                'data' => [
+                    'kode_tiket' => $pemesanan->kode_tiket,
+                    'nama_penyewa' => $pemesanan->penyewa->name,
+                    'lapangan' => $lapangan?->nama_lapangan ?? '-',
+                    'tanggal_main' => $waktuMainMulai ? $waktuMainMulai->format('d M Y') : '-',
+                    'jam_main' => $waktuMainMulai && $waktuMainSelesai
+                        ? $waktuMainMulai->format('H:i') . ' - ' . $waktuMainSelesai->format('H:i')
+                        : '-',
+                    'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
+                    'status_scan' => $pemesanan->status_scan,
+                    'status_scan_label' => 'Sudah Scan',
+                    'status_pembayaran' => $pemesanan->status,
+                    'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),
+                    'waktu_scan' => $pemesanan->waktu_scan ? $pemesanan->waktu_scan->format('d M Y H:i') : '-',
+                ]
+            ]);
         }
 
-        $durasi = $jadwal && $jadwal->durasi_sewa
-            ? $jadwal->durasi_sewa . ' menit'
-            : null;
-
-        $statusScanLabel = match($pemesanan->status_scan) {
-            'sudah_scan' => 'Sudah Scan',
-            default => 'Belum Scan',
-        };
-
-        $statusPembayaranLabel = match($pemesanan->status) {
-            'dibayar' => 'Dibayar',
-            'selesai' => 'Selesai',
-            'batal' => 'Dibatalkan',
-            default => 'Menunggu',
-        };
+        // ✅ Kalau belum pernah di-scan dan belum kadaluwarsa, update status jadi sudah di-scan
+        $pemesanan->update([
+            'status_scan' => 'sudah_scan',
+            'waktu_scan' => $now,
+        ]);
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'kode_tiket' => $pemesanan->kode_tiket,
                 'nama_penyewa' => $pemesanan->penyewa->name,
-                'status_scan' => $pemesanan->status_scan,
-                'status_scan_label' => $statusScanLabel,
+                'lapangan' => $lapangan?->nama_lapangan ?? '-',
+                'tanggal_main' => $waktuMainMulai ? $waktuMainMulai->format('d M Y') : '-',
+                'jam_main' => $waktuMainMulai && $waktuMainSelesai
+                    ? $waktuMainMulai->format('H:i') . ' - ' . $waktuMainSelesai->format('H:i')
+                    : '-',
+                'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
+                'status_scan' => 'sudah_scan',
+                'status_scan_label' => 'Sudah Scan',
                 'status_pembayaran' => $pemesanan->status,
-                'status_pembayaran_label' => $statusPembayaranLabel,
-                'tanggal_main' => $tanggalMain,
-                'waktu_sca n' => $pemesanan?->waktu_scan ? $pemesanan?->waktu_scan?->format('d M Y H:i') : '-',
-                'lapangan' => $lapangan ? ($lapangan->nama_lapangan ?? $lapangan->nama ?? '-') : '-',
-                'jam_main' => $jamMain,
-                'durasi' => $durasi,
+                'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),
+                'waktu_scan' => $now->format('d M Y H:i'),
             ]
         ]);
     }

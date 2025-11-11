@@ -334,13 +334,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
         showLoading(kode, sumberLabel);
 
-        fetch(`/verify-tiket/${kode}`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
+fetch(`{{ url('/verify-tiket') }}/${kode}`, {
+    method: 'GET',
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+    }
+})
+
             .then(res => {
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
@@ -379,33 +380,20 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             },
             locator: {
-                patchSize: "large",
-                halfSample: false
+                patchSize: "medium",
+                halfSample: true
             },
-            numOfWorkers: navigator.hardwareConcurrency || 4,
-            frequency: 5,
-            decoder: {
-                readers: [
-                    {
-                        format: "code_128_reader",
-                        config: {
-                            supplements: []
-                        }
-                    },
-                    "ean_reader",
-                    "ean_8_reader",
-                    "code_39_reader",
-                    "upc_reader"
-                ],
-                multiple: false
-            },
+             numOfWorkers: 2,
+            frequency: 15,
+decoder: {
+    readers: ["code_128_reader"],
+            multiple: false
+
+},
+
             locate: true,
-            debug: {
-                drawBoundingBox: true,
-                showFrequency: true,
-                drawScanline: true,
-                showPattern: true
-            }
+debug: false
+
         }, function(err) {
             if (err) {
                 console.error('Quagga init error:', err);
@@ -464,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function(){
             console.log(`📷 Code detected: ${code}, Count: ${detectionCount[code]}`);
 
             // Butuh minimal 2 deteksi yang sama untuk konfirmasi
-            if (detectionCount[code] >= 2) {
+            if (detectionCount[code] >= 1) {
                 isProcessing = true;
 
                 // Reset counter
