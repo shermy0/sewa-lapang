@@ -14,7 +14,12 @@ class SectionLapangan extends Model
     protected $fillable = [
         'lapangan_id',
         'nama_section',
-        'deskripsi'
+        'deskripsi',
+        'harga_per_jam',
+    ];
+
+    protected $casts = [
+        'harga_per_jam' => 'float',
     ];
 
     // Relationship ke lapangan

@@ -10,11 +10,22 @@ use App\Models\Pembayaran;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Midtrans\Snap;
+use Midtrans\Config;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 class PemesananController extends Controller
 {
-    
+
+        public function __construct()
+    {
+        Carbon::setLocale('id');
+        // ✅ Setup Midtrans config global
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production', false);
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+    }
+
 public function boot(): void
 {
     Carbon::setLocale('id');
@@ -161,6 +172,8 @@ public function create($lapangan_id)
 public function getJadwalBySection($section_id)
 {
     $jadwal = JadwalLapangan::where('section_id', $section_id)
+        ->where('tersedia', true)
+        ->upcoming()
         ->orderBy('tanggal')
         ->orderBy('jam_mulai')
         ->get();
@@ -218,91 +231,69 @@ public function riwayatTiket()
         return view('penyewa.riwayat', compact('dibatalkan'));
     }
 
+  public function getSnapToken(Request $request)
+    {
+        try {
+            \Log::info('📦 Request ke getSnapToken', $request->all());
 
-public function getSnapToken(Request $request)
-{
-    try {
-        \Log::info('📦 Request masuk ke getSnapToken', $request->all());
+            $lapangan = Lapangan::findOrFail($request->lapangan_id);
+            $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
 
-        $lapangan = Lapangan::findOrFail($request->lapangan_id);
-        $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
+            if (!$jadwal->tersedia) {
+                return response()->json(['error' => 'Jadwal sudah dipesan!'], 400);
+            }
 
-        if (!$jadwal->tersedia) {
-            \Log::warning('❌ Jadwal sudah dipesan', ['jadwal_id' => $jadwal->id]);
-            return response()->json(['error' => 'Jadwal sudah dipesan!'], 400);
-        }
-
-        $pemesanan = Pemesanan::firstOrCreate(
-            [
+            $pemesanan = Pemesanan::firstOrCreate([
                 'penyewa_id' => Auth::id(),
                 'lapangan_id' => $lapangan->id,
                 'jadwal_id' => $jadwal->id,
                 'status' => 'menunggu',
-            ]
-        );
-
-        // Debug harga
-        \Log::info('💰 Harga sewa:', ['harga_sewa' => $jadwal->harga_sewa]);
-
-        // Ambil token Snap
-        $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
-
-        if ($hargaSewa <= 0) {
-            \Log::warning('Harga sewa tidak tersedia', [
-                'lapangan_id' => $lapangan->id,
-                'jadwal_id' => $jadwal->id,
             ]);
-            return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
-        }
 
-        if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
-            \Log::error('⚠️ MIDTRANS belum dikonfigurasi', [
-                'server_key' => config('midtrans.server_key'),
-                'client_key' => config('midtrans.client_key'),
+            $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+
+            if ($hargaSewa <= 0) {
+                return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+            }
+
+            $orderId = $this->generateOrderId($pemesanan);
+
+            // ✅ Pastikan konfigurasi Midtrans aktif
+            Config::$serverKey = config('midtrans.server_key');
+
+            $snapToken = Snap::getSnapToken([
+                'transaction_details' => [
+                    'order_id' => $orderId,
+                    'gross_amount' => $hargaSewa,
+                ],
+                'customer_details' => [
+                    'first_name' => Auth::user()->name,
+                    'email' => Auth::user()->email,
+                ],
             ]);
-            return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
-        }
 
-        $orderId = $this->generateOrderId($pemesanan);
+            Pembayaran::updateOrCreate(
+                ['pemesanan_id' => $pemesanan->id],
+                [
+                    'metode' => 'midtrans',
+                    'jumlah' => $hargaSewa,
+                    'status' => 'pending',
+                    'order_id' => $orderId,
+                    'snap_token' => $snapToken,
+                ]
+            );
 
-        $snapToken = Snap::getSnapToken([
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => $hargaSewa,
-            ],
-            'customer_details' => [
-                'first_name' => Auth::user()->name,
-                'email' => Auth::user()->email,
-            ],
-        ]);
-
-        // Debug token
-        \Log::info('✅ Snap token berhasil dibuat', ['token' => $snapToken]);
-
-        Pembayaran::updateOrCreate(
-            ['pemesanan_id' => $pemesanan->id],
-            [
-                'metode' => 'midtrans',
-                'jumlah' => $hargaSewa,
-                'status' => 'pending',
-                'order_id' => $orderId,
+            return response()->json([
                 'snap_token' => $snapToken,
-            ]
-        );
-
-        return response()->json([
-            'snap_token' => $snapToken,
-            'pemesanan_id' => $pemesanan->id,
-        ]);
-    } catch (\Exception $e) {
-        \Log::error('🔥 ERROR getSnapToken: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-        ]);
-        return response()->json(['error' => $e->getMessage()], 500);
+                'pemesanan_id' => $pemesanan->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('🔥 ERROR getSnapToken: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
-}
-
-
 
 public function batalkan($id)
 {
@@ -340,7 +331,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
         }
 
         if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
-            \Log::error('⚠️ MIDTRANS belum dikonfigurasi saat getSnapTokenAgain');
+            \Log::error('⚠ MIDTRANS belum dikonfigurasi saat getSnapTokenAgain');
             return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
         }
 
@@ -464,7 +455,7 @@ public function updateSuccess(Request $request, $id)
         private function generateShortTicketCode()
     {
         $prefix = 'LPN'; // bisa diganti misal "LPN" untuk lapangan
-        $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)); 
+        $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         return $prefix . $random; // contoh hasil: TK7F3C9A
     }
 
