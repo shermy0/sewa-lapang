@@ -169,22 +169,10 @@
 
                 {{-- Favorit (hanya untuk user penyewa) --}}
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
-                    @if (!empty($isFavorit) && $isFavorit)
-                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="m-0 p-0">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="fa-solid fa-heart-crack me-1"></i> Hapus Favorit
-                            </button>
-                        </form>
-                    @else
-                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="m-0 p-0">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="fa-solid fa-heart me-1"></i> Favorit
-                            </button>
-                        </form>
-                    @endif
+                    <button type="button" class="btn btn-outline-danger favorit-btn" data-lapangan-id="{{ $lapangan->id }}" data-is-favorit="{{ !empty($isFavorit) && $isFavorit ? 'true' : 'false' }}">
+                        <i class="fa-solid {{ !empty($isFavorit) && $isFavorit ? 'fa-heart-crack' : 'fa-heart' }} me-1"></i>
+                        <span class="favorit-text">{{ !empty($isFavorit) && $isFavorit ? 'Hapus Favorit' : 'Favorit' }}</span>
+                    </button>
                 @endif
             </div>
         </div>
@@ -345,6 +333,29 @@
         @endforeach
     @endauth
 
+    {{-- Modal Lapangan (konfirmasi favorit) --}}
+    <div class="modal fade" id="lapanganModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lapangan Ditambahkan ke Favorit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fa-solid fa-check-circle text-success" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h6 class="mt-3">{{ $lapangan->nama_lapangan }}</h6>
+                    <p class="text-muted">Lapangan ini telah ditambahkan ke daftar favorit Anda.</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ route('favorit.index') }}" class="btn btn-success">
+                        <i class="fa-solid fa-heart me-1"></i> Lihat Favorit
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- LAPANGAN LAINNYA (tampilan seperti beranda) --}}
     <h4 class="fw-bold mt-5 mb-3">Lapangan Lainnya</h4>
     <div class="row g-4">
@@ -423,5 +434,73 @@
         const alertSuccess = document.getElementById('alert-success');
         if (alertSuccess) alertSuccess.style.display = 'none';
     }, 3000);
+
+    // Handle favorit button click
+    document.addEventListener('DOMContentLoaded', function () {
+        const favoritBtn = document.querySelector('.favorit-btn');
+        if (favoritBtn) {
+            favoritBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const lapanganId = this.getAttribute('data-lapangan-id');
+                const isFavorit = this.getAttribute('data-is-favorit') === 'true';
+                const btnElement = this;
+                const isAdding = !isFavorit; // true jika sedang menambah favorit
+
+                // Determine route based on current state - sesuai dengan Laravel route
+                const route = `/lapangan/${lapanganId}/favorit`;
+                const method = isFavorit ? 'DELETE' : 'POST';
+
+                // Get CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                // Make AJAX request
+                fetch(route, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update button state
+                        const newIsFavorit = data.is_favorit;
+                        btnElement.setAttribute('data-is-favorit', newIsFavorit ? 'true' : 'false');
+
+                        // Update icon and text
+                        const icon = btnElement.querySelector('i');
+                        const text = btnElement.querySelector('.favorit-text');
+
+                        if (newIsFavorit) {
+                            icon.classList.remove('fa-heart');
+                            icon.classList.add('fa-heart-crack');
+                            text.textContent = 'Hapus Favorit';
+                        } else {
+                            icon.classList.remove('fa-heart-crack');
+                            icon.classList.add('fa-heart');
+                            text.textContent = 'Favorit';
+                        }
+
+                        // Show modal HANYA ketika menambahkan favorit (bukan saat menghapus)
+                        if (isAdding) {
+                            setTimeout(() => {
+                                const modalElement = new bootstrap.Modal(document.getElementById('lapanganModal'));
+                                modalElement.show();
+                            }, 300);
+                        }
+                    } else {
+                        alert(data.message || 'Terjadi kesalahan.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan. Silakan coba lagi.');
+                });
+            });
+        }
+    });
 </script>
 @endsection

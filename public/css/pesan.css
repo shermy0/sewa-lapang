@@ -1,135 +1,157 @@
 :root {
-  --green: #41A67E;
-  --primary-green: #41A67E;
-  --gold: #F59E0B;
-  --blue: #3B82F6;
-  --purple: #8B5CF6;
-  --white: #ffffff;
-  --gray-bg: #F3F4F6;
-  --light-bg: #FAFBFB;
-  --text: #2E3A35;
-  --border: #E5E9E8;
+    --green: #41a67e;
+    --primary-green: #41a67e;
+    --gold: #f59e0b;
+    --blue: #3b82f6;
+    --purple: #8b5cf6;
+    --white: #ffffff;
+    --gray-bg: #f3f4f6;
+    --light-bg: #fafbfb;
+    --text: #2e3a35;
+    --border: #e5e9e8;
 }
-
 
 .section-card {
-  border: 2px solid var(--border);
-  border-radius: 14px;
-  background: var(--white);
-  transition: all 0.3s ease;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    background: var(--white);
+    transition: all 0.3s ease;
 }
 .section-card:hover {
-  border-color: var(--primary-green);
-  background-color: #F9FFFB;
-  transform: translateY(-4px);
+    border-color: var(--primary-green);
+    background-color: #f9fffb;
+    transform: translateY(-4px);
 }
 .section-card.active {
-  border-color: var(--primary-green);
-  background: linear-gradient(135deg, #E8FBF2, #FFFFFF);
+    border-color: var(--primary-green);
+    background: linear-gradient(135deg, #e8fbf2, #ffffff);
 }
 .section-card.active h6 {
-  color: var(--primary-green);
+    color: var(--primary-green);
 }
 .section-card i {
-  transition: transform 0.3s ease;
+    transition: transform 0.3s ease;
 }
 .section-card:hover i {
-  transform: scale(1.1);
+    transform: scale(1.1);
 }
 
 .jadwal-card {
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--white);
 }
 .jadwal-header {
-  background-color: var(--primary-green);
-  color: var(--white);
-  font-weight: 600;
-  padding: 10px 15px;
+    background-color: var(--primary-green);
+    color: var(--white);
+    font-weight: 600;
+    padding: 10px 15px;
 }
 .jadwal-body {
-  padding: 15px 20px;
+    padding: 15px 20px;
 }
 .jadwal-item {
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  text-align: center;
-  padding: 14px;
-  transition: all 0.25s ease;
-  cursor: pointer;
-  background: var(--white);
-  color: var(--text);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    padding: 14px;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    background: var(--white);
+    color: var(--text);
 }
 .jadwal-item.available:hover {
-  border-color: var(--primary-green);
-  /* background-color: #F1FCF7; */
+    border-color: var(--primary-green);
+    /* background-color: #F1FCF7; */
 }
 .jadwal-item.unavailable {
-  /* background-color: #F3F4F4; */
-  color: #999;
-  cursor: not-allowed;
+    /* background-color: #F3F4F4; */
+    color: #999;
+    cursor: not-allowed;
 }
 .jadwal-item.selected {
-  background-color: var(--primary-green);
-  color: var(--white);
-  border-color: var(--primary-green);
+    background-color: var(--primary-green);
+    color: var(--white);
+    border-color: var(--primary-green);
 }
 .card-booking {
-  background: var(--white);
-  border: none;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  padding: 2rem;
-  max-width: 600px;
-  margin: auto;
-  transition: all 0.3s ease;
+    background: var(--white);
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    max-width: 600px;
+    margin: auto;
+    transition: all 0.3s ease;
 }
 
 .card-booking:hover {
-  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
 }
 
 .btn-green {
-  background: var(--green);
-  color: var(--white);
-  border: none;
-  transition: all 0.2s ease;
+    background: var(--green);
+    color: var(--white);
+    border: none;
+    transition: all 0.2s ease;
 }
 
 .btn-green:hover {
-  background: #37936F;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(65,166,126,0.3);
+    background: #37936f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(65, 166, 126, 0.3);
 }
 
 .btn-outline {
-  border: 1px solid var(--green);
-  color: var(--green);
-  transition: 0.2s;
+    border: 1px solid var(--green);
+    color: var(--green);
+    transition: 0.2s;
 }
 
 .btn-outline:hover {
-  background: var(--green);
-  color: var(--white);
+    background: var(--green);
+    color: var(--white);
 }
 
 .select-jadwal {
-  border-radius: 10px;
-  border-color: #ddd;
-  padding: 0.7rem;
+    border-radius: 10px;
+    border-color: #ddd;
+    padding: 0.7rem;
 }
 
 .select-jadwal:focus {
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(65,166,126,0.25);
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(65, 166, 126, 0.25);
 }
 
 .booking-summary {
-  background: var(--gray-bg);
-  border-radius: 10px;
-  padding: 1rem;
-  margin-top: 1rem;
-  border-left: 4px solid var(--green);
+    background: var(--gray-bg);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-left: 4px solid var(--green);
+}
+
+/* Ensure summary action is visible and spaced when shown */
+#summaryAction {
+    margin-top: 1rem;
+    gap: 0.5rem;
+}
+
+/* On small screens, make the summary action stick to bottom so user can easily tap it */
+@media (max-width: 767px) {
+    #summaryAction {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        padding: 0 16px;
+        justify-content: center;
+        z-index: 1050;
+    }
+    /* ensure the button has full width on phone */
+    #summaryAction .btn {
+        min-width: 60%;
+    }
 }

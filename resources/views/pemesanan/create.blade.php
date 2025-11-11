@@ -9,34 +9,33 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container py-5">
-{{-- HEADER --}}
-<div class="text-center mb-5">
-    {{-- Icon otomatis sesuai kategori --}}
-    @if(str_contains(strtolower($lapangan->kategori ?? ''), 'badminton'))
-        <i class="fa-solid fa-shuttlecock fa-4x text-success mb-3"></i>
-    @elseif(str_contains(strtolower($lapangan->kategori ?? ''), 'futsal'))
-        <i class="fa-solid fa-futbol fa-4x text-success mb-3"></i>
-    @elseif(str_contains(strtolower($lapangan->kategori ?? ''), 'tenis'))
-        <i class="fa-solid fa-table-tennis-paddle-ball fa-4x text-success mb-3"></i>
-    @else
-        <i class="fa-solid fa-dumbbell fa-4x text-success mb-3"></i>
-    @endif
+    {{-- HEADER --}}
+    <div class="text-center mb-5">
+        {{-- Icon otomatis sesuai kategori --}}
+        @if(str_contains(strtolower($lapangan->kategori ?? ''), 'badminton'))
+            <i class="fa-solid fa-shuttlecock fa-4x text-success mb-3"></i>
+        @elseif(str_contains(strtolower($lapangan->kategori ?? ''), 'futsal'))
+            <i class="fa-solid fa-futbol fa-4x text-success mb-3"></i>
+        @elseif(str_contains(strtolower($lapangan->kategori ?? ''), 'tenis'))
+            <i class="fa-solid fa-table-tennis-paddle-ball fa-4x text-success mb-3"></i>
+        @else
+            <i class="fa-solid fa-dumbbell fa-4x text-success mb-3"></i>
+        @endif
 
-    <h2 class="fw-bold mt-2 text-success">{{ $lapangan->nama_lapangan }}</h2>
-    <p class="text-muted mb-2">
-        <i class="fa-solid fa-tag me-1"></i> {{ ucfirst($lapangan->kategori) ?? 'Umum' }} &nbsp; | &nbsp;
-        <i class="fa-solid fa-location-dot me-1"></i> {{ $lapangan->lokasi }}
-    </p>
-
-    @if($lapangan->rating > 0)
-        <p class="text-warning mb-2">
-            <i class="fa-solid fa-star me-1"></i> {{ number_format($lapangan->rating, 1) }} / 5
+        <h2 class="fw-bold mt-2 text-success">{{ $lapangan->nama_lapangan }}</h2>
+        <p class="text-muted mb-2">
+            <i class="fa-solid fa-tag me-1"></i> {{ ucfirst($lapangan->kategori) ?? 'Umum' }} &nbsp; | &nbsp;
+            <i class="fa-solid fa-location-dot me-1"></i> {{ $lapangan->lokasi }}
         </p>
-    @endif
 
-    <p class="text-muted">Pilih section dan jadwal bermain sesuai ketersediaan.</p>
-</div>
+        @if($lapangan->rating > 0)
+            <p class="text-warning mb-2">
+                <i class="fa-solid fa-star me-1"></i> {{ number_format($lapangan->rating, 1) }} / 5
+            </p>
+        @endif
 
+        <p class="text-muted">Pilih section dan jadwal bermain sesuai ketersediaan.</p>
+    </div>
 
     {{-- ================== SECTION LIST ================== --}}
     <div class="mb-5">
@@ -45,7 +44,6 @@
             @foreach($lapangan->sections as $section)
             <div class="col-md-3">
                 <div class="section-card text-center p-4 h-100" data-section-id="{{ $section->id }}">
-                    {{-- Contoh: icon tergantung kategori lapangan --}}
                     @if(str_contains(strtolower($lapangan->nama_lapangan), 'badminton'))
                         <i class="fa-solid fa-shuttlecock fa-3x text-success mb-3"></i>
                     @elseif(str_contains(strtolower($lapangan->nama_lapangan), 'futsal'))
@@ -68,20 +66,91 @@
         <h5 class="fw-bold mb-4 text-secondary">Pilih Jadwal Tersedia</h5>
         <div id="jadwalList"></div>
     </div>
+</div>
 
-    {{-- ================== RINGKASAN ================== --}}
-    <div id="summaryCard" class="card mt-5 border-0 p-4" style="display:none; border:2px solid var(--border);">
-        <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-clipboard-list me-2"></i> Ringkasan Pemesanan</h5>
-        <p><strong>Section:</strong> <span id="summarySection"></span></p>
-        <p><strong>Jadwal:</strong> <span id="summaryJadwal" class="text-success"></span></p>
-        <p><strong>Total Bayar:</strong> <span id="summaryTotal" class="fw-bold text-warning"></span></p>
-
-        <div class="text-end mt-3">
-            <button id="pay-button" class="btn btn-success px-4"><i class="fa-solid fa-money-bill-wave me-1"></i> Pesan & Bayar</button>
-            <a href="{{ url()->previous() }}" class="btn btn-outline-secondary px-4"><i class="fa-solid fa-xmark me-1"></i> Batal</a>
+{{-- ================== MODAL RINGKASAN ================== --}}
+<div class="modal fade" id="summaryModal" tabindex="-1" aria-labelledby="summaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="summaryModalLabel">
+                    <i class="fa-solid fa-clipboard-list me-2"></i> Ringkasan Pemesanan
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Section:</strong>
+                    <p class="mb-0" id="summarySection"></p>
+                </div>
+                <div class="mb-3">
+                    <strong>Jadwal:</strong>
+                    <p class="mb-0 text-success" id="summaryJadwal"></p>
+                </div>
+                <div class="mb-3">
+                    <strong>Total Bayar:</strong>
+                    <p class="mb-0 fw-bold text-warning fs-5" id="summaryTotal"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark me-1"></i> Batal
+                </button>
+                <button id="pay-button" class="btn btn-success">
+                    <i class="fa-solid fa-money-bill-wave me-1"></i> Pesan & Bayar
+                </button>
+            </div>
         </div>
     </div>
 </div>
+
+{{-- ================== MODAL PEMBAYARAN PENDING ================== --}}
+@if($pemesananPending)
+<div class="modal fade" id="pendingPaymentModal" tabindex="-1" aria-labelledby="pendingPaymentModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="pendingPaymentModalLabel">
+                    <i class="fa-solid fa-clock me-2"></i> Pembayaran Tertunda
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-exclamation-triangle me-2"></i>
+                    Anda memiliki pembayaran yang belum diselesaikan!
+                </div>
+                <div class="mb-3">
+                    <strong>Section:</strong>
+                    <p class="mb-0">{{ $pemesananPending->section->nama_section ?? '-' }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Jadwal:</strong>
+                    <p class="mb-0">{{ $pemesananPending->jadwal->tanggal ?? '-' }} ({{ $pemesananPending->jadwal->jam_mulai ?? '-' }} - {{ $pemesananPending->jadwal->jam_selesai ?? '-' }})</p>
+                </div>
+                <div class="mb-3">
+                    <strong>Total:</strong>
+                    <p class="mb-0 fw-bold text-warning fs-5">Rp {{ number_format($pemesananPending->total_bayar ?? 0, 0, ',', '.') }}</p>
+                </div>
+                <div class="mb-3">
+                    <p class="text-danger fw-bold" id="countdown"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form id="cancel-form" action="{{ route('pemesanan.batalkan', $pemesananPending->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="button" id="cancel-button" class="btn btn-danger">
+                        <i class="fa-solid fa-trash me-1"></i> Batalkan
+                    </button>
+                </form>
+                <button id="resume-payment" class="btn btn-success">
+                    <i class="fa-solid fa-credit-card me-1"></i> Lanjutkan Pembayaran
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- ================== MIDTRANS ================== --}}
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
@@ -89,6 +158,110 @@
 <script>
 let selectedSection = null;
 let selectedJadwal = null;
+let summaryModal;
+
+// Initialize Bootstrap Modal
+document.addEventListener('DOMContentLoaded', function() {
+    summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
+
+    @if($pemesananPending)
+    const pendingModal = new bootstrap.Modal(document.getElementById('pendingPaymentModal'));
+    pendingModal.show();
+
+    // =================== COUNTDOWN PEMBAYARAN ===================
+    const createdAt = new Date("{{ $pemesananPending->created_at }}");
+    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+    const countdownEl = document.getElementById('countdown');
+
+    const timer = setInterval(() => {
+        const now = new Date();
+        const diff = deadline - now;
+
+        if (diff <= 0) {
+            clearInterval(timer);
+            countdownEl.innerHTML = "⛔ Waktu pembayaran sudah habis!";
+            document.getElementById('resume-payment').disabled = true;
+        } else {
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            countdownEl.innerHTML = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+        }
+    }, 1000);
+
+    // =================== KONFIRMASI BATALKAN PEMBAYARAN ===================
+    document.getElementById('cancel-button').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Yakin ingin membatalkan?',
+            text: "Pemesanan ini akan dihapus dan tidak bisa dikembalikan.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e3342f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, batalkan',
+            cancelButtonText: 'Tidak jadi'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('cancel-form').submit();
+            }
+        });
+    });
+
+    // =================== PEMBAYARAN PENDING ===================
+    document.getElementById('resume-payment').onclick = function() {
+        fetch('/midtrans/token-again/{{ $pemesananPending->id }}')
+        .then(res => res.json())
+        .then(data => {
+            if (data.snap_token) {
+                snap.pay(data.snap_token, {
+                    onSuccess: function(result){
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Pembayaran Berhasil!',
+                            text: 'Transaksi kamu berhasil diselesaikan.',
+                            confirmButtonColor: '#41A67E'
+                        }).then(() => {
+                            fetch('/pemesanan/success/' + data.pemesanan_id, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ result })
+                            }).then(() => window.location.href = '/penyewa/tiket');
+                        });
+                    },
+                    onPending: function(result){
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Menunggu Pembayaran',
+                            text: 'Silakan selesaikan pembayaranmu.',
+                            confirmButtonColor: '#41A67E'
+                        }).then(() => {
+                            window.location.href = window.location.pathname;
+                        });
+                    },
+                    onError: function(result){
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Pembayaran Gagal!',
+                            text: 'Terjadi kesalahan saat memproses transaksi.',
+                            confirmButtonColor: '#41A67E'
+                        });
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Token Midtrans tidak ditemukan.',
+                    confirmButtonColor: '#41A67E'
+                });
+            }
+        });
+    };
+    @endif
+});
 
 // ========== PILIH SECTION ==========
 document.querySelectorAll('.section-card').forEach(card => {
@@ -97,10 +270,9 @@ document.querySelectorAll('.section-card').forEach(card => {
         this.classList.add('active');
         selectedSection = this.dataset.sectionId;
 
-        // reset jadwal & ringkasan
+        // reset jadwal & modal
         selectedJadwal = null;
         document.getElementById('jadwalContainer').style.display = 'none';
-        document.getElementById('summaryCard').style.display = 'none';
 
         fetch(`/jadwal/section/${selectedSection}`)
         .then(res => res.json())
@@ -132,11 +304,11 @@ function showJadwal(jadwals){
             <div class="jadwal-body row g-3 mt-1">
                 ${groupByDate[date].map(j => `
                     <div class="col-md-3 col-sm-6">
-                        <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}" 
-                             data-id="${j.id}" 
-                             data-tanggal="${j.tanggal}" 
-                             data-mulai="${j.jam_mulai}" 
-                             data-selesai="${j.jam_selesai}" 
+                        <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}"
+                             data-id="${j.id}"
+                             data-tanggal="${j.tanggal}"
+                             data-mulai="${j.jam_mulai}"
+                             data-selesai="${j.jam_selesai}"
                              data-harga="${j.harga_sewa}">
                             <i class="fa-solid fa-clock me-1"></i> ${j.jam_mulai} - ${j.jam_selesai}
                             <small class="d-block mt-1 fw-semibold text-muted">Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}</small>
@@ -154,10 +326,13 @@ function showJadwal(jadwals){
             this.classList.add('selected');
             selectedJadwal = this.dataset.id;
 
-            document.getElementById('summaryCard').style.display = 'block';
+            // Update modal content
             document.getElementById('summarySection').innerText = document.querySelector('.section-card.active h6').innerText;
             document.getElementById('summaryJadwal').innerText = `${this.dataset.tanggal} (${this.dataset.mulai} - ${this.dataset.selesai})`;
             document.getElementById('summaryTotal').innerText = 'Rp ' + parseInt(this.dataset.harga).toLocaleString('id-ID');
+
+            // Show modal
+            summaryModal.show();
         });
     });
 }
@@ -187,6 +362,7 @@ document.getElementById('pay-button').onclick = function() {
     })
     .then(res => res.json())
     .then(data => {
+        summaryModal.hide();
         snap.pay(data.snap_token, {
             onSuccess: function(result){
                 Swal.fire({
@@ -232,178 +408,6 @@ document.getElementById('pay-button').onclick = function() {
         });
     });
 };
-
-// =================== PEMBAYARAN PENDING ===================
-@if($pemesananPending)
-document.getElementById('resume-payment').onclick = function() {
-    fetch('/midtrans/token-again/{{ $pemesananPending->id }}')
-    .then(res => res.json())
-    .then(data => {
-        if (data.snap_token) {
-            snap.pay(data.snap_token, {
-                onSuccess: function(result){
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Pembayaran Berhasil!',
-                        text: 'Transaksi kamu berhasil diselesaikan.',
-                        confirmButtonColor: '#41A67E'
-                    }).then(() => {
-                        fetch('/pemesanan/success/' + data.pemesanan_id, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ result })
-                        }).then(() => window.location.href = '/penyewa/tiket');
-                    });
-                },
-                onPending: function(result){
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'Menunggu Pembayaran',
-                        text: 'Silakan selesaikan pembayaranmu.',
-                        confirmButtonColor: '#41A67E'
-                    }).then(() => {
-                        window.location.href = window.location.pathname;
-                    });
-                },
-                onError: function(result){
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Pembayaran Gagal!',
-                        text: 'Terjadi kesalahan saat memproses transaksi.',
-                        confirmButtonColor: '#41A67E'
-                    });
-                }
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: 'Token Midtrans tidak ditemukan.',
-                confirmButtonColor: '#41A67E'
-            });
-        }
-    });
-};
-
-// =================== KONFIRMASI BATALKAN PEMBAYARAN ===================
-document.getElementById('cancel-button').addEventListener('click', function() {
-    Swal.fire({
-        title: 'Yakin ingin membatalkan?',
-        text: "Pemesanan ini akan dihapus dan tidak bisa dikembalikan.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#e3342f',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, batalkan',
-        cancelButtonText: 'Tidak jadi'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            document.getElementById('cancel-form').submit();
-        }
-    });
-});
-
-// =================== COUNTDOWN PEMBAYARAN ===================
-const createdAt = new Date("{{ $pemesananPending->created_at }}");
-const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
-const countdownEl = document.getElementById('countdown');
-
-const timer = setInterval(() => {
-    const now = new Date();
-    const diff = deadline - now;
-
-    if (diff <= 0) {
-        clearInterval(timer);
-        countdownEl.innerHTML = "⛔ Waktu pembayaran sudah habis!";
-        document.getElementById('resume-payment').disabled = true;
-    } else {
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        countdownEl.innerHTML = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
-    }
-}, 1000);
-@endif
-</script>
-
-<script>
-let selectedSection = null;
-let selectedJadwal = null;
-
-// ========== PILIH SECTION ==========
-document.querySelectorAll('.section-card').forEach(card => {
-    card.addEventListener('click', function() {
-        document.querySelectorAll('.section-card').forEach(c => c.classList.remove('active'));
-        this.classList.add('active');
-        selectedSection = this.dataset.sectionId;
-
-        // reset jadwal & ringkasan
-        selectedJadwal = null;
-        document.getElementById('jadwalContainer').style.display = 'none';
-        document.getElementById('summaryCard').style.display = 'none';
-
-        fetch(`/jadwal/section/${selectedSection}`)
-        .then(res => res.json())
-        .then(jadwals => showJadwal(jadwals));
-    });
-});
-
-// ========== TAMPILKAN JADWAL ==========
-function showJadwal(jadwals){
-    const jadwalContainer = document.getElementById('jadwalContainer');
-    const jadwalList = document.getElementById('jadwalList');
-    jadwalContainer.style.display = 'block';
-    jadwalList.innerHTML = '';
-
-    const groupByDate = {};
-    jadwals.forEach(j => {
-        if (!groupByDate[j.tanggal]) groupByDate[j.tanggal] = [];
-        groupByDate[j.tanggal].push(j);
-    });
-
-    Object.keys(groupByDate).forEach(date => {
-        const card = document.createElement('div');
-        card.className = 'jadwal-card mb-4';
-        card.innerHTML = `
-            <div class="jadwal-header">
-                <i class="fa-solid fa-calendar-day me-2"></i>
-                ${new Date(date).toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
-            </div>
-            <div class="jadwal-body row g-3 mt-1">
-                ${groupByDate[date].map(j => `
-                    <div class="col-md-3 col-sm-6">
-                        <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}" 
-                             data-id="${j.id}" 
-                             data-tanggal="${j.tanggal}" 
-                             data-mulai="${j.jam_mulai}" 
-                             data-selesai="${j.jam_selesai}" 
-                             data-harga="${j.harga_sewa}">
-                            <i class="fa-solid fa-clock me-1"></i> ${j.jam_mulai} - ${j.jam_selesai}
-                            <small class="d-block mt-1 fw-semibold text-muted">Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}</small>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        jadwalList.appendChild(card);
-    });
-
-    document.querySelectorAll('.jadwal-item.available').forEach(item => {
-        item.addEventListener('click', function() {
-            document.querySelectorAll('.jadwal-item').forEach(i => i.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedJadwal = this.dataset.id;
-
-            document.getElementById('summaryCard').style.display = 'block';
-            document.getElementById('summarySection').innerText = document.querySelector('.section-card.active h6').innerText;
-            document.getElementById('summaryJadwal').innerText = `${this.dataset.tanggal} (${this.dataset.mulai} - ${this.dataset.selesai})`;
-            document.getElementById('summaryTotal').innerText = 'Rp ' + parseInt(this.dataset.harga).toLocaleString('id-ID');
-        });
-    });
-}
 </script>
 
 @endsection

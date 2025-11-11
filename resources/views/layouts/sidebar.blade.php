@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'SewaLap Dashboard')</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,13 +33,13 @@
                     'icon' => 'fa-solid fa-futbol',
                     'route' => 'lapangan.index',
                     'active_routes' => ['lapangan.index'],
-                ],          
+                ],
                                 [
                     'label' => 'Kelola Kategori',
                     'icon' => 'fa-solid fa-tags',
                     'route' => 'kategori.index',
                     'active_routes' => ['kategori.index'],
-                ],  
+                ],
                 [
                 'label' => 'Pemesanan',
                 'icon' => 'fa-solid fa-calendar-check',
@@ -49,8 +50,8 @@
             // ['label' => 'Laporan', 'icon' => 'fa-solid fa-file-invoice', 'url' => '#'],
             // ['label' => 'Pengguna', 'icon' => 'fa-solid fa-users', 'url' => '#'],
             //             [
-            //     'label' => 'Kelola Rekening', 
-            //     'icon' => 'fa-solid fa-qrcode', 
+            //     'label' => 'Kelola Rekening',
+            //     'icon' => 'fa-solid fa-qrcode',
             //     'route' => 'rekening.index',
             //     'active_routes' => ['rekening.index'],
             // ],
@@ -62,8 +63,8 @@
 ],
 
             [
-                'label' => 'Scan', 
-                'icon' => 'fa-solid fa-qrcode', 
+                'label' => 'Scan',
+                'icon' => 'fa-solid fa-qrcode',
                 'route' => 'pemilik.scan',
                 'active_routes' => ['pemilik.scan'],
             ],
@@ -135,7 +136,7 @@
   <div class="user-info">
   @php
       $user = Auth::user();
-      $avatarUrl = $user->foto_profil 
+      $avatarUrl = $user->foto_profil
           ? asset('storage/' . $user->foto_profil)
           :'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
   @endphp

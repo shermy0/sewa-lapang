@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Penyewa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lapangan;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -11,7 +12,7 @@ use Illuminate\View\View;
 
 class FavoritController extends Controller
 {
-    /**
+    /** 
      * Daftar lapangan favorit penyewa.
      */
     public function index(Request $request): View
@@ -30,7 +31,7 @@ class FavoritController extends Controller
     /**
      * Tambahkan lapangan ke favorit penyewa.
      */
-    public function store(Request $request, Lapangan $lapangan): RedirectResponse
+    public function store(Request $request, Lapangan $lapangan)
     {
         $penyewa = $request->user();
 
@@ -41,17 +42,35 @@ class FavoritController extends Controller
             ],
         ]);
 
+        // Return JSON jika request AJAX, otherwise redirect
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Lapangan ditambahkan ke favorit.',
+                'is_favorit' => true,
+            ]);
+        }
+
         return back()->with('success', 'Lapangan ditambahkan ke favorit.');
     }
 
     /**
      * Hapus lapangan dari favorit penyewa.
      */
-    public function destroy(Request $request, Lapangan $lapangan): RedirectResponse
+    public function destroy(Request $request, Lapangan $lapangan)
     {
         $penyewa = $request->user();
 
         $penyewa->favoritLapangan()->detach($lapangan->getKey());
+
+        // Return JSON jika request AJAX, otherwise redirect
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Lapangan dihapus dari favorit.',
+                'is_favorit' => false,
+            ]);
+        }
 
         return back()->with('success', 'Lapangan dihapus dari favorit.');
     }

@@ -7,7 +7,9 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container py-4">
-    <h1 class="fw-bold mb-4" style="color: var(--primary-green);">Lapangan Favorit</h1>
+    <h1 class="fw-bold mb-4 d-flex align-items-center gap-2" style="color: var(--primary-green);">
+        <i class="fa-solid fa-heart text-danger"></i> Lapangan Favorit
+    </h1>
 
     @foreach (['success', 'error'] as $flash)
         @if (session($flash))
