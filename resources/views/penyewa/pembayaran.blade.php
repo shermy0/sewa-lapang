@@ -174,11 +174,29 @@ document.querySelectorAll('.btn-pay-again').forEach(btn => {
             .then(res => res.json())
             .then(data => {
                 if (data.error) return alert(data.error);
-                snap.pay(data.snap_token, {
-                    onSuccess: () => location.reload(),
-                    onPending: () => { alert("Menunggu pembayaran..."); location.reload(); },
-                    onError: err => alert("Pembayaran gagal: " + err)
-                });
+snap.pay(data.snap_token, { 
+    onSuccess: function(result){
+        fetch('/pemesanan/success/' + data.pemesanan_id, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ result })
+        })
+        .then(() => window.location.reload())
+        .catch(err => console.error(err));
+    },
+    onPending: function(){
+        alert("Menunggu pembayaran...");
+        window.location.reload();
+    },
+    onError: function(result){
+        alert("Pembayaran gagal!");
+        console.error(result);
+    }
+});
+
             });
     });
 });
