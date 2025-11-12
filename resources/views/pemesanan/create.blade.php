@@ -104,54 +104,6 @@
     </div>
 </div>
 
-{{-- ================== MODAL PEMBAYARAN PENDING ================== --}}
-@if($pemesananPending)
-<div class="modal fade" id="pendingPaymentModal" tabindex="-1" aria-labelledby="pendingPaymentModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="pendingPaymentModalLabel">
-                    <i class="fa-solid fa-clock me-2"></i> Pembayaran Tertunda
-                </h5>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
-                    <i class="fa-solid fa-exclamation-triangle me-2"></i>
-                    Anda memiliki pembayaran yang belum diselesaikan!
-                </div>
-                <div class="mb-3">
-                    <strong>Section:</strong>
-                    <p class="mb-0">{{ $pemesananPending->section->nama_section ?? '-' }}</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Jadwal:</strong>
-                    <p class="mb-0">{{ $pemesananPending->jadwal->tanggal ?? '-' }} ({{ $pemesananPending->jadwal->jam_mulai ?? '-' }} - {{ $pemesananPending->jadwal->jam_selesai ?? '-' }})</p>
-                </div>
-                <div class="mb-3">
-                    <strong>Total:</strong>
-                    <p class="mb-0 fw-bold text-warning fs-5">Rp {{ number_format($pemesananPending->total_bayar ?? 0, 0, ',', '.') }}</p>
-                </div>
-                <div class="mb-3">
-                    <p class="text-danger fw-bold" id="countdown"></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <form id="cancel-form" action="{{ route('pemesanan.batalkan', $pemesananPending->id) }}" method="POST" style="display:inline;">
-                    @csrf
-                    @method('DELETE')
-                    <button type="button" id="cancel-button" class="btn btn-danger">
-                        <i class="fa-solid fa-trash me-1"></i> Batalkan
-                    </button>
-                </form>
-                <button id="resume-payment" class="btn btn-success">
-                    <i class="fa-solid fa-credit-card me-1"></i> Lanjutkan Pembayaran
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-
 {{-- ================== MIDTRANS ================== --}}
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 
@@ -338,7 +290,8 @@ function showJadwal(jadwals){
 }
 
 // =================== PESAN & BAYAR ===================
-document.getElementById('pay-button').onclick = function() {
+// =================== PESAN & BAYAR ===================
+document.getElementById('pay-button').onclick = async function() {
     if (!selectedJadwal) {
         Swal.fire({
             icon: 'warning',
@@ -349,22 +302,69 @@ document.getElementById('pay-button').onclick = function() {
         return;
     }
 
-    fetch('{{ route("midtrans.token") }}', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            lapangan_id: {{ $lapangan->id }},
-            jadwal_id: selectedJadwal
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
+    // ========== POPUP LOADING ========== //
+    Swal.fire({
+        title: 'Menyiapkan Pembayaran...',
+        html: `
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 mb-0">Mohon tunggu sebentar</p>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        showClass: {
+            popup: 'animate__animated animate__fadeIn animate__faster'
+        }
+    });
+
+    try {
+        const res = await fetch('{{ route("midtrans.token") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                lapangan_id: {{ $lapangan->id }},
+                jadwal_id: selectedJadwal
+            })
+        });
+
+const data = await res.json();
+
+if (res.status === 409) {
+    Swal.close();
+    Swal.fire({
+        icon: 'info',
+        title: 'Sudah Dipesan!',
+        text: data.error || 'Kamu sudah memesan jadwal ini sebelumnya.',
+        showCancelButton: true,
+        confirmButtonText: 'Ke Menu Pembayaran',
+        cancelButtonText: 'Oke',
+        confirmButtonColor: '#41A67E',
+        cancelButtonColor: '#6c757d',
+    }).then((result) => {
+        if (result.isConfirmed && data.redirect) {
+            window.location.href = data.redirect;
+        }
+    });
+    return;
+}
+
+if (!data.snap_token) {
+    throw new Error('Gagal mendapatkan token Midtrans.');
+}
+
+
+        // ✅ Tutup popup loading
+        Swal.close();
         summaryModal.hide();
+
+        // 🔹 Jalankan Snap Popup
         snap.pay(data.snap_token, {
-            onSuccess: function(result){
+            onSuccess: function(result) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Pembayaran Berhasil!',
@@ -381,7 +381,7 @@ document.getElementById('pay-button').onclick = function() {
                     }).then(() => window.location.href = '/penyewa/tiket');
                 });
             },
-            onPending: function(result){
+            onPending: function(result) {
                 Swal.fire({
                     icon: 'info',
                     title: 'Menunggu Pembayaran',
@@ -389,7 +389,7 @@ document.getElementById('pay-button').onclick = function() {
                     confirmButtonColor: '#41A67E'
                 }).then(() => window.location.href = '/penyewa/pembayaran');
             },
-            onError: function(result){
+            onError: function(result) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Pembayaran Gagal!',
@@ -398,16 +398,18 @@ document.getElementById('pay-button').onclick = function() {
                 });
             }
         });
-    })
-    .catch(() => {
+    } catch (error) {
+        // ❌ Tutup loading kalau error
+        Swal.close();
         Swal.fire({
             icon: 'error',
             title: 'Gagal!',
-            text: 'Tidak bisa mendapatkan token pembayaran.',
+            text: error.message || 'Tidak bisa mendapatkan token pembayaran.',
             confirmButtonColor: '#41A67E'
         });
-    });
+    }
 };
+
 </script>
 
 @endsection

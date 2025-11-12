@@ -3,7 +3,8 @@
 @section('title', 'Menunggu Pembayaran')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ asset('css/tiket.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
@@ -12,140 +13,151 @@
     --yellow: #F6C445;
     --gray-light: #f9f9f9;
 }
-.section-card, .jadwal-item {
-    transition: .2s ease;
+
+.ticket-status-pay {
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 4px 8px;
 }
-.section-card:hover, .jadwal-item.available:hover {
-    transform: scale(1.03);
+.ticket-status-pay.pending {
+    background: #FFF5D6;
+    color: #C78C00;
 }
-.jadwal-item.unavailable {
-    opacity: 0.6;
+.ticket-status-pay.expired {
+    background: #FCEAEA;
+    color: #B22222;
 }
-.alert-status {
-    font-size: .85rem;
-    border-radius: 8px;
+.countdown-label {
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 </style>
 
 <div class="container py-4">
-    <div class="penyewa-page-header">
-        <div>
-            <p class="eyebrow">Status Pembayaran</p>
-            <h1>Menunggu Pembayaran</h1>
-            <p class="subtitle">Segera selesaikan pembayaran agar jadwal bermainmu tetap aman.</p>
-        </div>
-        <span class="page-pill">
-            <i class="fa-solid fa-clock-rotate-left me-1"></i>
-            {{ $belumDibayar->count() }} pesanan
-        </span>
-    </div>
+    <h2 class="fw-bold mb-4 text-success">
+        <i class="fa-solid fa-clock me-2"></i> Menunggu Pembayaran
+    </h2>
+    <p class="text-muted mb-4">Segera selesaikan pembayaran agar jadwal bermainmu tetap aman!</p>
 
-    <div class="payment-grid">
+    <div class="row" id="ticketContainer">
         @forelse($belumDibayar as $p)
-        <div class="payment-card shadow-sm">
+            <div class="col-md-6 mb-4 ticket-card">
 
-            {{-- 🔸 Notifikasi permintaan perubahan --}}
-            @if($p->permintaanPerubahan)
-                @if($p->permintaanPerubahan->status === 'menunggu')
-                    <div class="alert alert-warning py-2 px-3 alert-status mb-2">
-                        <i class="fa-solid fa-hourglass-half me-1"></i>
-                        Menunggu persetujuan perubahan jadwal / section...
-                    </div>
-                @elseif($p->permintaanPerubahan->status === 'disetujui')
-                    <div class="alert alert-success py-2 px-3 alert-status mb-2">
-                        <i class="fa-solid fa-check-circle me-1"></i>
-                        Perubahan jadwal / section telah disetujui dan diperbarui.
-                    </div>
-                @elseif($p->permintaanPerubahan->status === 'ditolak')
-                    <div class="alert alert-danger py-2 px-3 alert-status mb-2">
-                        <i class="fa-solid fa-xmark me-1"></i>
-                        Permintaan perubahan ditolak.
-                    </div>
+                {{-- Notifikasi perubahan --}}
+                @if($p->permintaanPerubahan)
+                    @if($p->permintaanPerubahan->status === 'menunggu')
+                        <div class="alert alert-warning py-2 px-3 small mb-2">
+                            <i class="fa-solid fa-hourglass-half me-1"></i>
+                            Menunggu persetujuan perubahan jadwal / section...
+                        </div>
+                    @elseif($p->permintaanPerubahan->status === 'disetujui')
+                        <div class="alert alert-success py-2 px-3 small mb-2">
+                            <i class="fa-solid fa-check-circle me-1"></i>
+                            Perubahan jadwal / section telah disetujui dan diperbarui.
+                        </div>
+                    @elseif($p->permintaanPerubahan->status === 'ditolak')
+                        <div class="alert alert-danger py-2 px-3 small mb-2">
+                            <i class="fa-solid fa-xmark me-1"></i>
+                            Permintaan perubahan ditolak.
+                        </div>
+                    @endif
                 @endif
-            @endif
 
-            {{-- 🔸 Kartu pembayaran utama --}}
-            <div class="payment-card__head">
-                <div>
-                    <p class="label">Lapangan</p>
-                    <h5>{{ $p->lapangan->nama_lapangan }}</h5>
+                {{-- Kartu tiket --}}
+                <div class="ticket shadow-sm border-0 rounded-4 overflow-hidden">
+                    <div class="d-flex flex-column flex-md-row">
+                        @php
+                            $jadwal = $p->jadwal;
+                            $section = $jadwal?->section;
+                            \Carbon\Carbon::setLocale('id');
+                            $tanggal = \Carbon\Carbon::parse($jadwal->tanggal);
+                            $hari = $tanggal->translatedFormat('l');
+                        @endphp
+
+                        {{-- KIRI --}}
+                        <div class="ticket-left">
+                            <div class="ticket-left-header text-center">
+                                <div class="lapangan-name">{{ $p->lapangan->nama_lapangan }}</div>
+                                <div class="lapangan-meta">
+                                    <i class="fa-solid fa-tag me-1"></i>{{ ucfirst($p->lapangan->kategori) }}<br>
+                                    <i class="fa-solid fa-location-dot me-1"></i>{{ $p->lapangan->lokasi }}
+                                </div>
+                                @if($section)
+                                    <div class="section-info mt-2">
+                                        <i class="fa-solid fa-layer-group"></i>
+                                        <span>{{ $section->nama_section }}</span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="schedule mt-3 text-center">
+                                <div>
+                                    <i class="fa-solid fa-calendar-day me-1"></i>
+                                    {{ $hari }}, {{ $tanggal->translatedFormat('d F Y') }}
+                                </div>
+                                <div>
+                                    <i class="fa-solid fa-clock me-1"></i>
+                                    {{ $jadwal->jam_mulai }} - {{ $jadwal->jam_selesai }}
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- KANAN --}}
+                        <div class="ticket-right p-4 bg-white flex-grow-1 position-relative">
+                            <div class="ticket-info">
+                                <p class="mb-1"><strong>Status:</strong>
+                                    <span class="ticket-status-pay pending">
+                                        <i class="fa-solid fa-coins me-1"></i> Belum Dibayar
+                                    </span>
+                                </p>
+                                <p class="mb-1"><strong>Harga:</strong>
+                                    Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }}
+                                </p>
+                                <p class="mb-1 countdown-label text-danger"
+                                   data-countdown
+                                   data-created-at="{{ $p->created_at->format('c') }}">
+                                </p>
+                            </div>
+
+                            <div class="text-end mt-3 d-flex flex-column gap-2">
+                                <button class="btn btn-success btn-sm px-3 btn-pay-again"
+                                        data-id="{{ $p->id }}">
+                                    <i class="fa-solid fa-credit-card me-1"></i> Bayar Sekarang
+                                </button>
+
+                                {{-- Ganti tombol batalkan pakai SweetAlert --}}
+                                <button class="btn btn-outline-danger btn-sm px-3 btn-cancel" 
+                                        data-id="{{ $p->id }}">
+                                    <i class="fa-solid fa-xmark me-1"></i> Batalkan
+                                </button>
+
+                                @if(!$p->permintaanPerubahan)
+                                    <button class="btn btn-outline-primary btn-sm px-3"
+                                            onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
+                                        <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Perubahan
+                                    </button>
+                                @else
+                                    <button class="btn btn-outline-secondary btn-sm px-3"
+                                            onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
+                                        <i class="fa-solid fa-eye me-1"></i> Lihat Detail Permintaan
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <span class="status-chip status-chip--warning">
-                    <i class="fa-solid fa-coins me-1"></i> Belum Dibayar
-                </span>
             </div>
-
-            <div class="payment-card__body">
-                <div class="info-row">
-                    <span><i class="fa-regular fa-calendar me-2 text-success"></i>Tanggal</span>
-                    <strong>{{ \Carbon\Carbon::parse($p->jadwal->tanggal)->translatedFormat('d F Y') }}</strong>
-                </div>
-                <div class="info-row">
-                    <span><i class="fa-regular fa-clock me-2 text-success"></i>Jam Main</span>
-                    <strong>{{ $p->jadwal->jam_mulai }} - {{ $p->jadwal->jam_selesai }}</strong>
-                </div>
-
-                @php
-                    $totalBayar = $p->total_harga ?? 0;
-                    if ($totalBayar <= 0) {
-                        $sections = $p->lapangan->sections ?? collect();
-                        $totalHarga = 0; $jumlahJadwal = 0;
-                        foreach ($sections as $section) {
-                            foreach ($section->jadwal as $jadwal) {
-                                if (is_numeric($jadwal->harga_sewa) && $jadwal->harga_sewa > 0) {
-                                    $totalHarga += $jadwal->harga_sewa;
-                                    $jumlahJadwal++;
-                                }
-                            }
-                        }
-                        if ($jumlahJadwal > 0) $totalBayar = $totalHarga / $jumlahJadwal;
-                    }
-                @endphp
-                <div class="info-row">
-                    <span><i class="fa-solid fa-wallet me-2 text-success"></i>Total</span>
-                    <strong>{{ 'Rp' . number_format($totalBayar, 0, ',', '.') }}</strong>
-                </div>
-            </div>
-
-            <p class="countdown-label text-danger" data-countdown data-created-at="{{ $p->created_at->format('c') }}"></p>
-
-            <div class="payment-card__actions">
-                <button class="btn btn-success flex-grow-1 btn-pay-again" data-id="{{ $p->id }}">
-                    <i class="fa-solid fa-credit-card me-1"></i> Bayar Sekarang
-                </button>
-
-                <form action="{{ route('pemesanan.batalkan', $p->id) }}" method="POST" onsubmit="return confirm('Yakin batalkan pemesanan ini?')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-outline-danger">
-                        <i class="fa-solid fa-xmark me-1"></i> Batalkan
-                    </button>
-                </form>
-
-                @if(!$p->permintaanPerubahan)
-                    <button class="btn btn-outline-primary mt-2" onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan_id }})">
-                        <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Perubahan
-                    </button>
-                @else
-                    <button class="btn btn-outline-secondary mt-2" onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
-                        <i class="fa-solid fa-eye me-1"></i> Lihat Detail Permintaan
-                    </button>
-                @endif
-            </div>
-        </div>
         @empty
-        <div class="empty-state-card">
-            <i class="fa-solid fa-clipboard-check"></i>
-            <h5>Semua pesanan sudah dibayar</h5>
-            <p>Nikmati sesi bermainmu! Pesanan baru akan tampil di sini.</p>
-        </div>
+            <p class="text-muted">Belum ada pesanan menunggu pembayaran.</p>
         @endforelse
     </div>
 </div>
 
-<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+<script src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
-// 🕓 Countdown pembayaran
+// Countdown pembayaran
 document.querySelectorAll('[data-countdown]').forEach(target => {
     const createdAt = new Date(target.dataset.createdAt);
     const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
@@ -153,7 +165,7 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
         const now = new Date();
         const diff = deadline - now;
         if (diff <= 0) {
-            target.textContent = 'Waktu pembayaran sudah habis.';
+            target.textContent = '⛔ Waktu pembayaran sudah habis.';
             target.classList.add('text-muted');
             return;
         }
@@ -166,41 +178,81 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
     tick();
 });
 
-// 💳 Midtrans - Bayar Ulang
+// 💳 Midtrans - Bayar Sekarang + Loading
 document.querySelectorAll('.btn-pay-again').forEach(btn => {
     btn.addEventListener('click', function() {
         const id = this.dataset.id;
+        Swal.fire({
+            title: 'Memuat Pembayaran...',
+            text: 'Harap tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
         fetch(`/midtrans/token-again/${id}`)
             .then(res => res.json())
             .then(data => {
-                if (data.error) return alert(data.error);
-snap.pay(data.snap_token, { 
-    onSuccess: function(result){
-        fetch('/pemesanan/success/' + data.pemesanan_id, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ result })
-        })
-        .then(() => window.location.reload())
-        .catch(err => console.error(err));
-    },
-    onPending: function(){
-        alert("Menunggu pembayaran...");
-        window.location.reload();
-    },
-    onError: function(result){
-        alert("Pembayaran gagal!");
-        console.error(result);
-    }
-});
-
+                Swal.close();
+                if (data.error) return Swal.fire('Gagal!', data.error, 'error');
+                snap.pay(data.snap_token, { 
+                    onSuccess: function(result){
+                        Swal.fire({
+                            title: 'Memproses...',
+                            text: 'Menyimpan data transaksi...',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+                        fetch('/pemesanan/success/' + data.pemesanan_id, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ result })
+                        }).then(() => window.location.reload());
+                    },
+                    onPending: function(){
+                        Swal.fire('Menunggu Pembayaran', 'Silakan selesaikan pembayaranmu.', 'info')
+                            .then(() => window.location.reload());
+                    },
+                    onError: function(){
+                        Swal.fire('Pembayaran Gagal!', 'Terjadi kesalahan saat memproses transaksi.', 'error');
+                    }
+                });
+            })
+            .catch(() => {
+                Swal.close();
+                Swal.fire('Gagal!', 'Tidak dapat terhubung ke server.', 'error');
             });
     });
 });
 
+// ❌ SweetAlert konfirmasi pembatalan
+document.querySelectorAll('.btn-cancel').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        Swal.fire({
+            title: 'Batalkan Pemesanan?',
+            text: 'Pesanan ini akan dibatalkan dan tidak bisa dikembalikan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Batalkan',
+            cancelButtonText: 'Tidak',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#aaa'
+        }).then(result => {
+            if (result.isConfirmed) {
+                fetch(`/pemesanan/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                })
+                .then(() => Swal.fire('Dibatalkan!', 'Pemesanan berhasil dibatalkan.', 'success')
+                    .then(() => location.reload()))
+                .catch(() => Swal.fire('Gagal!', 'Terjadi kesalahan saat membatalkan.', 'error'));
+            }
+        });
+    });
+});
 // 🟢 Ajukan Perubahan (SweetAlert)
 function ajukanPerubahan(pemesananId, lapanganId) {
     Swal.fire({
@@ -214,6 +266,10 @@ function ajukanPerubahan(pemesananId, lapanganId) {
         confirmButtonColor: '#41A67E',
         showCancelButton: true,
         cancelButtonText: 'Batal',
+
+        // ✅ Tambahan ini biar textarea bisa diketik
+        focusConfirm: false,
+
         didOpen: () => {
             fetch(`/lapangan/${lapanganId}/sections`)
                 .then(res => res.json())
