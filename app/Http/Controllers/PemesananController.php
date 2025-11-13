@@ -249,29 +249,39 @@ public function riwayatBelum()
     $userId = Auth::id();
     $now = Carbon::now('Asia/Jakarta');
 
-    $belumDibayar = Pemesanan::with('jadwal')
+    // Ambil semua pesanan menunggu
+    $belumDibayar = Pemesanan::with(['jadwal'])
         ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
         ->get();
 
     foreach ($belumDibayar as $p) {
-        if ($p->jadwal) {
-            $tanggal = Carbon::parse($p->jadwal->tanggal)->format('Y-m-d');
-            $tanggalJadwal = Carbon::parse("$tanggal {$p->jadwal->jam_selesai}", 'Asia/Jakarta');
+        // Cek apakah sudah 24 jam dari dibuat
+        $batasWaktu = Carbon::parse($p->created_at)->addHours(24);
 
-            if ($tanggalJadwal->lt($now)) {
-                $p->update(['status' => 'kadaluarsa']);
+        if ($now->greaterThan($batasWaktu)) {
+            // Ubah status jadi kadaluarsa dan buka jadwalnya
+            $p->update(['status' => 'kadaluarsa']);
+            if ($p->jadwal) {
                 $p->jadwal->update(['tersedia' => true]);
+            }
+
+            // Kalau ada pembayaran pending, ubah juga statusnya
+            if ($p->pembayaran) {
+                $p->pembayaran->update(['status' => 'kadaluarsa']);
             }
         }
     }
 
-    $belumDibayar = Pemesanan::where('penyewa_id', $userId)
+    // Setelah update, ambil ulang hanya yang benar-benar masih menunggu
+    $belumDibayar = Pemesanan::with(['jadwal'])
+        ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
         ->get();
 
     return view('penyewa.pembayaran', compact('belumDibayar'));
 }
+
 
 
 
