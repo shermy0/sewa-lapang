@@ -9,11 +9,7 @@ class Banner extends Model
 {
     use HasFactory;
 
-    protected $table = 'banner'; // nama tabel di database
-
-    protected $fillable = [
-        'judul',
-        'gambar',
-        'status',
-    ];
+    protected $table = 'banner';
+    protected $fillable = ['judul', 'gambar', 'status'];
+    public $timestamps = false; 
 }

@@ -1,3 +1,4 @@
+
 @extends('layouts.sidebar')
 
 @section('title', 'Detail Lapangan')
@@ -357,12 +358,13 @@
                     Jadwal Lapangan {{ $lapangan->nama_lapangan }}
                 </h5>
 
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-                        Total jadwal: {{ $lapangan->jadwal->count() }}
-                    </span>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+                @php
+                    $totalTersedia = $lapangan->jadwal->where('tersedia', true)->count();
+                @endphp
+
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                    Total jadwal: {{ $totalTersedia }}
+                </span>
             </div>
 
             <div class="modal-body">
@@ -372,8 +374,10 @@
                         @php
                             use Carbon\Carbon;
 
-                            // Ambil jadwal tersedia dan sort
-                            $jadwalTersedia = $lapangan->jadwal->sortBy(['tanggal', 'jam_mulai']);
+                            // Ambil jadwal tersedia aja
+                            $jadwalTersedia = $lapangan->jadwal
+                                ->where('tersedia', true) 
+                                ->sortBy(['tanggal', 'jam_mulai']);
                         @endphp
 
                         @if($jadwalTersedia->count() > 0)
@@ -399,7 +403,7 @@
                                                 $durasiJam = $durasiMenit / 60;
                                             @endphp
                                             <tr>
-                                                <td class="fw-semibold">{{ $i + 1 }}</td>
+                                                <td class="fw-semibold">{{ $i + 0 }}</td>
                                                 <td class="text-nowrap">{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
                                                 <td class="align-middle">{{ $jadwal->section->nama_section ?? '-' }}</td>
                                                 <td class="text-nowrap">
