@@ -4,12 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class LaporanPenyalahgunaan extends Model
 {
     use HasFactory;
 
     public const STATUSES = ['pending', 'diproses', 'ditutup'];
+
+    public const CATEGORIES = [
+        'penipuan' => 'Penipuan atau transaksi mencurigakan',
+        'perilaku' => 'Perilaku tidak pantas',
+        'kualitas' => 'Kualitas lapangan atau fasilitas',
+        'pemesanan' => 'Permasalahan pemesanan',
+        'lainnya' => 'Lainnya',
+    ];
 
     protected $table = 'laporan_penyalahgunaan';
 
@@ -47,6 +56,15 @@ class LaporanPenyalahgunaan extends Model
     public function penangan()
     {
         return $this->belongsTo(User::class, 'ditangani_oleh');
+    }
+
+    public function getKategoriLabelAttribute(): string
+    {
+        if (! $this->kategori) {
+            return 'Umum';
+        }
+
+        return self::CATEGORIES[$this->kategori] ?? Str::headline($this->kategori);
     }
 
     public function scopeStatus($query, ?string $status)

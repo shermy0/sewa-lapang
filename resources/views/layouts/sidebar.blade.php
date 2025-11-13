@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -55,6 +56,13 @@
                 'icon' => 'fa-solid fa-flag',
                 'route' => 'admin.laporan.penyalahgunaan.index',
                 'active_routes' => ['admin.laporan.penyalahgunaan.*'],
+            ],
+            [
+                'label' => 'Banding Pemilik',
+                'icon' => 'fa-solid fa-scale-balanced',
+                'route' => 'admin.banding.index',
+                'active_routes' => ['admin.banding.*'],
+
             ],
             [
                 'label' => 'Pengaturan Akun',

@@ -42,13 +42,13 @@ class AuthenticatedSessionController extends Controller
     $user = $request->user();
 
     if ($user->status === 'nonaktif') {
+        $email = $user->email;
         Auth::logout();
 
-        return back()
-            ->withErrors([
-                'email' => __('Akun Anda dinonaktifkan. Silakan hubungi administrator.'),
-            ])
-            ->onlyInput('email');
+        return redirect()
+            ->route('banding.create', ['email' => $email])
+            ->with('error', __('Akun Anda diblokir karena pelanggaran. Ajukan banding untuk dipertimbangkan kembali.'))
+            ->withInput(['email' => $email]);
     }
 
     // Cek verifikasi email (kalau kamu pakai fitur itu)

@@ -99,7 +99,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-light text-dark">{{ $report->kategori ?? 'Umum' }}</span>
+                                    <span class="badge bg-light text-dark">{{ $report->kategori_label }}</span>
                                 </td>
                                 <td class="text-muted">
                                     {{ Str::limit($report->deskripsi, 80) }}

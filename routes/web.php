@@ -29,6 +29,8 @@ use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PersetujuanController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
+use App\Http\Controllers\BandingPemilikController;
 
 
 Route::get('/', function () {
@@ -42,6 +44,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
+
+Route::get('/ajukan-banding', [BandingPemilikController::class, 'create'])->name('banding.create');
+Route::post('/ajukan-banding', [BandingPemilikController::class, 'store'])->name('banding.store');
+
 
 
 Route::middleware('auth')->group(function () {
@@ -198,6 +204,22 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::patch('users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('users.update-status');
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
+                // Laporan penyalahgunaan
+        Route::get('/laporan-penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('laporan.penyalahgunaan.index');
+        Route::get('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('laporan.penyalahgunaan.show');
+        Route::patch(
+            '/laporan-penyalahgunaan/{laporanPenyalahgunaan}/status',
+            [AdminLaporanPenyalahgunaanController::class, 'updateStatus']
+        )->name('laporan.penyalahgunaan.update-status');
+        Route::delete('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'destroy'])->name('laporan.penyalahgunaan.destroy');
+
+        // Banding pemilik
+        Route::get('/banding', [AdminBandingPemilikController::class, 'index'])->name('banding.index');
+        Route::get('/banding/{bandingPemilik}', [AdminBandingPemilikController::class, 'show'])->name('banding.show');
+        Route::put('/banding/{bandingPemilik}', [AdminBandingPemilikController::class, 'update'])->name('banding.update');
+        Route::get('/banding/{bandingPemilik}/lampiran', [AdminBandingPemilikController::class, 'lampiran'])->name('banding.lampiran');
+
+
         // Banner routes
         Route::get('banners', [BannerController::class, 'index'])->name('banners.index');
         Route::get('banners/create', [BannerController::class, 'create'])->name('banners.create');
@@ -213,13 +235,6 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
         Route::get('akun', [AdminAccountController::class, 'edit'])->name('account.edit');
         Route::put('akun', [AdminAccountController::class, 'update'])->name('account.update');
-
-        Route::prefix('laporan')->name('laporan.')->group(function () {
-            Route::get('penyalahgunaan', [LaporanPenyalahgunaanController::class, 'index'])->name('penyalahgunaan.index');
-            Route::get('penyalahgunaan/{laporanPenyalahgunaan}', [LaporanPenyalahgunaanController::class, 'show'])->name('penyalahgunaan.show');
-            Route::patch('penyalahgunaan/{laporanPenyalahgunaan}/status', [LaporanPenyalahgunaanController::class, 'updateStatus'])->name('penyalahgunaan.update-status');
-            Route::delete('penyalahgunaan/{laporanPenyalahgunaan}', [LaporanPenyalahgunaanController::class, 'destroy'])->name('penyalahgunaan.destroy');
-        });
 
     });
     });

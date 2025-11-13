@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Lapangan;
 use App\Models\Kategori;
 use App\Models\Ulasan;
@@ -21,10 +22,16 @@ class BerandaController extends Controller
 
         // Ambil semua kategori
         $kategoris = Kategori::all();
-        $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])->get();
+
+        $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
+
+        $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])
+            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
+            ->get();
 
         // Ambil semua lapangan + relasi kategori, sections, dan jadwal
         $lapangan = Lapangan::with(['kategori', 'sections.jadwal'])
+            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
             ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
                 $query->where('id_kategori', $kategori);
             })
@@ -45,6 +52,12 @@ class BerandaController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
+        $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
+
+        if ($hasSuspensionColumn && $lapangan->is_suspended) {
+            abort(404);
+        }
+
         // Ambil ulasan dan data lain yang sudah ada
         $ulasans = Ulasan::with(['pemesanan.penyewa'])
             ->whereHas('pemesanan', function ($query) use ($id) {
@@ -57,6 +70,7 @@ class BerandaController extends Controller
 
         // 🔹 Tambahkan bagian ini
         $lapanganLainnya = Lapangan::where('id', '!=', $id)
+            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
             ->orderBy('id', 'desc')
             ->limit(6)
             ->get();

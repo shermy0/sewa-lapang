@@ -59,6 +59,12 @@
                 'match' => 'admin.laporan.penyalahgunaan.*',
             ],
             [
+                'label' => 'Banding Pemilik',
+                'icon' => 'fa-solid fa-scale-balanced',
+                'route' => route('admin.banding.index'),
+                'match' => 'admin.banding.*',
+            ],
+            [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
                 'route' => route('admin.account.edit'),

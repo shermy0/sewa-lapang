@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lapangan;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -134,6 +136,7 @@ class UserController extends Controller
         }
 
         $user->update($data);
+        $this->syncPemilikSuspension($user);
 
         return redirect()
             ->route('admin.users.index')
@@ -151,6 +154,7 @@ class UserController extends Controller
         }
 
         $user->update(['status' => $validated['status']]);
+        $this->syncPemilikSuspension($user);
 
         return back()->with('success', 'Status pengguna diperbarui.');
     }
@@ -181,5 +185,14 @@ class UserController extends Controller
         }
 
         Storage::disk('public')->delete($user->foto_profil);
+    }
+    private function syncPemilikSuspension(User $user): void
+    {
+        if ($user->role !== 'pemilik' || ! Schema::hasColumn('lapangan', 'is_suspended')) {
+            return;
+        }
+
+        Lapangan::where('pemilik_id', $user->id)
+            ->update(['is_suspended' => $user->status === 'nonaktif']);
     }
 }
