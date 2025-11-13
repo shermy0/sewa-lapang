@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lapangan;
 use App\Models\LaporanPenyalahgunaan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,6 +73,10 @@ class LaporanPenyalahgunaanController extends Controller
 
         $laporanPenyalahgunaan->update($data);
 
+        if ($validated['status'] === 'ditutup') {
+            $this->suspendTerlapor($laporanPenyalahgunaan);
+        }
+
         return back()->with('success', 'Status laporan berhasil diperbarui.');
     }
 
@@ -82,5 +87,20 @@ class LaporanPenyalahgunaanController extends Controller
         return redirect()
             ->route('admin.laporan.penyalahgunaan.index')
             ->with('success', 'Laporan penyalahgunaan berhasil dihapus.');
+    }
+
+    protected function suspendTerlapor(LaporanPenyalahgunaan $laporan): void
+    {
+        $terlapor = $laporan->terlapor;
+
+        if (! $terlapor || $terlapor->role !== 'pemilik') {
+            return;
+        }
+
+        if ($terlapor->status !== 'nonaktif') {
+            $terlapor->update(['status' => 'nonaktif']);
+        }
+
+        Lapangan::where('pemilik_id', $terlapor->id)->update(['is_suspended' => true]);
     }
 }

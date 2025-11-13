@@ -41,6 +41,27 @@
             // coba gunakan storage path dulu
             return asset('storage/' . ltrim($file, '/'));
         }
+
+        $reportCategories = \App\Models\LaporanPenyalahgunaan::CATEGORIES;
+        $bolehLaporkan = false;
+        $bolehUlas = false;
+
+        if (Auth::check()) {
+            $pemesananDasar = \App\Models\Pemesanan::where('penyewa_id', Auth::id())
+                ->where('lapangan_id', $lapangan->id);
+
+            $bolehLaporkan = (clone $pemesananDasar)->exists();
+
+            $bolehUlas = (clone $pemesananDasar)
+                ->where(function ($query) {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('pemesanan', 'status_scan')) {
+                        $query->where('status_scan', 'sudah_scan');
+                    } else {
+                        $query->where('is_scanned', true);
+                    }
+                })
+                ->exists();
+        }
     @endphp
 
     <div class="row g-4 align-items-start">
@@ -188,6 +209,17 @@
                             </button>
                         </form>
                     @endif
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#laporLapanganModal"
+                        @disabled(!$bolehLaporkan)
+                        title="{{ $bolehLaporkan ? 'Laporkan penyalahgunaan' : 'Laporkan hanya jika sudah pernah memesan lapangan ini' }}"
+                    >
+                        <i class="fa-solid fa-flag me-1"></i> Laporkan
+                    </button>
                 @endif
             </div>
         </div>
@@ -246,18 +278,6 @@
                     @endif
 
                     {{-- tombol tambah ulasan (jika bisa) --}}
-                    @php
-                        $bolehUlas = \App\Models\Pemesanan::where('penyewa_id', Auth::id() ?? 0)
-                            ->where('lapangan_id', $lapangan->id)
-                            ->where(function ($query) {
-                                if (\Illuminate\Support\Facades\Schema::hasColumn('pemesanan', 'status_scan')) {
-                                    $query->where('status_scan', 'sudah_scan');
-                                } else {
-                                    $query->where('is_scanned', true);
-                                }
-                            })->exists();
-                    @endphp
-
                     <div class="mt-3">
                         @if ($bolehUlas)
                             <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
@@ -347,6 +367,75 @@
             @endif
         @endforeach
     @endauth
+
+    @if (Auth::check() && Auth::user()->role === 'penyewa')
+        <div class="modal fade" id="laporLapanganModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fa-solid fa-flag text-danger me-2"></i> Laporkan Penyalahgunaan
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ route('penyewa.laporan.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="lapangan_id" value="{{ old('lapangan_id', $lapangan->id) }}">
+                        <div class="modal-body">
+                            @if (!$bolehLaporkan)
+                                <div class="alert alert-warning">
+                                    Kamu hanya bisa melaporkan setelah memiliki riwayat pemesanan di lapangan ini.
+                                </div>
+                            @endif
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Lapangan</label>
+                                <div class="form-control bg-light">{{ $lapangan->nama_lapangan }}</div>
+                                @error('lapangan_id')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Kategori Laporan</label>
+                                <select
+                                    name="kategori"
+                                    class="form-select @error('kategori') is-invalid @enderror"
+                                    @disabled(!$bolehLaporkan)
+                                >
+                                    <option value="">Pilih kategori</option>
+                                    @foreach ($reportCategories as $key => $label)
+                                        <option value="{{ $key }}" @selected(old('kategori') === $key)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('kategori')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Deskripsi Kejadian</label>
+                                <textarea
+                                    name="deskripsi"
+                                    rows="5"
+                                    class="form-control @error('deskripsi') is-invalid @enderror"
+                                    placeholder="Tuliskan kronologi secara rinci"
+                                    @disabled(!$bolehLaporkan)
+                                >{{ old('deskripsi') }}</textarea>
+                                @error('deskripsi')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="text-muted">Minimal 20 karakter.</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-danger" @disabled(!$bolehLaporkan)>
+                                <i class="fa-solid fa-paper-plane me-1"></i> Kirim Laporan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- MODAL JADWAL LAPANGANG --}}
     <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
@@ -520,3 +609,20 @@
     }, 3000);
 </script>
 @endsection
+
+@push('scripts')
+@if (
+    (old('lapangan_id') == $lapangan->id) &&
+    ($errors->has('lapangan_id') || $errors->has('kategori') || $errors->has('deskripsi'))
+)
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalElement = document.getElementById('laporLapanganModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        });
+    </script>
+@endif
+@endpush

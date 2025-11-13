@@ -99,8 +99,8 @@
                     <h6 class="fw-bold mb-0">
                         <i class="fa-solid fa-file-lines me-2 text-info"></i> Detail Pengaduan
                     </h6>
-                    @if ($report->kategori)
-                        <span class="badge bg-light text-dark">{{ $report->kategori }}</span>
+                    @if ($report->kategori_label)
+                        <span class="badge bg-light text-dark">{{ $report->kategori_label }}</span>
                     @endif
                 </div>
                 <div class="card-body">

@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Lapangan;
 use App\Models\Favorit;
+use Illuminate\Support\Facades\Schema;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -72,6 +73,20 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Favorit::class, 'penyewa_id');
     }
 
+    protected static function booted(): void
+    {
+        static::updated(function (self $user) {
+            if (
+                $user->role === 'pemilik'
+                && $user->wasChanged('status')
+                && Schema::hasColumn('lapangan', 'is_suspended')
+            ) {
+                Lapangan::where('pemilik_id', $user->id)
+                    ->update(['is_suspended' => $user->status === 'nonaktif']);
+            }
+        });
+    }
+
 
 public function rekening()
 {
@@ -81,6 +96,11 @@ public function rekening()
 public function pencairan()
 {
     return $this->hasMany(PencairanDana::class, 'pemilik_id');
+}
+
+public function banding()
+{
+    return $this->hasMany(BandingPemilik::class, 'pemilik_id');
 }
 
 }

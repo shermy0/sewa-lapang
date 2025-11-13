@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
+use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\Admin\LapanganController as AdminLapanganController;
 use App\Http\Controllers\Admin\LaporanPenyalahgunaanController as AdminLaporanPenyalahgunaanController;
 use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DisbursementController;
+use App\Http\Controllers\BandingPemilikController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\PembayaranController;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
+use App\Http\Controllers\Penyewa\LaporanPenyalahgunaanController as PenyewaLaporanPenyalahgunaanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\KelolaRekeningController;
@@ -40,6 +43,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
+
+Route::get('/ajukan-banding', [BandingPemilikController::class, 'create'])->name('banding.create');
+Route::post('/ajukan-banding', [BandingPemilikController::class, 'store'])->name('banding.store');
 
 
 Route::middleware('auth')->group(function () {
@@ -96,6 +102,11 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
     Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
     Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
     Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+
+    Route::middleware('role:penyewa')->prefix('penyewa')->name('penyewa.')->group(function () {
+        Route::get('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'index'])->name('laporan.index');
+        Route::post('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'store'])->name('laporan.store');
+    });
 
 
     Route::get('/verify-email', function (Request $request) {
@@ -200,8 +211,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         // Laporan penyalahgunaan
         Route::get('/laporan-penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('laporan.penyalahgunaan.index');
         Route::get('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('laporan.penyalahgunaan.show');
-        Route::put('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'updateStatus'])->name('laporan.penyalahgunaan.update');
+        Route::patch(
+            '/laporan-penyalahgunaan/{laporanPenyalahgunaan}/status',
+            [AdminLaporanPenyalahgunaanController::class, 'updateStatus']
+        )->name('laporan.penyalahgunaan.update-status');
         Route::delete('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'destroy'])->name('laporan.penyalahgunaan.destroy');
+
+        // Banding pemilik
+        Route::get('/banding', [AdminBandingPemilikController::class, 'index'])->name('banding.index');
+        Route::get('/banding/{bandingPemilik}', [AdminBandingPemilikController::class, 'show'])->name('banding.show');
+        Route::put('/banding/{bandingPemilik}', [AdminBandingPemilikController::class, 'update'])->name('banding.update');
+        Route::get('/banding/{bandingPemilik}/lampiran', [AdminBandingPemilikController::class, 'lampiran'])->name('banding.lampiran');
 
         // Pengaturan akun admin
         Route::get('/account', [AdminAccountController::class, 'edit'])->name('account.edit');

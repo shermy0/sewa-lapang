@@ -113,6 +113,12 @@
                 ]
             ],
             [
+                'label' => 'Laporan',
+                'icon' => 'fa-solid fa-flag',
+                'route' => 'penyewa.laporan.index',
+                'active_routes' => ['penyewa.laporan.index'],
+            ],
+            [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
                 'route' => 'profile.index',

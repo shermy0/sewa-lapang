@@ -23,6 +23,7 @@ class Lapangan extends Model
         'foto',
         // 'status',
         'is_verified',
+        'is_suspended',
         // 'tiket_tersedia',
         'harga_sewa',
     ];
@@ -30,6 +31,7 @@ class Lapangan extends Model
     protected $casts = [
         'foto' => 'array',
         'rating' => 'double',
+        'is_suspended' => 'boolean',
     ];
 
     // Relationship ke kategori
