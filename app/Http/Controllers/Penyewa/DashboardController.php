@@ -94,7 +94,7 @@ class DashboardController extends Controller
                 ->latest()
                 ->get();
 
-            $avgRating = (float) $ulasans->avg('rating');
+            $avgRating = (float) $ulasans->whereNotNull('rating')->unique('penyewa_id')->avg('rating');
             $totalUlasan = $ulasans->count();
 
             if ($penyewa && $penyewa->role === 'penyewa') {

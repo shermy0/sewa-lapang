@@ -63,9 +63,11 @@ class BerandaController extends Controller
             ->whereHas('pemesanan', function ($query) use ($id) {
                 $query->where('lapangan_id', $id);
             })
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        $avgRating = $ulasans->avg('rating');
+        $uniqueRatings = $ulasans->whereNotNull('rating')->unique('penyewa_id');
+        $avgRating = $uniqueRatings->avg('rating');
         $totalUlasan = $ulasans->count();
 
         // 🔹 Tambahkan bagian ini
