@@ -101,13 +101,12 @@
                 }
             }
 
-            // --- Hitung total section dan jadwal untuk badge ---
+            // --- Hitung total section & jadwal tersedia ---
             $sections = $item->sections ?? collect();
             $totalSections = $sections->count();
-            $totalJadwal = 0;
-            foreach ($sections as $section) {
-                $totalJadwal += $section->jadwal->count();
-            }
+
+            // ❗ PERBAIKAN DI SINI
+            $totalTersedia = $item->jadwal->where('tersedia', true)->count();
         @endphp
 
         <div class="col-lg-6 col-xl-4">
@@ -148,7 +147,7 @@
                     </div>
                     <div class="position-absolute top-0 end-0 m-3">
                         <span class="badge bg-success px-3 py-2">
-                            <i class="fa-solid fa-calendar me-1"></i>{{ $totalJadwal }} Jadwal
+                            <i class="fa-solid fa-calendar me-1"></i>{{ $totalTersedia }}  Jadwal
                         </span>
                     </div>
                     <div class="position-absolute bottom-0 start-0 m-3" style="z-index:10;">

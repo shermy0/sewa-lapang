@@ -199,7 +199,7 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-outline-danger">
-                                <i class="fa-solid fa-heart me-1"></i> Hapus Favorit
+                                <i class="fa-solid fa-heart-crack me-1"></i> Hapus Favorit
                             </button>
                         </form>
                     @else
@@ -531,7 +531,7 @@
                                                 data-section="{{ $jadwal->section->nama_section ?? '' }}" 
                                                 data-jam-mulai="{{ $mulai->format('H:i') }}"
                                             >
-                                                <td class="fw-semibold">{{ $i + 0 }}</td>
+                                                <td class="fw-semibold">{{ $i + 1 }}</td>
                                                 <td class="text-nowrap">{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
                                                 <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
                                                 <td class="text-nowrap">

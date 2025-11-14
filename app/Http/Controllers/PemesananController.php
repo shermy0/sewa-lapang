@@ -169,25 +169,29 @@ public function create($lapangan_id)
 
     return view('pemesanan.create', compact('lapangan', 'pemesananPending'));
 }
+
 public function getJadwalBySection($section_id)
 {
-    $now = Carbon::now('Asia/Jakarta'); // waktu sekarang
     $jadwal = JadwalLapangan::where('section_id', $section_id)
-        ->where(function ($q) use ($now) {
-            $q->where('tanggal', '>', $now->toDateString()) // tanggal di masa depan
-              ->orWhere(function ($q2) use ($now) {
-                  // kalau tanggal sama, cek jam_selesai belum lewat
-                  $q2->where('tanggal', '=', $now->toDateString())
-                     ->where('jam_selesai', '>', $now->format('H:i:s'));
-              });
-        })
         ->orderBy('tanggal')
         ->orderBy('jam_mulai')
-        ->get();
+        ->get([
+            'id',
+            'section_id',
+            'tanggal',
+            'jam_mulai',
+            'jam_selesai',
+            'tersedia',
+            'harga_sewa'
+        ])
+        ->map(function ($j) {
+            // fallback kalau harga NULL / kosong
+            $j->harga_sewa = is_numeric($j->harga_sewa) ? (int)$j->harga_sewa : 0;
+            return $j;
+        });
 
     return response()->json($jadwal);
 }
-
 
     // ========================== HALAMAN TIKET ==========================
 public function riwayatTiket()
