@@ -438,34 +438,44 @@
         </div>
     @endif
 
-    {{-- MODAL JADWAL LAPANGANG --}}
-    <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                        <div class="modal-header border-0 d-flex align-items-center justify-content-between">
+    {{-- MODAL JADWAL LAPANGAN --}}
+<div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 d-flex align-items-center justify-content-between">
                 <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
                     Jadwal Lapangan {{ $lapangan->nama_lapangan }}
                 </h5>
 
-                @php
-                    $totalTersedia = $lapangan->jadwal->where('tersedia', true)->count();
-                @endphp
+                {{-- Wrapper kanan: Reset, Total Jadwal, Close --}}
+                <div class="d-flex align-items-center gap-2">
+                    {{-- Tombol Reset --}}
+                    <button class="btn btn-sm btn-success" id="resetFilters">
+                        <i class="fa fa-rotate-left me-1"></i> Reset
+                    </button>
 
-                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-                    Total jadwal: {{ $totalTersedia }}
-                </span>
+                    @php
+                        $totalTersedia = $lapangan->jadwal->where('tersedia', true)->count();
+                    @endphp
+
+                    {{-- Badge Total Jadwal --}}
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                        Total jadwal: {{ $totalTersedia }}
+                    </span>
+
+                    {{-- Tombol Close --}}
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
 
             <div class="modal-body">
-                {{-- Card Jadwal Lapangan --}}
+                {{-- Card Jadwal --}}
                 <div class="card shadow-sm border-0">
-                    <div class="card-body p-0">
+                    <div class="card-body p-3">
                         @php
                             use Carbon\Carbon;
-
-                            // Ambil jadwal tersedia aja
                             $jadwalTersedia = $lapangan->jadwal
-                                ->where('tersedia', true) 
+                                ->where('tersedia', true)
                                 ->sortBy(['tanggal', 'jam_mulai']);
                         @endphp
 
@@ -474,13 +484,38 @@
                                 <table class="table table-hover align-middle mb-0 table-bordered">
                                     <thead class="text-white fw-semibold text-center align-middle" style="background-color: #198754;">
                                         <tr>
-                                            <th class="text-center align-middle">No</th>
-                                            <th class="text-center align-middle">Tanggal</th>
-                                            <th class="text-center align-middle">Section</th>
-                                            <th class="text-center align-middle">Rentang Waktu</th>
-                                            <th class="text-center align-middle">Durasi</th>
-                                            <th class="text-center align-middle">Harga Total</th>
-                                            <th class="text-center align-middle">Status</th>
+                                            <th>No</th>
+                                            <th>
+                                                Tanggal
+                                                <i class="fa fa-filter ms-1" style="cursor:pointer;" onclick="toggleFilter('filterTanggal')"></i>
+                                                <div class="mt-1" id="filterTanggalDiv" style="display:none;">
+                                                    <input type="date" id="filterTanggal" class="form-control form-control-sm" />
+                                                </div>
+                                            </th>
+
+                                            <th>
+                                                Section
+                                                <i class="fa fa-filter ms-1" style="cursor:pointer;" onclick="toggleFilter('filterSection')"></i>
+                                                <div class="mt-1" id="filterSectionDiv" style="display:none;">
+                                                    <select id="filterSection" class="form-select form-select-sm">
+                                                        <option value="">Semua Section</option>
+                                                        @foreach($lapangan->sections as $section)
+                                                            <option value="{{ $section->nama_section }}">{{ $section->nama_section }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </th>
+
+                                            <th>
+                                                Rentang Waktu
+                                                <i class="fa fa-filter ms-1" style="cursor:pointer;" onclick="toggleFilter('filterJamMulai')"></i>
+                                                <div class="mt-1" id="filterJamMulaiDiv" style="display:none;">
+                                                    <input type="time" id="filterJamMulai" class="form-control form-control-sm" placeholder="Jam Mulai" />
+                                                </div>
+                                            </th>
+                                            <th>Durasi</th>
+                                            <th>Harga Total</th>
+                                            <th>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody class="text-center">
@@ -491,10 +526,14 @@
                                                 $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
                                                 $durasiJam = $durasiMenit / 60;
                                             @endphp
-                                            <tr>
+                                            <tr 
+                                                data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
+                                                data-section="{{ $jadwal->section->nama_section ?? '' }}" 
+                                                data-jam-mulai="{{ $mulai->format('H:i') }}"
+                                            >
                                                 <td class="fw-semibold">{{ $i + 0 }}</td>
                                                 <td class="text-nowrap">{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
-                                                <td class="align-middle">{{ $jadwal->section->nama_section ?? '-' }}</td>
+                                                <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
                                                 <td class="text-nowrap">
                                                     <div class="d-flex flex-column small fw-semibold">
                                                         <span>{{ $mulai->format('H:i') }} WIB</span>
@@ -529,9 +568,54 @@
                     </div>
                 </div>
             </div>
-            </div>
         </div>
     </div>
+</div>
+
+{{-- Script Filter --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterTanggal = document.getElementById('filterTanggal');
+    const filterSection = document.getElementById('filterSection');
+    const filterJamMulai = document.getElementById('filterJamMulai');
+    const resetBtn = document.getElementById('resetFilters');
+    const rows = document.querySelectorAll('#jadwalModal tbody tr');
+
+    function filterRows() {
+        const tanggalVal = filterTanggal.value;
+        const sectionVal = filterSection.value;
+        const jamMulaiVal = filterJamMulai.value;
+
+        rows.forEach(row => {
+            const rowTanggal = row.getAttribute('data-tanggal');
+            const rowSection = row.getAttribute('data-section');
+            const rowJamMulai = row.getAttribute('data-jam-mulai');
+
+            const matchTanggal = !tanggalVal || rowTanggal === tanggalVal;
+            const matchSection = !sectionVal || rowSection === sectionVal;
+            const matchJam = !jamMulaiVal || rowJamMulai >= jamMulaiVal;
+
+            row.style.display = (matchTanggal && matchSection && matchJam) ? '' : 'none';
+        });
+    }
+
+    filterTanggal.addEventListener('change', filterRows);
+    filterSection.addEventListener('change', filterRows);
+    filterJamMulai.addEventListener('input', filterRows);
+
+    resetBtn.addEventListener('click', function() {
+        filterTanggal.value = '';
+        filterSection.value = '';
+        filterJamMulai.value = '';
+        filterRows();
+    });
+});
+
+function toggleFilter(id) {
+    const el = document.getElementById(id + 'Div');
+    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+}
+</script>
 
     {{-- LAPANGAN LAINNYA (tampilan seperti beranda) --}}
     <h4 class="fw-bold mt-5 mb-3">Lapangan Lainnya</h4>
