@@ -115,6 +115,12 @@ public function setujuiPermintaan($id)
     if ($pemesanan->penyewa_id != Auth::id()) {
         abort(403);
     }
+    if ($pemesanan->status_scan === 'sudah_scan') {
+    return response()->json([
+        'error' => 'Tiket sudah discan dan tidak bisa diubah.',
+    ], 403);
+}
+
 
     \App\Models\PermintaanPerubahan::create([
         'pemesanan_id' => $pemesanan->id,
@@ -171,22 +177,27 @@ public function create($lapangan_id)
 }
 public function getJadwalBySection($section_id)
 {
-    $now = Carbon::now('Asia/Jakarta'); // waktu sekarang
+    $now = Carbon::now('Asia/Jakarta');
     $jadwal = JadwalLapangan::where('section_id', $section_id)
         ->where(function ($q) use ($now) {
-            $q->where('tanggal', '>', $now->toDateString()) // tanggal di masa depan
+            $q->where('tanggal', '>', $now->toDateString())
               ->orWhere(function ($q2) use ($now) {
-                  // kalau tanggal sama, cek jam_selesai belum lewat
                   $q2->where('tanggal', '=', $now->toDateString())
                      ->where('jam_selesai', '>', $now->format('H:i:s'));
               });
         })
         ->orderBy('tanggal')
         ->orderBy('jam_mulai')
-        ->get();
+        ->get()
+        ->map(function($j) {
+            // pastikan tanggal dikirim sebagai "YYYY-MM-DD"
+            $j->tanggal = \Carbon\Carbon::parse($j->tanggal)->toDateString();
+            return $j;
+        });
 
     return response()->json($jadwal);
 }
+
 
 
     // ========================== HALAMAN TIKET ==========================
