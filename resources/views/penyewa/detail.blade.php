@@ -46,6 +46,8 @@
         $reportCategories = \App\Models\LaporanPenyalahgunaan::CATEGORIES;
         $bolehLaporkan = false;
         $bolehUlas = false;
+        $ratingSudahDiberikan = false;
+        $existingRatingValue = null;
 
         if (Auth::check()) {
             $pemesananDasar = \App\Models\Pemesanan::where('penyewa_id', Auth::id())
@@ -62,6 +64,19 @@
                     }
                 })
                 ->exists();
+
+            $existingRatingRecord = \App\Models\Ulasan::where('penyewa_id', Auth::id())
+                ->whereHas('pemesanan', function ($query) use ($lapangan) {
+                    $query->where('lapangan_id', $lapangan->id);
+                })
+                ->whereNotNull('rating')
+                ->orderBy('created_at')
+                ->first();
+
+            if ($existingRatingRecord) {
+                $ratingSudahDiberikan = true;
+                $existingRatingValue = $existingRatingRecord->rating;
+            }
         }
     @endphp
 
@@ -236,15 +251,27 @@
                 </div>
                 <div class="modal-body">
                     @if(($ulasans ?? collect())->count() > 0)
+                        @php $ratingShownForUser = []; @endphp
                         <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
                             @foreach($ulasans as $ulasan)
+                                @php
+                                    $penyewaUlasan = optional($ulasan->pemesanan)->penyewa;
+                                    $avatarUlasan = $penyewaUlasan?->foto_profil
+                                        ? foto_url($penyewaUlasan->foto_profil)
+                                        : 'https://ui-avatars.com/api/?name=' . urlencode($penyewaUlasan->name ?? 'Penyewa') . '&background=41A67E&color=fff';
+                                    $tampilkanRating = false;
+                                    if (!in_array($ulasan->penyewa_id, $ratingShownForUser, true)) {
+                                        $ratingShownForUser[] = $ulasan->penyewa_id;
+                                        $tampilkanRating = true;
+                                    }
+                                @endphp
                                 <div class="d-flex align-items-start mb-3">
-                                    <img src="{{ foto_url($ulasan->user_foto ?? null) ?? asset('poto/default.jpg') }}"
-                                         class="rounded-circle me-3" width="50" height="50" alt="{{ $ulasan->username }}">
+                                    <img src="{{ $avatarUlasan }}"
+                                         class="rounded-circle me-3" width="50" height="50" alt="{{ $penyewaUlasan->name ?? 'Penyewa' }}">
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-1">{{ $ulasan->username }}</h6>
-                                            @if(auth()->check() && $ulasan->user_id == auth()->id())
+                                            <h6 class="mb-1">{{ $penyewaUlasan->name ?? 'Penyewa' }}</h6>
+                                            @if(auth()->check() && $ulasan->penyewa_id == auth()->id())
                                                 <div class="d-flex gap-1">
                                                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUlasanModal{{ $ulasan->id }}">
                                                         <i class="fa-solid fa-pen-to-square"></i>
@@ -259,15 +286,19 @@
                                                 </div>
                                             @endif
                                         </div>
-                                        <p class="mb-1">
-                                            @for($i=1; $i<=5; $i++)
-                                                @if($i <= $ulasan->rating)
-                                                    <i class="fa-solid fa-star text-warning"></i>
-                                                @else
-                                                    <i class="fa-regular fa-star text-warning"></i>
-                                                @endif
-                                            @endfor
-                                        </p>
+                                        @if($tampilkanRating && !is_null($ulasan->rating))
+                                            <p class="mb-1">
+                                                @for($i=1; $i<=5; $i++)
+                                                    @if($i <= $ulasan->rating)
+                                                        <i class="fa-solid fa-star text-warning"></i>
+                                                    @else
+                                                        <i class="fa-regular fa-star text-warning"></i>
+                                                    @endif
+                                                @endfor
+                                            </p>
+                                        @elseif(auth()->check() && $ulasan->penyewa_id == auth()->id())
+                                            <p class="mb-1 text-muted small">Komentar tambahan (rating tetap {{ $ulasan->rating }}/5)</p>
+                                        @endif
                                         <p>{{ $ulasan->komentar }}</p>
                                     </div>
                                 </div>
@@ -284,6 +315,11 @@
                             <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
                                 + Tambah Ulasan
                             </a>
+                            @if($ratingSudahDiberikan)
+                                <p class="text-muted small mt-2 mb-0">
+                                    Rating sudah diberikan ({{ $existingRatingValue }}/5). Komentar baru tidak akan mengubah rating.
+                                </p>
+                            @endif
                         @else
                             <button class="btn btn-secondary px-4" disabled>
                                 + Tambah Ulasan (scan tiket terlebih dahulu)
@@ -309,12 +345,19 @@
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Rating</label>
-                                <select name="rating" class="form-select" required>
-                                    <option value="" disabled selected>Pilih rating</option>
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        <option value="{{ $i }}">{{ $i }} / 5</option>
-                                    @endfor
-                                </select>
+                                @if(!$ratingSudahDiberikan)
+                                    <select name="rating" class="form-select" required>
+                                        <option value="" disabled selected>Pilih rating</option>
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <option value="{{ $i }}">{{ $i }} / 5</option>
+                                        @endfor
+                                    </select>
+                                @else
+                                    <div class="alert alert-info py-2 small mb-2">
+                                        Rating kamu sudah terekam ({{ $existingRatingValue }}/5). Kirim komentar baru tanpa mengubah rating.
+                                    </div>
+                                    <input type="hidden" name="rating" value="{{ $existingRatingValue }}">
+                                @endif
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Komentar</label>
@@ -332,7 +375,7 @@
 
         {{-- Modal Edit Ulasan --}}
         @foreach(($ulasans ?? collect()) as $ulasan)
-            @if(auth()->id() === $ulasan->user_id)
+            @if(auth()->id() === $ulasan->penyewa_id)
                 <div class="modal fade" id="editUlasanModal{{ $ulasan->id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
@@ -346,11 +389,9 @@
                                 <div class="modal-body">
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Rating</label>
-                                        <select name="rating" class="form-select" required>
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <option value="{{ $i }}" {{ $ulasan->rating == $i ? 'selected' : '' }}>{{ $i }} / 5</option>
-                                            @endfor
-                                        </select>
+                                        <div class="form-control-plaintext">
+                                            {{ $ulasan->rating }} / 5
+                                        </div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Komentar</label>

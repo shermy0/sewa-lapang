@@ -265,7 +265,7 @@
                     <h5 class="fw-bold mb-0">
                         <i class="fa-solid fa-warehouse me-2 text-secondary"></i> Lapangan Terbaru
                     </h5>
-                    <a href="{{ route('lapangan.index') }}" class="text-decoration-none fw-semibold">Kelola lapangan →</a>
+                    <a href="{{ route('admin.lapangan.index') }}" class="text-decoration-none fw-semibold">Kelola lapangan →</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -413,4 +413,4 @@
         });
     }
 </script>
-@endsection
+@endsection 
