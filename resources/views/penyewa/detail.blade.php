@@ -652,6 +652,17 @@
         const alertSuccess = document.getElementById('alert-success');
         if (alertSuccess) alertSuccess.style.display = 'none';
     }, 3000);
+
+    // bersihkan backdrop saat modal ditutup agar layar tidak redup permanen
+    document.addEventListener('hidden.bs.modal', function () {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('padding-right');
+        }
+    });
 </script>
 @endsection
 
