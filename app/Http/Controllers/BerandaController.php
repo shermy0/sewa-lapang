@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use App\Models\Lapangan;
 use App\Models\Kategori;
 use App\Models\Ulasan;
@@ -18,20 +17,17 @@ class BerandaController extends Controller
     {
         $keyword = $request->input('search');
         $kategori = $request->input('kategori');
-        $banners = Banner::where('status', 'aktif')->get();
+        $banners = Banner::where('status', 'aktif')
+        ->orderBy('id', 'desc')
+        ->take(3)
+        ->get();
 
         // Ambil semua kategori
         $kategoris = Kategori::all();
-
-        $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
-
-        $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])
-            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
-            ->get();
+        $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])->get();
 
         // Ambil semua lapangan + relasi kategori, sections, dan jadwal
         $lapangan = Lapangan::with(['kategori', 'sections.jadwal'])
-            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
             ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
                 $query->where('id_kategori', $kategori);
             })
@@ -52,51 +48,23 @@ class BerandaController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
-
-        if ($hasSuspensionColumn && $lapangan->is_suspended) {
-            abort(404);
-        }
-
         // Ambil ulasan dan data lain yang sudah ada
         $ulasans = Ulasan::with(['pemesanan.penyewa'])
             ->whereHas('pemesanan', function ($query) use ($id) {
                 $query->where('lapangan_id', $id);
             })
-            ->orderBy('created_at', 'desc')
             ->get();
 
-        $uniqueRatings = $ulasans->whereNotNull('rating')->unique('penyewa_id');
-        $avgRating = $uniqueRatings->avg('rating');
+        $avgRating = $ulasans->avg('rating');
         $totalUlasan = $ulasans->count();
 
         // 🔹 Tambahkan bagian ini
         $lapanganLainnya = Lapangan::where('id', '!=', $id)
-            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
             ->orderBy('id', 'desc')
             ->limit(6)
             ->get();
 
-        $isFavorit = false;
-        if (
-            auth()->check() &&
-            auth()->user()->role === 'penyewa' &&
-            Schema::hasTable('favorit_lapangan')
-        ) {
-            $isFavorit = auth()->user()
-                ->favoritLapangan()
-                ->where('lapangan_id', $lapangan->id)
-                ->exists();
-        }
-
         // Kirim semua variabel ke view
-        return view('penyewa.detail', compact(
-            'lapangan',
-            'ulasans',
-            'avgRating',
-            'totalUlasan',
-            'lapanganLainnya',
-            'isFavorit'
-        ));
+        return view('penyewa.detail', compact('lapangan', 'ulasans', 'avgRating', 'totalUlasan', 'lapanganLainnya'));
     }
 }
