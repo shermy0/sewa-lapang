@@ -228,6 +228,8 @@ document.querySelectorAll('.btn-pay-again').forEach(btn => {
 });
 
 // ❌ SweetAlert konfirmasi pembatalan
+const cancelEndpoint = '{{ url('/pemesanan/batalkan') }}';
+
 document.querySelectorAll('.btn-cancel').forEach(btn => {
     btn.addEventListener('click', function() {
         const id = this.dataset.id;
@@ -241,15 +243,26 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
             confirmButtonColor: '#d33',
             cancelButtonColor: '#aaa'
         }).then(result => {
-            if (result.isConfirmed) {
-                fetch(`/pemesanan/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-                })
-                .then(() => Swal.fire('Dibatalkan!', 'Pemesanan berhasil dibatalkan.', 'success')
-                    .then(() => location.reload()))
-                .catch(() => Swal.fire('Gagal!', 'Terjadi kesalahan saat membatalkan.', 'error'));
+            if (!result.isConfirmed) {
+                return;
             }
+
+            fetch(`${cancelEndpoint}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('cancel_failed');
+                }
+                return response.json();
+            })
+            .then(() => Swal.fire('Dibatalkan!', 'Pemesanan berhasil dibatalkan.', 'success')
+                .then(() => location.reload()))
+            .catch(() => Swal.fire('Gagal!', 'Terjadi kesalahan saat membatalkan.', 'error'));
         });
     });
 });
