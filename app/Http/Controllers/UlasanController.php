@@ -94,13 +94,20 @@ class UlasanController extends Controller
             abort(403);
         }
 
-        $request->validate([
+        $validated = $request->validate([
+            'rating' => 'nullable|integer|min:1|max:5',
             'komentar' => 'required|string|max:1000',
         ]);
 
-        $ulasan->update([
-            'komentar' => $request->komentar,
-        ]);
+        $payload = [
+            'komentar' => $validated['komentar'],
+        ];
+
+        if (isset($validated['rating']) && $validated['rating'] !== null) {
+            $payload['rating'] = $validated['rating'];
+        }
+
+        $ulasan->update($payload);
 
         return redirect()->route('penyewa.detail', $ulasan->pemesanan->lapangan_id)
                         ->with('success', 'Ulasan berhasil diperbarui.');

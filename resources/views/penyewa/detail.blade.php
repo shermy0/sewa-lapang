@@ -209,22 +209,18 @@
 
                 {{-- Favorit (hanya untuk user penyewa) --}}
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
-                    @if (!empty($isFavorit) && $isFavorit)
-                        <form action="{{ route('favorit.destroy', $lapangan->id) }}" method="POST" class="m-0 p-0">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="fa-solid fa-heart me-1"></i> Hapus Favorit
-                            </button>
-                        </form>
-                    @else
-                        <form action="{{ route('favorit.store', $lapangan->id) }}" method="POST" class="m-0 p-0">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="fa-solid fa-heart me-1"></i> Favorit
-                            </button>
-                        </form>
-                    @endif
+                    @php $favoritAktif = !empty($isFavorit) && $isFavorit; @endphp
+                    <button
+                        type="button"
+                        class="btn {{ $favoritAktif ? 'btn-danger text-white' : 'btn-outline-danger' }} favorite-toggle-btn"
+                        data-favorite-toggle="true"
+                        data-is-favorit="{{ $favoritAktif ? 'true' : 'false' }}"
+                        data-store-url="{{ route('favorit.store', $lapangan->id) }}"
+                        data-destroy-url="{{ route('favorit.destroy', $lapangan->id) }}"
+                    >
+                        <i class="fa-solid fa-heart me-1"></i>
+                        <span>{{ $favoritAktif ? 'Hapus Favorit' : 'Favorit' }}</span>
+                    </button>
 
                     <button
                         type="button"
@@ -389,9 +385,12 @@
                                 <div class="modal-body">
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Rating</label>
-                                        <div class="form-control-plaintext">
-                                            {{ $ulasan->rating }} / 5
-                                        </div>
+                                        <select name="rating" class="form-select">
+                                            <option value="" disabled {{ $ulasan->rating ? '' : 'selected' }}>Pilih rating</option>
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <option value="{{ $i }}" {{ $ulasan->rating == $i ? 'selected' : '' }}>{{ $i }} / 5</option>
+                                            @endfor
+                                        </select>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Komentar</label>
@@ -730,15 +729,57 @@ function toggleFilter(id) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // hide alerts automatically
-    setTimeout(() => {
-        const alertError = document.getElementById('alert-error');
-        if (alertError) alertError.style.display = 'none';
-        const alertSuccess = document.getElementById('alert-success');
-        if (alertSuccess) alertSuccess.style.display = 'none';
-    }, 3000);
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const alertError = document.getElementById('alert-error');
+            if (alertError) alertError.style.display = 'none';
+            const alertSuccess = document.getElementById('alert-success');
+            if (alertSuccess) alertSuccess.style.display = 'none';
+        }, 3000);
 
-    // bersihkan backdrop saat modal ditutup agar layar tidak redup permanen
+        const favoriteBtn = document.querySelector('[data-favorite-toggle="true"]');
+        if (favoriteBtn) {
+            favoriteBtn.addEventListener('click', () => {
+                if (favoriteBtn.dataset.loading === 'true') return;
+                favoriteBtn.dataset.loading = 'true';
+                favoriteBtn.classList.add('disabled');
+
+                const isFavorit = favoriteBtn.dataset.isFavorit === 'true';
+                const url = isFavorit ? favoriteBtn.dataset.destroyUrl : favoriteBtn.dataset.storeUrl;
+
+                fetch(url, {
+                    method: isFavorit ? 'DELETE' : 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('failed');
+                    return response.json();
+                })
+                .then(() => {
+                    favoriteBtn.dataset.isFavorit = isFavorit ? 'false' : 'true';
+                    favoriteBtn.querySelector('span').textContent = isFavorit ? 'Favorit' : 'Hapus Favorit';
+                    favoriteBtn.classList.toggle('btn-outline-danger', isFavorit);
+                    favoriteBtn.classList.toggle('btn-danger', !isFavorit);
+                    favoriteBtn.classList.toggle('text-white', !isFavorit);
+                })
+                .catch(() => {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Gagal', 'Tidak dapat memperbarui status favorit.', 'error');
+                    } else {
+                        alert('Tidak dapat memperbarui status favorit.');
+                    }
+                })
+                .finally(() => {
+                    favoriteBtn.dataset.loading = 'false';
+                    favoriteBtn.classList.remove('disabled');
+                });
+            });
+        }
+    });
+
     document.addEventListener('hidden.bs.modal', function () {
         const backdrops = document.querySelectorAll('.modal-backdrop');
         backdrops.forEach(backdrop => backdrop.remove());
