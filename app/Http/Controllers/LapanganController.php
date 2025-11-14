@@ -16,9 +16,26 @@ class LapanganController extends Controller
 {
     private const MAX_SIMPLE_RANGE_DAYS = 90;
     private const MAX_GENERATED_SLOTS = 500;
+
+    private function ownedLapanganQuery()
+    {
+        return Lapangan::query()->where('pemilik_id', auth()->id());
+    }
+
+    private function findOwnedLapanganOrFail(int $id, array $with = []): Lapangan
+    {
+        $query = $this->ownedLapanganQuery();
+
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        return $query->findOrFail($id);
+    }
+
 public function index(Request $request)
 {
-    $lapangan = Lapangan::query()
+    $lapangan = $this->ownedLapanganQuery()
         ->with('jadwal')
         ->when($request->filled('search'), function ($query) use ($request) {
             $query->where(function ($q) use ($request) {
@@ -104,7 +121,7 @@ public function index(Request $request)
 
     public function show($id)
     {
-        $lapangan = Lapangan::with([
+        $lapangan = $this->findOwnedLapanganOrFail($id, [
                 'jadwal',
                 'sections' => function ($query) {
                     $query->with([
@@ -113,15 +130,14 @@ public function index(Request $request)
                         },
                     ]);
                 },
-            ])
-            ->findOrFail($id);
+            ]);
 
         return view('lapangan.show', compact('lapangan'));
     }
 
     public function update(Request $request, $id)
     {
-        $lapangan = Lapangan::findOrFail($id);
+        $lapangan = $this->findOwnedLapanganOrFail($id);
 
         $request->validate([
             'nama_lapangan' => ['required', 'string', 'max:255'],
@@ -183,7 +199,7 @@ public function index(Request $request)
 
     public function destroy($id)
     {
-        $lapangan = Lapangan::findOrFail($id);
+        $lapangan = $this->findOwnedLapanganOrFail($id);
 
         // Get photos (already decoded by Laravel)
         $fotoPaths = $lapangan->foto ?? [];
@@ -213,21 +229,7 @@ public function index(Request $request)
             ], 401);
         }
 
-        if (auth()->check() && auth()->user()->role === 'pemilik') {
-            $lapangan = Lapangan::with('sections')
-                ->where('id', $lapanganId)
-                ->where('pemilik_id', auth()->id())
-                ->first();
-        } else {
-            $lapangan = Lapangan::with('sections')->find($lapanganId);
-        }
-
-        if (!$lapangan) {
-            return response()->json([
-                'message' => 'Lapangan tidak ditemukan atau tidak dapat diakses.',
-                'jadwal' => [],
-            ], 404);
-        }
+        $lapangan = $this->findOwnedLapanganOrFail($lapanganId);
 
         $section = $lapangan->sections()
             ->with(['jadwal' => function ($query) {
@@ -281,6 +283,7 @@ public function index(Request $request)
 
     public function storeJadwal(Request $request, $lapanganId)
     {
+        $this->findOwnedLapanganOrFail($lapanganId);
         $tipeJadwal = $request->input('tipe_jadwal', 'simple');
 
         if ($tipeJadwal === 'custom') {
@@ -463,6 +466,8 @@ public function index(Request $request)
 
     public function updateJadwal(Request $request, $lapanganId, $jadwalId)
     {
+        $this->findOwnedLapanganOrFail($lapanganId);
+
         $jadwal = JadwalLapangan::where('id', $jadwalId)
             ->whereHas('section', function ($query) use ($lapanganId) {
                 $query->where('lapangan_id', $lapanganId);
@@ -515,6 +520,8 @@ public function index(Request $request)
 
     public function destroyJadwal(Request $request, $lapanganId, $jadwalId = null)
     {
+        $this->findOwnedLapanganOrFail($lapanganId);
+
         $jadwalId = $jadwalId ?? $request->input('jadwal_id');
 
         if (!$jadwalId) {
