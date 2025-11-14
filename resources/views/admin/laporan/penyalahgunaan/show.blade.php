@@ -80,9 +80,8 @@
                     <p class="text-muted">{{ $report->lapangan->lokasi ?? 'Lokasi tidak tersedia' }}</p>
                     @if ($report->lapangan)
                         <a
-                            href="{{ route('lapangan.show', $report->lapangan) }}"
+                            href="{{ route('admin.lapangan.show', $report->lapangan) }}"
                             class="btn btn-sm btn-outline-secondary mt-2"
-                            target="_blank"
                         >
                             <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Lihat lapangan
                         </a>

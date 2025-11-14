@@ -4,464 +4,184 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/pemilik.css') }}">
+
+<!-- ========== CSS UI (dipersingkat tapi tetap sama tampilannya) ========== -->
 <style>
-    .scan-wrapper {
-        max-width: 800px;
-        margin: 0 auto;
-    }
-
-    #barcode-scanner {
-        position: relative;
-        width: 100%;
-        max-width: 640px;
-        height: 480px;
-        margin: 0 auto 20px;
-        border: 3px solid #198754;
-        border-radius: 12px;
-        overflow: hidden;
-        background: #000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    #barcode-scanner video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    #barcode-scanner canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-
-    .scanner-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 80%;
-        height: 50%;
-        border: 3px solid #198754;
-        border-radius: 8px;
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-        pointer-events: none;
-        z-index: 10;
-    }
-
-    .scanner-line {
-        position: absolute;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #198754, transparent);
-        animation: scan 2s linear infinite;
-        box-shadow: 0 0 10px #198754;
-    }
-
-    @keyframes scan {
-        0%, 100% { top: 0; }
-        50% { top: calc(100% - 2px); }
-    }
-
-    .scanner-corners {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-    }
-
-    .scanner-corners::before,
-    .scanner-corners::after {
-        content: '';
-        position: absolute;
-        width: 30px;
-        height: 30px;
-        border: 3px solid #198754;
-    }
-
-    .scanner-corners::before {
-        top: -3px;
-        left: -3px;
-        border-right: none;
-        border-bottom: none;
-    }
-
-    .scanner-corners::after {
-        top: -3px;
-        right: -3px;
-        border-left: none;
-        border-bottom: none;
-    }
-
-    .scanner-corners-bottom::before,
-    .scanner-corners-bottom::after {
-        content: '';
-        position: absolute;
-        width: 30px;
-        height: 30px;
-        border: 3px solid #198754;
-    }
-
-    .scanner-corners-bottom::before {
-        bottom: -3px;
-        left: -3px;
-        border-right: none;
-        border-top: none;
-    }
-
-    .scanner-corners-bottom::after {
-        bottom: -3px;
-        right: -3px;
-        border-left: none;
-        border-top: none;
-    }
-
-    #result-box {
-        background: #fff;
-        border: 2px solid #dee2e6;
-        border-radius: 12px;
-        padding: 25px;
-        margin-top: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    #result-box h5 {
-        color: #198754;
-        margin-bottom: 15px;
-        font-weight: bold;
-        font-size: 18px;
-    }
-
-    #result {
-        font-size: 16px;
-        line-height: 1.8;
-    }
-
-    .loader {
-        display: inline-block;
-        width: 18px;
-        height: 18px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #198754;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 10px;
-        vertical-align: middle;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .success-result {
-        color: #155724;
-        padding: 20px;
-        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-        border-radius: 8px;
-        border-left: 5px solid #28a745;
-        margin-top: 10px;
-    }
-
-    .success-result h6 {
-        font-size: 20px;
-        margin-bottom: 15px;
-        font-weight: bold;
-    }
-
-    .success-result > div {
-        margin-bottom: 8px;
-    }
-
-    .error-result {
-        color: #721c24;
-        padding: 20px;
-        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-        border-radius: 8px;
-        border-left: 5px solid #dc3545;
-        margin-top: 10px;
-    }
-
-    .badge {
-        padding: 5px 12px;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .scanner-tips {
-        background: #e7f3ff;
-        border-left: 4px solid #0066cc;
-        padding: 15px;
-        margin-top: 20px;
-        border-radius: 8px;
-    }
-
-    .scanner-tips h6 {
-        color: #0066cc;
-        margin-bottom: 10px;
-        font-weight: bold;
-    }
-
-    .scanner-tips ul {
-        margin: 0;
-        padding-left: 20px;
-    }
-
-    .scanner-tips li {
-        margin-bottom: 5px;
-        color: #004080;
-    }
-
-    @media (max-width: 768px) {
-        #barcode-scanner {
-            height: 350px;
-        }
-
-        .scanner-overlay {
-            width: 90%;
-            height: 40%;
-        }
-    }
+    .scan-wrapper { max-width: 900px; margin: auto; }
+    #qr-reader { width: 100%; max-width: 640px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(25,135,84,.2); }
+    .scanner-status { margin-top: 15px; text-align: center; background:#198754; padding:10px 20px; color:white; font-weight:600; border-radius:25px; }
+    #result-box { background:#fff; padding:25px; border-radius:16px; margin-top:25px; box-shadow:0 4px 15px rgba(0,0,0,.1); }
+    #result-box h5 { color:#198754; margin-bottom:15px; font-weight:700; }
+    .success-result, .error-result { border-radius:12px; padding:20px; margin-top:12px; }
+    .success-result { background:#d4edda; border-left:6px solid #28a745; }
+    .error-result { background:#f8d7da; border-left:6px solid #dc3545; }
+    .badge { padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
 </style>
 
 <div class="container py-4">
-    <h2 class="fw-bold mb-4 text-success">📱 Scan Tiket QR</h2>
+    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode"></i> Scan Tiket QR</h2>
 
     <div class="scan-wrapper">
-        <!-- Kamera Scanner -->
-        <div id="barcode-scanner">
-            <div class="scanner-overlay">
-                <div class="scanner-line"></div>
-                <div class="scanner-corners"></div>
-                <div class="scanner-corners-bottom"></div>
+
+        <!-- Scanner -->
+        <div id="qr-reader"></div>
+
+        <div class="scanner-status">
+            <i class="fas fa-sync-alt fa-spin me-2"></i> Menginisialisasi scanner...
+        </div>
+
+        <!-- Hasil -->
+        <div id="result-box">
+            <h5><i class="fas fa-clipboard-check"></i> Hasil Scan</h5>
+            <div id="result">
+                <i class="fas fa-camera me-2"></i> Arahkan kamera ke QR code tiket...
             </div>
         </div>
 
-        <!-- Hasil Scan -->
-        <div id="result-box">
-            <h5>📋 Hasil Scan</h5>
-            <div id="result">Arahkan kamera ke QR code tiket untuk mulai memindai...</div>
-        </div>
-
-        <!-- Tips Scanner -->
-        <div class="scanner-tips">
-            <h6>💡 Tips Scanning:</h6>
-            <ul>
-                <li>Jarak optimal: 15-25 cm dari kamera</li>
-                <li>Pastikan pencahayaan cukup terang</li>
-                <li>Posisikan kode QR tepat di area hijau</li>
-                <li>Tahan stabil selama 1-2 detik</li>
-                <li>Tunggu kamera fokus (gambar tajam)</li>
-            </ul>
-        </div>
     </div>
 </div>
 
+<!-- Library scanner tercepat -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener("DOMContentLoaded", async function () {
+
     const resultBox = document.getElementById('result');
+    const scannerStatus = document.querySelector('.scanner-status');
+
     let isProcessing = false;
-    let liveStarted = false;
-    let lastScannedCode = '';
-    let lastScanTime = 0;
+    let lastScan = "";
+    let lastTime = 0;
 
-    const showLoading = (kode, sumber) => {
+    function updateStatus(text, icon="fa-circle-notch fa-spin") {
+        scannerStatus.innerHTML = `<i class="fas ${icon} me-2"></i>${text}`;
+    }
+
+    function showError(msg) {
         resultBox.innerHTML = `
-            <div class="d-flex align-items-center">
-                <span class="loader"></span>
-                <span>Memverifikasi ${sumber} <b>${kode}</b>...</span>
+            <div class="error-result">
+                <strong><i class="fas fa-exclamation-triangle me-2"></i>Error:</strong> ${msg}
             </div>
         `;
-    };
+    }
 
-    const showError = (message) => {
-        resultBox.innerHTML = `<div class="error-result"><strong>❌ Error:</strong> ${message}</div>`;
-    };
+    function renderSuccess(data) {
+        const payload = data.data;
+        const scanStatus = payload.status_scan === 'sudah_scan' ?
+            '<span class="badge bg-success">Sudah Scan</span>' :
+            '<span class="badge bg-warning text-dark">Belum Scan</span>';
 
-    const renderScanResult = (payload = {}) => {
-        const statusScan = payload.status_scan_label
-            || (payload.status_scan === 'sudah_scan' ? 'Sudah Scan'
-                : payload.status_scan === 'belum_scan' ? 'Belum Scan'
-                : (payload.waktu_scan && payload.waktu_scan !== '-' ? 'Sudah Scan' : 'Belum Scan'));
-
-        const statusPembayaran = payload.status_pembayaran_label
-            || (payload.status_pembayaran
-                ? payload.status_pembayaran.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-                : '-');
-
-        return `
+        resultBox.innerHTML = `
             <div class="success-result">
-                <div><strong>Nama Penyewa:</strong> ${payload.nama_penyewa || '-'}</div>
-                <div><strong>Kode Tiket:</strong> ${payload.kode_tiket || '-'}</div>
-                <div><strong>Lapangan:</strong> ${payload.lapangan || '-'}</div>
-                <div><strong>Jam Main:</strong> ${payload.jam_main || '-'}</div>
-                <div><strong>Durasi:</strong> ${payload.durasi || '-'}</div>
-                <div><strong>Status Scan:</strong> ${statusScan}</div>
-                <div><strong>Tanggal Main:</strong> ${payload.tanggal_main || '-'}</div>
-                <div><strong>Status Pembayaran:</strong> ${statusPembayaran}</div>
-                <div><strong>Waktu Scan:</strong> ${payload.waktu_scan || '-'}</div>
+                <h6><i class="fas fa-check-circle me-2"></i> Tiket Valid</h6>
+                <div><strong>Nama Penyewa:</strong> ${payload.nama_penyewa}</div>
+                <div><strong>Kode Tiket:</strong> ${payload.kode_tiket}</div>
+                <div><strong>Lapangan:</strong> ${payload.lapangan}</div>
+                <div><strong>Jam Main:</strong> ${payload.jam_main}</div>
+                <div><strong>Durasi:</strong> ${payload.durasi}</div>
+                <div><strong>Status Scan:</strong> ${scanStatus}</div>
+                <div><strong>Tanggal Main:</strong> ${payload.tanggal_main}</div>
+                <div><strong>Pembayaran:</strong> ${payload.status_pembayaran}</div>
+                <div><strong>Waktu Scan:</strong> ${payload.waktu_scan}</div>
             </div>
         `;
-    };
+    }
 
-    const updateResult = (data) => {
-        if(data.status === 'success'){
-            resultBox.innerHTML = renderScanResult(data.data);
-        } else {
-            showError(data.message || 'Tiket tidak valid atau sudah digunakan');
-        }
-    };
-
-    let html5QrCodeInstance = null;
-
-    const verifyKode = (kode, sumberLabel = 'kode tiket') => {
+    async function verify(kode) {
         const now = Date.now();
-        if (kode === lastScannedCode && (now - lastScanTime) < 3000) {
-            return;
-        }
+        if (kode === lastScan && now - lastTime < 2000) return;
 
-        lastScannedCode = kode;
-        lastScanTime = now;
+        lastScan = kode;
+        lastTime = now;
 
-        showLoading(kode, sumberLabel);
+        updateStatus("Memverifikasi tiket...", "fa-sync-alt fa-spin");
 
-fetch(`{{ url('/verify-tiket') }}/${kode}`, {
-    method: 'GET',
-    headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json'
-    }
-})
+        resultBox.innerHTML = `
+            <div><i class="fas fa-spinner fa-spin me-2"></i>Memeriksa kode <b>${kode}</b>...</div>
+        `;
 
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(updateResult)
-            .catch(err => {
-                console.error('Fetch error:', err);
-                showError('Terjadi kesalahan koneksi. Pastikan server berjalan dan route tersedia.');
-            })
-            .finally(() => {
-                setTimeout(() => {
-                    isProcessing = false;
-                }, 2000);
-            });
-    };
-
-    const playBeep = () => {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            const res = await fetch(`{{ url('/verify-tiket') }}/${kode}`);
+            const json = await res.json();
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.15);
-        } catch(e) {
-            console.log('🔇 Audio not supported');
-        }
-    };
-
-    const handleDecodedText = (text) => {
-        if (isProcessing) return;
-        const kode = (text || '').trim();
-        if (!kode) return;
-
-        isProcessing = true;
-        playBeep();
-        console.log(`✅ QR detected: ${kode}`);
-        verifyKode(kode, 'QR code');
-    };
-
-    const startLiveScanner = () => {
-        if (liveStarted) return;
-
-        const scannerElement = document.getElementById('barcode-scanner');
-        const qrBoxSize = Math.min(320, Math.max(200, scannerElement.offsetWidth - 80));
-
-        html5QrCodeInstance = new Html5Qrcode('barcode-scanner');
-        const config = {
-            fps: 10,
-            qrbox: { width: qrBoxSize, height: qrBoxSize }
-        };
-
-        html5QrCodeInstance.start(
-            { facingMode: "environment" },
-            config,
-            handleDecodedText,
-            errorMessage => {
-                // Keep silent for most frame errors
-                console.debug('Scan attempt error:', errorMessage);
+            if (json.status === "success") {
+                updateStatus("Scan Berhasil!", "fa-check-circle");
+                renderSuccess(json);
+            } else {
+                updateStatus("Tiket Tidak Valid", "fa-times-circle");
+                showError(json.message || "QR tidak valid");
             }
-        ).then(() => {
-            liveStarted = true;
-            resultBox.innerHTML = '📸 Scanner aktif. Dekatkan QR code ke area hijau dan tahan stabil...';
-        }).catch(err => {
-            console.error('HTML5 QR init error:', err);
-            showError('❌ Tidak bisa menginisiasi scanner. Periksa izin kamera dan coba reload halaman.');
-        });
-    };
-
-    const stopLiveScanner = () => {
-        if (html5QrCodeInstance && liveStarted) {
-            html5QrCodeInstance.stop().then(() => {
-                html5QrCodeInstance.clear();
-                liveStarted = false;
-            }).catch(err => console.error('Stop scanner error:', err));
+        } catch (e) {
+            updateStatus("Error Koneksi", "fa-exclamation-triangle");
+            showError("Tidak dapat terhubung ke server.");
         }
-    };
 
-    // Check camera permissions
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        resultBox.innerHTML = '⏳ Meminta izin akses kamera...';
-
-        navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        })
-        .then(function(stream) {
-            console.log('✅ Camera access granted');
-            stream.getTracks().forEach(track => track.stop());
-            startLiveScanner();
-        })
-        .catch(function(err) {
-            console.error('❌ Camera permission error:', err);
-            showError('Akses kamera ditolak. Silakan:<br>1. Klik ikon gembok/kamera di address bar<br>2. Izinkan akses kamera<br>3. Refresh halaman ini');
-        });
-    } else {
-        showError('Browser Anda tidak mendukung akses kamera. Gunakan browser modern seperti Chrome, Firefox, atau Safari.');
+        setTimeout(() => {
+            updateStatus("Siap Memindai", "fa-circle-notch fa-spin");
+        }, 2000);
     }
 
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        stopLiveScanner();
-    });
+    function playBeep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 900;
+            gain.gain.value = 0.2;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } catch {}
+    }
 
-    // Cleanup on visibility change (tab switch)
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            console.log('⏸️ Page hidden, pausing scanner');
-            stopLiveScanner();
-        } else if (!liveStarted) {
-            console.log('▶️ Page visible, attempting to resume scanner');
-            startLiveScanner();
-        }
-    });
+    // ======== START SCANNER ========
+    function startScanner(cameraId) {
+        updateStatus("Menyalakan kamera...");
 
+        const qr = new Html5Qrcode("qr-reader");
+
+        qr.start(
+            cameraId,
+            {
+                fps: 15,
+                qrbox: { width: 260, height: 260 }
+            },
+            (decodedText) => {
+                if (!isProcessing) {
+                    isProcessing = true;
+                    playBeep();
+                    verify(decodedText.trim());
+                    setTimeout(() => isProcessing = false, 1000);
+                }
+            },
+            (err) => {}
+        ).catch(err => {
+            updateStatus("Gagal membuka kamera", "fa-ban");
+            showError("Tidak dapat mengakses kamera. Pastikan izin sudah diberikan.");
+        });
+    }
+
+    // ======== PILIH KAMERA TERBAIK ========
+    const devices = await Html5Qrcode.getCameras();
+
+    if (!devices || devices.length === 0) {
+        updateStatus("Tidak ada kamera terdeteksi", "fa-ban");
+        showError("Device tidak memiliki kamera.");
+        return;
+    }
+
+    // Prefer kamera belakang
+    const backCam = devices.find(d =>
+        d.label.toLowerCase().includes("back") ||
+        d.label.toLowerCase().includes("rear")
+    );
+
+    startScanner(backCam ? backCam.id : devices[0].id);
+
+    updateStatus("Siap Memindai", "fa-circle-notch fa-spin");
 });
 </script>
+
 @endsection

@@ -25,4 +25,19 @@ class LapanganController extends Controller
             'lapangan' => $lapangan,
         ]);
     }
+
+    public function show(Lapangan $lapangan)
+    {
+        $lapangan->load([
+            'pemilik',
+            'sections.jadwal',
+            'laporanPenyalahgunaan' => fn ($query) => $query->latest()->with(['pelapor', 'terlapor']),
+        ]);
+
+        return view('admin.lapangan.show', [
+            'lapangan' => $lapangan,
+            'totalJadwal' => $lapangan->sections->sum(fn ($section) => $section->jadwal->count()),
+            'recentReports' => $lapangan->laporanPenyalahgunaan->take(5),
+        ]);
+    }
 }

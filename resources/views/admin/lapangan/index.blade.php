@@ -58,6 +58,9 @@
                                         data-bs-target="#modalPreviewLapangan{{ $item->id }}">
                                         <i class="fa-solid fa-eye me-1"></i> Tinjauan
                                     </button>
+                                    <a href="{{ route('admin.lapangan.show', $item) }}" class="btn btn-sm btn-primary ms-2">
+                                        Detail
+                                    </a>
                                 </td>
                             </tr>
 

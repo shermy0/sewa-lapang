@@ -75,7 +75,26 @@ class BerandaController extends Controller
             ->limit(6)
             ->get();
 
+        $isFavorit = false;
+        if (
+            auth()->check() &&
+            auth()->user()->role === 'penyewa' &&
+            Schema::hasTable('favorit_lapangan')
+        ) {
+            $isFavorit = auth()->user()
+                ->favoritLapangan()
+                ->where('lapangan_id', $lapangan->id)
+                ->exists();
+        }
+
         // Kirim semua variabel ke view
-        return view('penyewa.detail', compact('lapangan', 'ulasans', 'avgRating', 'totalUlasan', 'lapanganLainnya'));
+        return view('penyewa.detail', compact(
+            'lapangan',
+            'ulasans',
+            'avgRating',
+            'totalUlasan',
+            'lapanganLainnya',
+            'isFavorit'
+        ));
     }
 }

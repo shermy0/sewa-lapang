@@ -199,7 +199,7 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-outline-danger">
-                                <i class="fa-solid fa-heart-crack me-1"></i> Hapus Favorit
+                                <i class="fa-solid fa-heart me-1"></i> Hapus Favorit
                             </button>
                         </form>
                     @else

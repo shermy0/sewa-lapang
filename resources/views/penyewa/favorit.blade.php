@@ -54,7 +54,7 @@
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-outline-danger flex-grow-1"
                                             onclick="return confirm('Hapus lapangan dari favorit?')">
-                                        <i class="fa-solid fa-heart-crack me-1"></i> Hapus
+                                        <i class="fa-solid fa-heart me-1"></i> Hapus
                                     </button>
                                 </form>
                             </div>

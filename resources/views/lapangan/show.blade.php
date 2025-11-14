@@ -102,17 +102,14 @@
                                         </span>
                                     </div>
                                 </div>
-                                <div class="col-md-4 text-md-end">
-                                    @if($lapangan->harga_sewa)
+                                @if($lapangan->harga_sewa)
+                                    <div class="col-md-4 text-md-end">
                                         <div class="small text-muted">Tarif dasar per jam</div>
                                         <div class="display-6 fw-bold text-success">
                                             Rp {{ number_format($lapangan->harga_sewa, 0, ',', '.') }}
                                         </div>
-                                    @else
-                                        <div class="small text-muted">Harga belum diatur</div>
-                                        <div class="text-muted">-</div>
-                                    @endif
-                                </div>
+                                    </div>
+                                @endif
                             </div>
 
                             <hr class="my-4">
@@ -144,7 +141,7 @@
                             <div class="mt-4">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <div class="fw-semibold text-dark">
-                                        <i class="fa-solid fa-layer-group text-primary me-2"></i> 
+                                        <i class="fa-solid fa-layer-group text-primary me-2"></i>
                                         Total Section: {{ $lapangan->sections->count() }}
                                     </div>
                                     <span class="badge bg-primary bg-opacity-10 text-primary">
@@ -168,7 +165,7 @@
                             </div>
                             @endif
 
-                          
+
                         </div>
                     </div>
                 </div>
@@ -189,13 +186,19 @@
                             <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 me-2">
                                 Total: {{ $lapangan->sections->count() }} Section
                             </span>
-                            <a href="#" class="btn btn-primary">
-                                <i class="fa-solid fa-plus me-1"></i> Tambah Section
-                            </a>
                         </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
+                    @php
+                        $hasHargaDefault = $lapangan->sections->contains(function ($section) use ($lapangan) {
+                            $hargaDefault = $section->harga_per_jam;
+                            if ((!$hargaDefault || $hargaDefault <= 0) && !is_null($lapangan->harga_sewa)) {
+                                $hargaDefault = $lapangan->harga_sewa;
+                            }
+                            return $hargaDefault && $hargaDefault > 0;
+                        });
+                    @endphp
                     <div class="table-responsive">
                         <table class="table table-striped align-middle mb-0">
                             <thead class="bg-primary bg-opacity-10 text-primary fw-semibold">
@@ -203,7 +206,9 @@
                                     <th class="text-center">No</th>
                                     <th>Nama Section</th>
                                     <th>Deskripsi</th>
-                                    <th class="text-center">Harga Default / Jam</th>
+                                    @if($hasHargaDefault)
+                                        <th class="text-center">Harga Default / Jam</th>
+                                    @endif
                                     <th class="text-center">Jumlah Jadwal</th>
                                 </tr>
                             </thead>
@@ -216,25 +221,25 @@
                                             <small class="text-muted">ID: {{ $section->id }}</small>
                                         </td>
                                         <td>{{ $section->deskripsi ?? 'Tidak ada deskripsi' }}</td>
-                                        @php
-                                            $hargaDefault = $section->harga_per_jam;
-                                            if ((!$hargaDefault || $hargaDefault <= 0) && !is_null($lapangan->harga_sewa)) {
-                                                $hargaDefault = $lapangan->harga_sewa;
-                                            }
-                                        @endphp
-                                        <td class="text-center">
-                                            @if($hargaDefault && $hargaDefault > 0)
-                                                <span class="fw-bold text-success">
-                                                    Rp {{ number_format($hargaDefault, 0, ',', '.') }}
-                                                </span>
-                                                <div class="text-muted small">/ jam</div>
-                                                @if(!$section->harga_per_jam || $section->harga_per_jam <= 0)
-                                                    <small class="text-muted d-block fst-italic">Mengikuti harga lapangan</small>
+                                        @if($hasHargaDefault)
+                                            @php
+                                                $hargaDefault = $section->harga_per_jam;
+                                                if ((!$hargaDefault || $hargaDefault <= 0) && !is_null($lapangan->harga_sewa)) {
+                                                    $hargaDefault = $lapangan->harga_sewa;
+                                                }
+                                            @endphp
+                                            <td class="text-center">
+                                                @if($hargaDefault && $hargaDefault > 0)
+                                                    <span class="fw-bold text-success">
+                                                        Rp {{ number_format($hargaDefault, 0, ',', '.') }}
+                                                    </span>
+                                                    <div class="text-muted small">/ jam</div>
+                                                    @if(!$section->harga_per_jam || $section->harga_per_jam <= 0)
+                                                        <small class="text-muted d-block fst-italic">Mengikuti harga lapangan</small>
+                                                    @endif
                                                 @endif
-                                            @else
-                                                <span class="text-muted">Belum diatur</span>
-                                            @endif
-                                        </td>
+                                            </td>
+                                        @endif
                                         <td class="text-center">
                                             <span class="badge bg-success-subtle text-success px-3 py-2">
                                                 {{ $section->jadwal_count ?? $section->jadwal->count() }} jadwal
@@ -253,9 +258,7 @@
                     <i class="fa-solid fa-layer-group fa-3x mb-3 opacity-50"></i>
                     <h5 class="fw-semibold">Belum ada section</h5>
                     <p class="mb-4">Tambahkan section untuk mengelola bagian-bagian lapangan ini.</p>
-                    <a href="#" class="btn btn-primary">
-                        <i class="fa-solid fa-plus me-2"></i> Tambah Section Pertama
-                    </a>
+                    <span class="text-muted small">Penambahan section belum tersedia.</span>
                 </div>
             </div>
             @endif
@@ -271,9 +274,6 @@
                                 </h5>
                                 <span class="text-muted">Rincian jadwal pada setiap section</span>
                             </div>
-                            <a href="#" class="btn btn-success">
-                                <i class="fa-solid fa-plus me-1"></i> Tambah Jadwal
-                            </a>
                         </div>
                     </div>
                     <div class="card-body">

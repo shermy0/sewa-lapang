@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
+use App\Http\Controllers\Penyewa\LaporanPenyalahgunaanController as PenyewaLaporanPenyalahgunaanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\KelolaRekeningController;
@@ -104,6 +105,11 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
     Route::get('favorit', [PenyewaFavoritController::class, 'index'])->name('favorit.index');
     Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
     Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
+
+    Route::middleware('role:penyewa')->prefix('penyewa')->name('penyewa.')->group(function () {
+        Route::get('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'index'])->name('laporan.index');
+        Route::post('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'store'])->name('laporan.store');
+    });
 
 
     Route::get('/verify-email', function (Request $request) {
@@ -229,6 +235,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::patch('banners/{banner}/toggle', [BannerController::class, 'toggle'])->name('banners.toggle');
 
         Route::get('lapangan', [AdminLapanganController::class, 'index'])->name('lapangan.index');
+        Route::get('lapangan/{lapangan}', [AdminLapanganController::class, 'show'])->name('lapangan.show');
 
         Route::get('pembayaran', [AdminPembayaranController::class, 'index'])->name('pembayaran.index');
         Route::put('pembayaran/{pembayaran}', [AdminPembayaranController::class, 'update'])->name('pembayaran.update');

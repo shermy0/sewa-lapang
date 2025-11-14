@@ -67,17 +67,10 @@
                     }
                     $totalSections = $item->sections->count();
                     $totalJadwal = 0;
-                    $hargaRataRata = 0;
-                    
-                    // Hitung total jadwal dan harga rata-rata dari semua sections
+
+                    // Hitung total jadwal dari semua sections
                     foreach ($item->sections as $section) {
                         $totalJadwal += $section->jadwal->count();
-                        if ($section->jadwal->count() > 0) {
-                            $hargaRataRata += $section->jadwal->avg('harga_sewa');
-                        }
-                    }
-                    if ($item->sections->count() > 0) {
-                        $hargaRataRata = $hargaRataRata / $item->sections->count();
                     }
                 @endphp
 
@@ -191,16 +184,6 @@
                                         {{ $totalJadwal }} Slot
                                     </span>
                                 </div>
-                                @if ($hargaRataRata > 0)
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted">
-                                            <i class="fa-solid fa-money-bill-wave text-success me-1"></i> Harga Rata-rata
-                                        </small>
-                                        <span class="fw-bold text-success">
-                                            Rp {{ number_format($hargaRataRata, 0, ',', '.') }} / jam
-                                        </span>
-                                    </div>
-                                @endif
                             </div>
 
                             {{-- Tombol Aksi --}}
@@ -262,7 +245,7 @@
                                             <select name="id_kategori" class="form-select form-select-lg" required>
                                                 <option value="" disabled>Pilih Kategori</option>
                                                 @foreach ($kategori as $kat)
-                                                    <option value="{{ $kat->id }}" 
+                                                    <option value="{{ $kat->id }}"
                                                         {{ $item->id_kategori == $kat->id ? 'selected' : '' }}>
                                                         {{ $kat->nama_kategori }}
                                                     </option>
@@ -283,7 +266,7 @@
                                             </label>
                                             <textarea name="deskripsi" class="form-control" rows="4">{{ $item->deskripsi }}</textarea>
                                         </div>
-                                        
+
                                         {{-- Section Management --}}
                                         <div class="col-12">
                                             <div class="card border-0 bg-light">
@@ -298,19 +281,19 @@
                                                             <div class="row g-3 mb-3 section-item">
                                                                 <div class="col-md-4">
                                                                     <label class="form-label">Nama Section</label>
-                                                                    <input type="text" name="sections[{{ $section->id }}][nama_section]" 
+                                                                    <input type="text" name="sections[{{ $section->id }}][nama_section]"
                                                                         class="form-control" value="{{ $section->nama_section }}" required>
                                                                 </div>
                                                                 <div class="col-md-4">
                                                                     <label class="form-label">Deskripsi</label>
-                                                                    <input type="text" name="sections[{{ $section->id }}][deskripsi]" 
+                                                                    <input type="text" name="sections[{{ $section->id }}][deskripsi]"
                                                                         class="form-control" value="{{ $section->deskripsi }}">
                                                                 </div>
                                                                 <div class="col-md-3">
                                                                     <label class="form-label">Harga Default / Jam</label>
                                                                     <div class="input-group">
                                                                         <span class="input-group-text bg-success text-white">Rp</span>
-                                                                        <input type="number" name="sections[{{ $section->id }}][harga_per_jam]" 
+                                                                        <input type="number" name="sections[{{ $section->id }}][harga_per_jam]"
                                                                             class="form-control" value="{{ old('sections.'.$section->id.'.harga_per_jam', $section->harga_per_jam) }}" min="0" step="1000">
                                                                         <span class="input-group-text bg-light text-muted">/jam</span>
                                                                     </div>
@@ -326,7 +309,7 @@
                                                             </div>
                                                         @endforeach
                                                     </div>
-                                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" 
+                                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2"
                                                         onclick="tambahSection({{ $item->id }})">
                                                         <i class="fa-solid fa-plus me-1"></i> Tambah Section
                                                     </button>
@@ -398,7 +381,7 @@
                                     <div class="card-body">
                                         <div class="row g-3">
                                             <div class="col-md-6">
-                                                <select class="form-select" id="section-selector-{{ $item->id }}" 
+                                                <select class="form-select" id="section-selector-{{ $item->id }}"
                                                     data-default-harga="{{ $item->harga_sewa ?? 0 }}"
                                                     onchange="tampilkanJadwalSection({{ $item->id }})">
                                                     <option value="">-- Pilih Section --</option>
@@ -428,7 +411,7 @@
                                 <div class="card border-0 bg-light mb-4" id="form-jadwal-container-{{ $item->id }}" style="display: none;">
                                     <div class="card-header bg-transparent border-0">
                                         <h6 class="mb-0 fw-bold text-dark">
-                                            <i class="fa-solid fa-plus-circle me-2 text-success"></i> 
+                                            <i class="fa-solid fa-plus-circle me-2 text-success"></i>
                                             Tambah Jadwal Baru - <span id="section-name-{{ $item->id }}"></span>
                                         </h6>
                                     </div>
@@ -956,17 +939,17 @@
                                                             <label class="form-label fw-semibold">
                                                                 Nama Section <span class="text-danger">*</span>
                                                             </label>
-                                                            <input type="text" name="sections[0][nama_section]" 
-                                                                class="form-control" 
-                                                                placeholder="Contoh: Lapangan A, Court 1" 
-                                                                value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}" 
+                                                            <input type="text" name="sections[0][nama_section]"
+                                                                class="form-control"
+                                                                placeholder="Contoh: Lapangan A, Court 1"
+                                                                value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}"
                                                                 required>
                                                             <div class="form-text">Contoh: Lapangan A, Court 1</div>
                                                         </div>
                                                         <div class="col-md-4">
                                                             <label class="form-label fw-semibold">Deskripsi</label>
-                                                            <input type="text" name="sections[0][deskripsi]" 
-                                                                class="form-control" 
+                                                            <input type="text" name="sections[0][deskripsi]"
+                                                                class="form-control"
                                                                 placeholder="Deskripsi singkat section..."
                                                                 value="{{ old('sections.0.deskripsi') }}">
                                                             <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
@@ -975,8 +958,8 @@
                                                             <label class="form-label fw-semibold">Harga Default / Jam</label>
                                                             <div class="input-group">
                                                                 <span class="input-group-text bg-success text-white">Rp</span>
-                                                        <input type="number" name="sections[0][harga_per_jam]" 
-                                                            class="form-control" 
+                                                        <input type="number" name="sections[0][harga_per_jam]"
+                                                            class="form-control"
                                                             placeholder="150000"
                                                             value="{{ old('sections.0.harga_per_jam', 0) }}"
                                                             min="0" step="1000">
@@ -1552,7 +1535,7 @@
                 }
             });
         });
-        
+
         // Tambah section baru di form tambah lapangan
         document.getElementById('tambah-section').addEventListener('click', function() {
             const container = document.getElementById('section-container');
@@ -1573,15 +1556,15 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
-                        <input type="text" name="sections[${sectionCount}][nama_section]" 
-                            class="form-control" 
+                        <input type="text" name="sections[${sectionCount}][nama_section]"
+                            class="form-control"
                             placeholder="Contoh: Lapangan B, Court 2" required>
                         <div class="form-text">Contoh: Lapangan B, Court 2</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Deskripsi</label>
-                        <input type="text" name="sections[${sectionCount}][deskripsi]" 
-                            class="form-control" 
+                        <input type="text" name="sections[${sectionCount}][deskripsi]"
+                            class="form-control"
                             placeholder="Deskripsi singkat section...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
@@ -1589,7 +1572,7 @@
                         <label class="form-label fw-semibold">Harga Default / Jam</label>
                         <div class="input-group">
                             <span class="input-group-text bg-success text-white">Rp</span>
-                            <input type="number" name="sections[${sectionCount}][harga_per_jam]" 
+                            <input type="number" name="sections[${sectionCount}][harga_per_jam]"
                                 class="form-control" min="0" step="1000" placeholder="150000">
                             <span class="input-group-text bg-light text-muted">/jam</span>
                         </div>
@@ -1611,7 +1594,7 @@
 
         // Hapus section
         document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('remove-section') || 
+            if (e.target.classList.contains('remove-section') ||
                 e.target.closest('.remove-section')) {
                 const btn = e.target.classList.contains('remove-section') ? e.target : e.target.closest('.remove-section');
                 btn.closest('.section-item').remove();
@@ -1638,15 +1621,15 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
-                        <input type="text" name="sections[new_${sectionCount}][nama_section]" 
-                            class="form-control" 
+                        <input type="text" name="sections[new_${sectionCount}][nama_section]"
+                            class="form-control"
                             placeholder="Contoh: Lapangan Baru" required>
                         <div class="form-text">Contoh: Lapangan Baru atau Court Ekstra.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Deskripsi</label>
-                        <input type="text" name="sections[new_${sectionCount}][deskripsi]" 
-                            class="form-control" 
+                        <input type="text" name="sections[new_${sectionCount}][deskripsi]"
+                            class="form-control"
                             placeholder="Deskripsi singkat section...">
                         <div class="form-text">Opsional, gunakan untuk catatan khusus.</div>
                     </div>
@@ -1654,7 +1637,7 @@
                         <label class="form-label fw-semibold">Harga Default / Jam</label>
                         <div class="input-group">
                             <span class="input-group-text bg-success text-white">Rp</span>
-                            <input type="number" name="sections[new_${sectionCount}][harga_per_jam]" 
+                            <input type="number" name="sections[new_${sectionCount}][harga_per_jam]"
                                 class="form-control" min="0" step="1000" placeholder="150000">
                             <span class="input-group-text bg-light text-muted">/jam</span>
                         </div>
@@ -1676,7 +1659,7 @@
             if (!selector) return;
             const sectionId = selector.value;
             const defaultHargaLapangan = Number(selector.dataset.defaultHarga || 0);
-            
+
             if (!sectionId) {
                 resetJadwalView(lapanganId);
                 updateDefaultHargaInputs(lapanganId, defaultHargaLapangan);

@@ -180,4 +180,9 @@ public function pemesanan()
     {
         return $this->hasMany(SectionLapangan::class, 'lapangan_id');
     }
+
+    public function laporanPenyalahgunaan()
+    {
+        return $this->hasMany(LaporanPenyalahgunaan::class, 'lapangan_id');
+    }
 }

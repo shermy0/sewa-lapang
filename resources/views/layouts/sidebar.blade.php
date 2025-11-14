@@ -6,17 +6,22 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>@yield('title', 'SewaLap Dashboard')</title>
+  @php $currentUser = Auth::user(); @endphp
 
   <link rel="icon" href="{{ asset('images/logo-sewalap.png') }}" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+  @if ($currentUser && $currentUser->role === 'admin')
+      <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+  @endif
+  @stack('styles')
 </head>
 
 <body>
 @php
-    $user = Auth::user();
+    $user = $currentUser;
 
     // MENU ADMIN
     if ($user && $user->role === 'admin') {
@@ -107,6 +112,12 @@
                 'active_routes' => ['pemilik.scan'],
             ],
             [
+                'label' => 'Laporan',
+                'icon' => 'fa-solid fa-flag',
+                'route' => 'penyewa.laporan.index',
+                'active_routes' => ['penyewa.laporan.index'],
+            ],
+            [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
                 'route' => 'profile.index',
@@ -150,6 +161,12 @@
                         'active_routes' => ['penyewa.riwayat'],
                     ],
                 ],
+            ],
+            [
+                'label' => 'Laporan',
+                'icon' => 'fa-solid fa-flag',
+                'route' => 'penyewa.laporan.index',
+                'active_routes' => ['penyewa.laporan.index'],
             ],
             [
                 'label' => 'Pengaturan Akun',
@@ -260,58 +277,119 @@
   }
 
   // Logout confirm
-  document.getElementById('logout-button').addEventListener('click', function() {
-    Swal.fire({
-        title: 'Yakin ingin keluar?',
-        text: "Kamu akan logout dari akun ini",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Ya, keluar!',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            document.getElementById('logout-form').submit();
-        }
-    });
-  });
-</script>
-
-    <!-- ⭐ PENTING: Bootstrap JS Bundle (termasuk Popper.js) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Stack untuk script tambahan dari halaman child -->
-    @stack('scripts')
-<script>
-  const sidebarEl = document.getElementById('sidebar');
-  const mainContentEl = document.getElementById('mainContent');
-  const toggleSidebarBtn = document.getElementById('toggleSidebar');
-  const dropdownToggles = document.querySelectorAll('[data-bs-toggle="submenu"]');
-
-  if (toggleSidebarBtn && sidebarEl && mainContentEl) {
-    toggleSidebarBtn.addEventListener('click', () => {
-      sidebarEl.classList.toggle('collapsed');
-      mainContentEl.classList.toggle('expanded');
-    });
+  const logoutButton = document.getElementById('logout-button');
+  if (logoutButton) {
+      logoutButton.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Yakin ingin keluar?',
+            text: "Kamu akan logout dari akun ini",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, keluar!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('logout-form').submit();
+            }
+        });
+      });
   }
-
-  dropdownToggles.forEach(toggle => {
-    toggle.addEventListener('click', () => {
-      const submenu = toggle.nextElementSibling;
-      const isShown = submenu.classList.contains('show');
-
-      document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
-      document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
-
-      if (!isShown) {
-        submenu.classList.add('show');
-        toggle.classList.add('active');
-      }
-    });
-  });
 </script>
 
+<script>
+  (function () {
+    const sidebarEl = document.getElementById('sidebar');
+    const mainContentEl = document.getElementById('mainContent');
+    const toggleSidebarBtn = document.getElementById('toggleSidebar');
+    const dropdownToggles = document.querySelectorAll('[data-bs-toggle="submenu"]');
 
+    if (toggleSidebarBtn && sidebarEl && mainContentEl) {
+      toggleSidebarBtn.addEventListener('click', () => {
+        sidebarEl.classList.toggle('collapsed');
+        mainContentEl.classList.toggle('expanded');
+      });
+    }
+
+    dropdownToggles.forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const submenu = toggle.nextElementSibling;
+        const isShown = submenu.classList.contains('show');
+
+        document.querySelectorAll('.submenu').forEach(s => s.classList.remove('show'));
+        document.querySelectorAll('.menu-link.dropdown-toggle').forEach(l => l.classList.remove('active'));
+
+        if (!isShown) {
+          submenu.classList.add('show');
+          toggle.classList.add('active');
+        }
+      });
+    });
+
+    if (typeof Swal !== 'undefined') {
+      const flashMessages = {
+          error: @json(session('error')),
+          success: @json(session('success')),
+          status: @json(session('status')),
+          warning: @json(session('warning')),
+          info: @json(session('info')),
+      };
+
+      const flashTitles = {
+          error: 'Terjadi Kesalahan',
+          success: 'Berhasil',
+          status: 'Berhasil',
+          warning: 'Perhatian',
+          info: 'Informasi',
+      };
+
+      const flashOrder = ['error', 'success', 'status', 'warning', 'info'];
+
+      for (const type of flashOrder) {
+          const message = flashMessages[type];
+          if (!message) continue;
+
+          Swal.fire({
+              icon: type === 'status' ? 'success' : type,
+              title: flashTitles[type] ?? 'Informasi',
+              text: message,
+              confirmButtonColor: '#41A67E',
+          });
+          break;
+      }
+
+      document.querySelectorAll('form[data-confirm]').forEach((form) => {
+          form.addEventListener('submit', (event) => {
+              if (form.dataset.confirmed === 'true') {
+                  return;
+              }
+
+              event.preventDefault();
+
+              const confirmOptions = {
+                  title: form.dataset.confirmTitle || 'Apakah Anda yakin?',
+                  text: form.dataset.confirm || '',
+                  icon: form.dataset.confirmIcon || 'warning',
+                  showCancelButton: true,
+                  confirmButtonColor: '#41A67E',
+                  cancelButtonColor: '#d33',
+                  confirmButtonText: form.dataset.confirmButton || 'Ya',
+                  cancelButtonText: form.dataset.cancelButton || 'Batal',
+              };
+
+              Swal.fire(confirmOptions).then((result) => {
+                  if (result.isConfirmed) {
+                      form.dataset.confirmed = 'true';
+                      form.submit();
+                  }
+              });
+          });
+      });
+    }
+  })();
+</script>
+
+@stack('scripts')
 </body>
 </html>
