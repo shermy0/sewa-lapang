@@ -279,24 +279,15 @@
                                                     <div id="section-container-{{ $item->id }}">
                                                         @foreach($item->sections as $index => $section)
                                                             <div class="row g-3 mb-3 section-item">
-                                                                <div class="col-md-4">
+                                                                <div class="col-md-5">
                                                                     <label class="form-label">Nama Section</label>
                                                                     <input type="text" name="sections[{{ $section->id }}][nama_section]"
                                                                         class="form-control" value="{{ $section->nama_section }}" required>
                                                                 </div>
-                                                                <div class="col-md-4">
+                                                                <div class="col-md-6">
                                                                     <label class="form-label">Deskripsi</label>
                                                                     <input type="text" name="sections[{{ $section->id }}][deskripsi]"
                                                                         class="form-control" value="{{ $section->deskripsi }}">
-                                                                </div>
-                                                                <div class="col-md-3">
-                                                                    <label class="form-label">Harga Default / Jam</label>
-                                                                    <div class="input-group">
-                                                                        <span class="input-group-text bg-success text-white">Rp</span>
-                                                                        <input type="number" name="sections[{{ $section->id }}][harga_per_jam]"
-                                                                            class="form-control" value="{{ old('sections.'.$section->id.'.harga_per_jam', $section->harga_per_jam) }}" min="0" step="1000">
-                                                                        <span class="input-group-text bg-light text-muted">/jam</span>
-                                                                    </div>
                                                                 </div>
                                                                 <div class="col-md-1">
                                                                     <label class="form-label">&nbsp;</label>
@@ -662,13 +653,6 @@
                                                                     placeholder="150000" value="{{ $item->harga_sewa ?? '' }}" required data-harga-per-jam-input>
                                                                 <span class="input-group-text bg-light text-muted">/ jam</span>
                                                             </div>
-                                                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                    data-apply-default-harga>
-                                                                    <i class="fa-solid fa-rotate me-1"></i> Pakai harga default section
-                                                                </button>
-                                                                <small class="text-muted" data-default-harga-display>Belum ada harga default section</small>
-                                                            </div>
                                                             <div class="form-text text-muted mt-2">
                                                                 Nilai per slot: <span class="fw-semibold text-success"
                                                                     data-harga-total-display>Rp 0</span>
@@ -946,25 +930,13 @@
                                                                 required>
                                                             <div class="form-text">Contoh: Lapangan A, Court 1</div>
                                                         </div>
-                                                        <div class="col-md-4">
+                                                        <div class="col-md-6">
                                                             <label class="form-label fw-semibold">Deskripsi</label>
                                                             <input type="text" name="sections[0][deskripsi]"
                                                                 class="form-control"
                                                                 placeholder="Deskripsi singkat section..."
                                                                 value="{{ old('sections.0.deskripsi') }}">
                                                             <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <label class="form-label fw-semibold">Harga Default / Jam</label>
-                                                            <div class="input-group">
-                                                                <span class="input-group-text bg-success text-white">Rp</span>
-                                                        <input type="number" name="sections[0][harga_per_jam]"
-                                                            class="form-control"
-                                                            placeholder="150000"
-                                                            value="{{ old('sections.0.harga_per_jam', 0) }}"
-                                                            min="0" step="1000">
-                                                                <span class="input-group-text bg-light text-muted">/jam</span>
-                                                            </div>
                                                         </div>
                                                         <div class="col-md-1 d-flex align-items-end justify-content-md-end">
                                                             <span class="text-muted small">Section utama</span>
@@ -1069,13 +1041,6 @@
                 }
                 hargaInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
-
-            if (defaultDisplay) {
-                defaultDisplay.textContent = hasValidHarga
-                    ? `${formatRupiahValue(parsedHarga)} / jam`
-                    : 'Belum ada harga default section';
-            }
-
             if (defaultButton) {
                 defaultButton.disabled = !hasValidHarga;
                 defaultButton.dataset.defaultHarga = hasValidHarga ? parsedHarga : '';
@@ -1119,7 +1084,6 @@
         function setSectionInfo(lapanganId, sectionName, hargaDefault) {
             const infoEl = document.getElementById(`section-info-${lapanganId}`);
             const nameEl = document.getElementById(`section-name-${lapanganId}`);
-            const hargaText = hargaDefault > 0 ? `${formatRupiahValue(hargaDefault)} / jam` : 'harga default belum diatur';
 
             if (infoEl) {
                 infoEl.innerHTML = `<strong>${sectionName}</strong> - ${hargaText}. Pilih tanggal dan waktu untuk menambah jadwal`;
@@ -1410,31 +1374,6 @@
                     updateSummary();
                 });
 
-                if (defaultHargaBtn && hargaInput) {
-                    defaultHargaBtn.addEventListener('click', event => {
-                        event.preventDefault();
-                        const defaultHarga = Number(defaultHargaBtn.dataset.defaultHarga);
-                        if (!defaultHarga || defaultHarga <= 0) {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Harga default belum tersedia',
-                                text: 'Pilih section dengan harga default atau isi manual.',
-                                confirmButtonColor: '#0d6efd',
-                            });
-                            return;
-                        }
-                        hargaInput.value = defaultHarga;
-                        hargaInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        if (typeof Toast !== 'undefined') {
-                            Toast.fire({
-                                icon: 'success',
-                                title: 'Harga default section diterapkan',
-                            });
-                        }
-                        updateSummary();
-                    });
-                }
-
                 const summarySelectors = [
                     '[name="tanggal"]',
                     '[name="tanggal_mulai"]',
@@ -1554,32 +1493,24 @@
             );
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
                         <input type="text" name="sections[${sectionCount}][nama_section]"
                             class="form-control"
                             placeholder="Contoh: Lapangan B, Court 2" required>
                         <div class="form-text">Contoh: Lapangan B, Court 2</div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[${sectionCount}][deskripsi]"
                             class="form-control"
                             placeholder="Deskripsi singkat section...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Harga Default / Jam</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-success text-white">Rp</span>
-                            <input type="number" name="sections[${sectionCount}][harga_per_jam]"
-                                class="form-control" min="0" step="1000" placeholder="150000">
-                            <span class="input-group-text bg-light text-muted">/jam</span>
-                        </div>
-                    </div>
+
                     <div class="col-md-1 d-flex align-items-end justify-content-md-end">
                         <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
-                            <i class="fa-solid fa-trash me-1"></i> Hapus
+                            <i class="fa-solid fa-trash me-1"></i>
                         </button>
                     </div>
                 </div>
@@ -1619,32 +1550,24 @@
             );
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
                         <input type="text" name="sections[new_${sectionCount}][nama_section]"
                             class="form-control"
-                            placeholder="Contoh: Lapangan Baru" required>
-                        <div class="form-text">Contoh: Lapangan Baru atau Court Ekstra.</div>
+                            placeholder="Contoh: Lapangan B, Court 2" required>
+                        <div class="form-text">Contoh: Lapangan B, Court 2</div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[new_${sectionCount}][deskripsi]"
                             class="form-control"
                             placeholder="Deskripsi singkat section...">
-                        <div class="form-text">Opsional, gunakan untuk catatan khusus.</div>
+                        <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Harga Default / Jam</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-success text-white">Rp</span>
-                            <input type="number" name="sections[new_${sectionCount}][harga_per_jam]"
-                                class="form-control" min="0" step="1000" placeholder="150000">
-                            <span class="input-group-text bg-light text-muted">/jam</span>
-                        </div>
-                    </div>
+
                     <div class="col-md-1 d-flex align-items-end justify-content-md-end">
                         <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
-                            <i class="fa-solid fa-trash me-1"></i> Hapus
+                            <i class="fa-solid fa-trash me-1"></i>
                         </button>
                     </div>
                 </div>
