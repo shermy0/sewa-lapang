@@ -25,7 +25,7 @@
     <div id="lapanganCarousel" class="carousel slide mt-5 shadow rounded-4 overflow-hidden"
         data-bs-ride="carousel" data-bs-interval="3000">
         <div class="carousel-inner">
-            @forelse ($banners as $index => $banner)
+            @forelse ($banners->sortByDesc('created_at')->take(3) as $index => $banner)
                 <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
                     <img src="{{ asset($banner->gambar) }}" 
                         class="d-block w-100" 
@@ -39,7 +39,6 @@
             @endforelse
         </div>
     </div>
-
 
     {{-- FILTER KATEGORI --}}
     <div class="d-flex gap-2 flex-wrap my-4">
