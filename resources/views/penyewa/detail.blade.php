@@ -439,183 +439,255 @@
     @endif
 
     {{-- MODAL JADWAL LAPANGAN --}}
-<div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header border-0 d-flex align-items-center justify-content-between">
-                <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
-                    Jadwal Lapangan {{ $lapangan->nama_lapangan }}
-                </h5>
+    <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
 
-                {{-- Wrapper kanan: Reset, Total Jadwal, Close --}}
-                <div class="d-flex align-items-center gap-2">
-                    {{-- Tombol Reset --}}
-                    <button class="btn btn-sm btn-success" id="resetFilters">
-                        <i class="fa fa-rotate-left me-1"></i> Reset
-                    </button>
-
-                    @php
-                        $totalTersedia = $lapangan->jadwal->where('tersedia', true)->count();
-                    @endphp
-
-                    {{-- Badge Total Jadwal --}}
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-                        Total jadwal: {{ $totalTersedia }}
-                    </span>
-
-                    {{-- Tombol Close --}}
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-            </div>
-
-            <div class="modal-body">
-                {{-- Card Jadwal --}}
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-3">
+                {{-- HEADER --}}
+                <div class="modal-header border-0 d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
+                        Jadwal Lapangan {{ $lapangan->nama_lapangan }}
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
                         @php
-                            use Carbon\Carbon;
-                            $jadwalTersedia = $lapangan->jadwal
+                            $totalTersedia = $lapangan->sections
+                                ->flatMap->jadwal
                                 ->where('tersedia', true)
-                                ->sortBy(['tanggal', 'jam_mulai']);
+                                ->count();
                         @endphp
-
-                        @if($jadwalTersedia->count() > 0)
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 table-bordered">
-                                    <thead class="text-white fw-semibold text-center align-middle" style="background-color: #198754;">
-                                        <tr>
-                                            <th>No</th>
-                                            <th>
-                                                Tanggal
-                                                <i class="fa fa-filter ms-1" style="cursor:pointer;" onclick="toggleFilter('filterTanggal')"></i>
-                                                <div class="mt-1" id="filterTanggalDiv" style="display:none;">
-                                                    <input type="date" id="filterTanggal" class="form-control form-control-sm" />
-                                                </div>
-                                            </th>
-
-                                            <th>
-                                                Section
-                                                <i class="fa fa-filter ms-1" style="cursor:pointer;" onclick="toggleFilter('filterSection')"></i>
-                                                <div class="mt-1" id="filterSectionDiv" style="display:none;">
-                                                    <select id="filterSection" class="form-select form-select-sm">
-                                                        <option value="">Semua Section</option>
-                                                        @foreach($lapangan->sections as $section)
-                                                            <option value="{{ $section->nama_section }}">{{ $section->nama_section }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                            </th>
-
-                                            <th>
-                                                Rentang Waktu
-                                                <i class="fa fa-filter ms-1" style="cursor:pointer;" onclick="toggleFilter('filterJamMulai')"></i>
-                                                <div class="mt-1" id="filterJamMulaiDiv" style="display:none;">
-                                                    <input type="time" id="filterJamMulai" class="form-control form-control-sm" placeholder="Jam Mulai" />
-                                                </div>
-                                            </th>
-                                            <th>Durasi</th>
-                                            <th>Harga Total</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="text-center">
-                                        @foreach($jadwalTersedia as $i => $jadwal)
-                                            @php
-                                                $mulai = Carbon::parse($jadwal->jam_mulai);
-                                                $selesai = Carbon::parse($jadwal->jam_selesai);
-                                                $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
-                                                $durasiJam = $durasiMenit / 60;
-                                            @endphp
-                                            <tr 
-                                                data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
-                                                data-section="{{ $jadwal->section->nama_section ?? '' }}" 
-                                                data-jam-mulai="{{ $mulai->format('H:i') }}"
-                                            >
-                                                <td class="fw-semibold">{{ $i + 1 }}</td>
-                                                <td class="text-nowrap">{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
-                                                <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
-                                                <td class="text-nowrap">
-                                                    <div class="d-flex flex-column small fw-semibold">
-                                                        <span>{{ $mulai->format('H:i') }} WIB</span>
-                                                        <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-success-subtle text-success px-3 py-2">
-                                                        {{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-success">Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}</div>
-                                                    <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge px-3 py-2 {{ $jadwal->tersedia ? 'bg-gradient bg-success' : 'bg-secondary' }}">
-                                                        {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="p-5 text-center text-muted">
-                                <i class="fa-solid fa-calendar-xmark fa-2x mb-3"></i>
-                                <p class="mb-0">Belum ada jadwal yang ditambahkan untuk lapangan ini.</p>
-                            </div>
-                        @endif
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                            Total jadwal: {{ $totalTersedia }}
+                        </span>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
+
+                {{-- BODY --}}
+                <div class="modal-body">
+
+                    {{-- FILTER --}}
+                    <div class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="filterTanggal" class="form-label small mb-1">Tanggal</label>
+                            <input type="date" id="filterTanggal" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterSection" class="form-label small mb-1">Section</label>
+                            <select id="filterSection" class="form-select form-select-sm">
+                                <option value="">Semua Section</option>
+                                @foreach($lapangan->sections as $section)
+                                    <option value="{{ $section->nama_section }}">{{ $section->nama_section }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterJamMulai" class="form-label small mb-1">Jam Mulai</label>
+                            <input type="time" id="filterJamMulai" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-3 d-flex justify-content-start">
+                            <button class="btn btn-sm btn-success w-100" id="resetFilters">
+                                <i class="fa fa-rotate-left me-1"></i> Reset Filter
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- TABEL JADWAL --}}
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-0">
+                            @php
+                                use Carbon\Carbon;
+                                $jadwalTersedia = $lapangan->sections
+                                    ->flatMap->jadwal
+                                    ->where('tersedia', true)
+                                    ->sortBy(['tanggal', 'jam_mulai']);
+                            @endphp
+
+                            @if($jadwalTersedia->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0 table-bordered text-center">
+                                        <thead class="text-white fw-semibold" style="background-color: #198754;">
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Tanggal</th>
+                                                <th>Section</th>
+                                                <th>Rentang Waktu</th>
+                                                <th>Durasi</th>
+                                                <th>Harga Total</th>
+                                                <th>Status</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($jadwalTersedia as $i => $jadwal)
+                                                @php
+                                                    $mulai = Carbon::parse($jadwal->jam_mulai);
+                                                    $selesai = Carbon::parse($jadwal->jam_selesai);
+                                                    $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
+                                                    $durasiJam = $durasiMenit / 60;
+                                                @endphp
+                                                <tr 
+                                                    data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
+                                                    data-section="{{ $jadwal->section->nama_section ?? '' }}" 
+                                                    data-jam-mulai="{{ $mulai->format('H:i') }}"
+                                                >
+                                                    <td class="fw-semibold">{{ $i + 1 }}</td>
+                                                    <td>{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
+                                                    <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
+                                                    <td>
+                                                        <div class="d-flex flex-column small fw-semibold">
+                                                            <span>{{ $mulai->format('H:i') }} WIB</span>
+                                                            <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success-subtle text-success px-3 py-2">
+                                                            {{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold text-success">Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}</div>
+                                                        <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge px-3 py-2 {{ $jadwal->tersedia ? 'bg-gradient bg-success' : 'bg-secondary' }}">
+                                                            {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">
+                                                            <i class="fa-solid fa-cart-plus me-1"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {{-- SUMMARY + PAGINATION --}}
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div id="pagination-summary" class="small text-muted"></div>
+                                    <ul class="pagination mb-0" id="pagination"></ul>
+                                </div>
+                            @else
+                                <div class="p-5 text-center text-muted">
+                                    <i class="fa-solid fa-calendar-xmark fa-2x mb-3"></i>
+                                    <p class="mb-0">Belum ada jadwal yang ditambahkan untuk lapangan ini.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
         </div>
     </div>
-</div>
 
-{{-- Script Filter --}}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const filterTanggal = document.getElementById('filterTanggal');
-    const filterSection = document.getElementById('filterSection');
-    const filterJamMulai = document.getElementById('filterJamMulai');
-    const resetBtn = document.getElementById('resetFilters');
-    const rows = document.querySelectorAll('#jadwalModal tbody tr');
+    {{-- SCRIPT PAGINATION + FILTER --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterTanggal = document.getElementById('filterTanggal');
+        const filterSection = document.getElementById('filterSection');
+        const filterJamMulai = document.getElementById('filterJamMulai');
+        const resetBtn = document.getElementById('resetFilters');
+        const tbody = document.querySelector('#jadwalModal tbody');
+        const pagination = document.getElementById('pagination');
+        const summaryEl = document.getElementById('pagination-summary');
 
-    function filterRows() {
-        const tanggalVal = filterTanggal.value;
-        const sectionVal = filterSection.value;
-        const jamMulaiVal = filterJamMulai.value;
+        const rowsPerPage = 6;
+        let currentPage = 1;
 
-        rows.forEach(row => {
-            const rowTanggal = row.getAttribute('data-tanggal');
-            const rowSection = row.getAttribute('data-section');
-            const rowJamMulai = row.getAttribute('data-jam-mulai');
+        function getFilteredRows() {
+            return Array.from(tbody.querySelectorAll('tr')).filter(row => {
+                const tgl = row.dataset.tanggal;
+                const section = row.dataset.section;
+                const jam = row.dataset.jamMulai;
+                return (
+                    (!filterTanggal.value || filterTanggal.value === tgl) &&
+                    (!filterSection.value || filterSection.value === section) &&
+                    (!filterJamMulai.value || jam === filterJamMulai.value)
+                );
+            });
+        }
 
-            const matchTanggal = !tanggalVal || rowTanggal === tanggalVal;
-            const matchSection = !sectionVal || rowSection === sectionVal;
-            const matchJam = !jamMulaiVal || rowJamMulai >= jamMulaiVal;
+        function showPage(page = 1) {
+            const rows = getFilteredRows();
+            const totalPages = Math.ceil(rows.length / rowsPerPage);
+            currentPage = Math.min(Math.max(1, page), totalPages);
 
-            row.style.display = (matchTanggal && matchSection && matchJam) ? '' : 'none';
+            // sembunyikan semua row
+            tbody.querySelectorAll('tr').forEach(row => row.style.display = 'none');
+
+            // tampilkan row yang sesuai halaman
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            let no = start + 1;
+            rows.slice(start, end).forEach(row => {
+                row.style.display = '';
+                row.querySelector('td:first-child').textContent = no++;
+            });
+
+            // update summary
+            if(rows.length === 0) {
+                summaryEl.textContent = 'Jadwal tidak tersedia';
+            } else {
+                summaryEl.textContent = `Menampilkan ${start + 1} - ${Math.min(end, rows.length)} dari ${rows.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
+            }
+
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            let html = '';
+
+            // Previous
+            html += currentPage > 1
+                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage-1}">&lt;</a></li>`
+                : `<li class="page-item disabled"><span class="page-link">&lt;</span></li>`;
+
+            // Pages
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" data-page="${i}">${i}</a>
+                        </li>`;
+            }
+
+            // Next
+            html += currentPage < totalPages
+                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage+1}">&gt;</a></li>`
+                : `<li class="page-item disabled"><span class="page-link">&gt;</span></li>`;
+
+            pagination.innerHTML = html;
+
+            pagination.querySelectorAll('a.page-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = parseInt(this.dataset.page);
+                    if (!isNaN(page)) showPage(page);
+                });
+            });
+        }
+
+        function filterAndPaginate() {
+            currentPage = 1;
+            showPage(currentPage);
+        }
+
+        filterTanggal.addEventListener('change', filterAndPaginate);
+        filterSection.addEventListener('change', filterAndPaginate);
+        filterJamMulai.addEventListener('input', filterAndPaginate);
+        resetBtn.addEventListener('click', function() {
+            filterTanggal.value = '';
+            filterSection.value = '';
+            filterJamMulai.value = '';
+            filterAndPaginate();
         });
-    }
 
-    filterTanggal.addEventListener('change', filterRows);
-    filterSection.addEventListener('change', filterRows);
-    filterJamMulai.addEventListener('input', filterRows);
-
-    resetBtn.addEventListener('click', function() {
-        filterTanggal.value = '';
-        filterSection.value = '';
-        filterJamMulai.value = '';
-        filterRows();
+        // Init halaman pertama
+        showPage(1);
     });
-});
-
-function toggleFilter(id) {
-    const el = document.getElementById(id + 'Div');
-    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
-}
-</script>
+    </script>
 
     {{-- LAPANGAN LAINNYA (tampilan seperti beranda) --}}
     <h4 class="fw-bold mt-5 mb-3">Lapangan Lainnya</h4>

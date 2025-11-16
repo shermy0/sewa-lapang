@@ -31,7 +31,9 @@ class SectionLapangan extends Model
     // Relationship ke jadwal
     public function jadwal()
     {
-        return $this->hasMany(JadwalLapangan::class, 'section_id');
+        return $this->hasMany(JadwalLapangan::class, 'section_id')
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('jam_mulai', 'asc');
     }
 
     // Accessor untuk mendapatkan nama lapangan melalui section
