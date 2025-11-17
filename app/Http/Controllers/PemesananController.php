@@ -178,6 +178,7 @@ public function create($lapangan_id)
 public function getJadwalBySection($section_id)
 {
     $now = Carbon::now('Asia/Jakarta');
+
     $jadwal = JadwalLapangan::where('section_id', $section_id)
         ->where(function ($q) use ($now) {
             $q->where('tanggal', '>', $now->toDateString())
@@ -190,13 +191,25 @@ public function getJadwalBySection($section_id)
         ->orderBy('jam_mulai')
         ->get()
         ->map(function($j) {
-            // pastikan tanggal dikirim sebagai "YYYY-MM-DD"
+
+            // 🔍 Cek apakah jadwal sedang dipesan oleh orang lain (status MENUNGGU)
+            $pending = \App\Models\Pemesanan::where('jadwal_id', $j->id)
+                ->where('status', 'menunggu')
+                ->exists();
+
+            // 🔒 Jika pending, jadikan tidak tersedia
+            // Catatan: jika j.tersedia == true tetapi pending == true → menjadi false
+            $j->tersedia = $j->tersedia && !$pending;
+
+            // pastikan tanggal format "YYYY-MM-DD"
             $j->tanggal = \Carbon\Carbon::parse($j->tanggal)->toDateString();
+
             return $j;
         });
 
     return response()->json($jadwal);
 }
+
 
 
 
@@ -327,6 +340,18 @@ public function getSnapToken(Request $request)
             ->where('jadwal_id', $jadwal->id)
             ->whereIn('status', ['menunggu', 'dibayar'])
             ->first();
+            // 🔒 LOCK JADWAL: Cegah orang lain pilih jadwal yang sedang menunggu pembayaran
+$pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
+    ->where('penyewa_id', '!=', Auth::id()) // orang lain
+    ->where('status', 'menunggu') // BELUM dibayar, tapi pending
+    ->exists();
+
+if ($pendingFromOtherUser) {
+    return response()->json([
+        'error' => 'Jadwal ini sedang menunggu pembayaran oleh penyewa lain.',
+    ], 409);
+}
+
 
 if ($existing) {
     return response()->json([
