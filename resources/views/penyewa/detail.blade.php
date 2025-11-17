@@ -5,7 +5,6 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container py-4">
     <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
@@ -307,16 +306,16 @@
 
                     {{-- tombol tambah ulasan (jika bisa) --}}
                     <div class="mt-3">
-                        @if ($bolehUlas)
-                            <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
-                                + Tambah Ulasan
-                            </a>
-                            @if($ratingSudahDiberikan)
-                                <p class="text-muted small mt-2 mb-0">
-                                    Rating sudah diberikan ({{ $existingRatingValue }}/5). Komentar baru tidak akan mengubah rating.
-                                </p>
-                            @endif
-                        @else
+                        @if ($bolehUlas && !$ratingSudahDiberikan)
+    <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
+        + Tambah Ulasan
+    </a>
+@elseif($bolehUlas && $ratingSudahDiberikan)
+    <p class="text-muted small mt-2 mb-0">
+        Kamu sudah pernah mengirim ulasan. Silakan gunakan tombol Edit untuk mengubah ulasanmu.
+    </p>
+@else
+
                             <button class="btn btn-secondary px-4" disabled>
                                 + Tambah Ulasan (scan tiket terlebih dahulu)
                             </button>
@@ -780,15 +779,13 @@ function toggleFilter(id) {
         }
     });
 
-    document.addEventListener('hidden.bs.modal', function () {
-        const backdrops = document.querySelectorAll('.modal-backdrop');
-        backdrops.forEach(backdrop => backdrop.remove());
 
-        if (!document.querySelector('.modal.show')) {
-            document.body.classList.remove('modal-open');
-            document.body.style.removeProperty('padding-right');
-        }
-    });
+document.addEventListener("hidden.bs.modal", function (event) {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+});
+
 </script>
 @endsection
 
@@ -808,3 +805,6 @@ function toggleFilter(id) {
     </script>
 @endif
 @endpush
+
+
+

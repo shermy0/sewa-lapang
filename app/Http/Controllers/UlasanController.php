@@ -8,60 +8,52 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Ulasan;
 use App\Models\Pemesanan;
 use App\Models\User;
+use Carbon\Carbon;
 
 class UlasanController extends Controller
 {
-    public function simpan(Request $request, $lapanganId)
-    {
-        $userId = Auth::id();
+public function simpan(Request $request, $lapanganId)
+{
+    $userId = Auth::id();
 
-        $existingRating = Ulasan::where('penyewa_id', $userId)
-            ->whereHas('pemesanan', function ($query) use ($lapanganId) {
-                $query->where('lapangan_id', $lapanganId);
-            })
-            ->whereNotNull('rating')
-            ->orderBy('created_at')
-            ->value('rating');
+    // ❗ CEK: penyewa sudah pernah mengirim ulasan untuk lapangan ini?
+    $ulasanExisting = Ulasan::where('penyewa_id', $userId)
+        ->whereHas('pemesanan', function ($q) use ($lapanganId) {
+            $q->where('lapangan_id', $lapanganId);
+        })
+        ->first();
 
-        $rules = [
-            'komentar' => 'required|string|max:1000',
-        ];
-
-        if (is_null($existingRating)) {
-            $rules['rating'] = 'required|integer|min:1|max:5';
-        } else {
-            $rules['rating'] = 'nullable|integer|min:1|max:5';
-        }
-
-        $validated = $request->validate($rules);
-
-        // Ambil lapangan
-        $lapangan = DB::table('lapangan')->where('id', $lapanganId)->first();
-
-        // Cek apakah user sudah melakukan scan tiket untuk lapangan ini
-        $pemesanan = DB::table('pemesanan')
-            ->where('penyewa_id', $userId)
-            ->where('lapangan_id', $lapanganId)
-            ->where('status_scan', 'sudah_scan')
-            ->first();
-
-        if (!$pemesanan) {
-            return redirect()->back()->with('error', 'Anda belum scan tiket untuk lapangan ini.');
-        }
-
-        $ratingValue = is_null($existingRating) ? $validated['rating'] : $existingRating;
-
-        DB::table('ulasan')->insert([
-            'pemesanan_id' => $pemesanan->id,
-            'penyewa_id' => $userId,
-            'rating' => $ratingValue,
-            'komentar' => $validated['komentar'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return redirect()->back()->with('success', 'Ulasan berhasil ditambahkan!');
+    if ($ulasanExisting) {
+        return redirect()->back()->with('error', 'Anda sudah pernah mengirim ulasan untuk lapangan ini.');
     }
+
+    // Validasi input
+    $validated = $request->validate([
+        'rating' => 'required|integer|min:1|max:5',
+        'komentar' => 'required|string|max:1000',
+    ]);
+
+    // ❗ CEK: sudah scan tiket?
+    $pemesanan = Pemesanan::where('penyewa_id', $userId)
+        ->where('lapangan_id', $lapanganId)
+        ->where('status_scan', 'sudah_scan')
+        ->first();
+
+    if (!$pemesanan) {
+        return redirect()->back()->with('error', 'Anda belum scan tiket untuk lapangan ini.');
+    }
+
+    // Simpan ulasan baru
+    Ulasan::create([
+        'pemesanan_id' => $pemesanan->id,
+        'penyewa_id' => $userId,
+        'rating' => $validated['rating'],
+        'komentar' => $validated['komentar'],
+    ]);
+
+    return redirect()->back()->with('success', 'Ulasan berhasil ditambahkan!');
+}
+
 
     public function edit($id)
     {
