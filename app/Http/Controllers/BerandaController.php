@@ -59,11 +59,11 @@ class BerandaController extends Controller
         }
 
         // Ambil ulasan dan data lain yang sudah ada
-        $ulasans = Ulasan::with(['pemesanan.penyewa'])
+        $ulasans = Ulasan::with(['user', 'pemesanan'])
             ->whereHas('pemesanan', function ($query) use ($id) {
                 $query->where('lapangan_id', $id);
             })
-            ->get();
+            ->get();    
 
         $avgRating = $ulasans->avg('rating');
         $totalUlasan = $ulasans->count();

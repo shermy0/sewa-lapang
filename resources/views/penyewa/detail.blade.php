@@ -239,17 +239,20 @@
                         <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
                             @foreach($ulasans as $ulasan)
                                 <div class="d-flex align-items-start mb-3">
-                                    <img src="{{ foto_url($ulasan->user_foto ?? null) ?? asset('poto/default.jpg') }}"
-                                         class="rounded-circle me-3" width="50" height="50" alt="{{ $ulasan->username }}">
+                                    <img src="{{ foto_url($ulasan->user->foto_profil ?? null) ?? asset('poto/default.jpg') }}"
+                                        class="rounded-circle me-3" width="50" height="50" alt="{{ $ulasan->user->name ?? 'User' }}">
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-1">{{ $ulasan->username }}</h6>
+                                            <h6 class="mb-1">{{ $ulasan->user->name ?? 'User' }}</h6>
                                             @if(auth()->check() && $ulasan->user_id == auth()->id())
                                                 <div class="d-flex gap-1">
+                                                    {{-- Tombol edit --}}
                                                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUlasanModal{{ $ulasan->id }}">
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                     </button>
-                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline">
+
+                                                    {{-- Tombol hapus --}}
+                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus ulasan ini?');">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">
