@@ -45,13 +45,40 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
+Route::middleware('auth')->group(function () {
+
+    Route::get('/verify-email', function (Request $request) {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('verification.success');
+        }
+        return view('auth.verify-email');
+    })->name('verification.notice');
+
+    Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+
+    Route::post('/email/verification-notification', function (Request $request) {
+        $request->user()->sendEmailVerificationNotification();
+        return back()->with('status', __('Email verifikasi baru telah dikirim.'));
+    })->middleware(['throttle:6,1'])
+      ->name('verification.send');
+
+    Route::get('/verifikasi-berhasil', function (Request $request) {
+        $user = $request->user();
+        if ($user->role === 'penyewa') return redirect()->route('penyewa.beranda');
+        if ($user->role === 'pemilik') return redirect()->route('dashboard.pemilik');
+        if ($user->role === 'admin') return redirect()->route('dashboard.admin');
+        return redirect('/');
+    })->name('verification.success');
+});
 
 Route::get('/ajukan-banding', [BandingPemilikController::class, 'create'])->name('banding.create');
 Route::post('/ajukan-banding', [BandingPemilikController::class, 'store'])->name('banding.store');
 
 
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
 Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
 // Route untuk ambil detail permintaan perubahan
 Route::get('/permintaan-perubahan/{id}', [App\Http\Controllers\PemesananController::class, 'getDetailPermintaan']);
@@ -66,10 +93,6 @@ Route::post('/permintaan-perubahan/{pemesananId}', [PemesananController::class, 
 
 Route::delete('/permintaan-perubahan/{id}', [PemesananController::class, 'batalkanPermintaan'])
     ->name('permintaan-perubahan.delete');
-
-    // PERSETUJUAN PEMILIK
-Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
-Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
 
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
@@ -110,69 +133,12 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
         Route::get('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'index'])->name('laporan.index');
         Route::post('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'store'])->name('laporan.store');
     });
-
-
-    Route::get('/verify-email', function (Request $request) {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('verification.success');
-        }
-
-        return view('auth.verify-email');
-    })->name('verification.notice');
-
-Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
-    ->middleware(['auth', 'signed', 'throttle:6,1'])
-    ->name('verification.verify');
-
-
-    Route::post('/email/verification-notification', function (Request $request) {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('verification.success');
-        }
-
-        try {
-            $request->user()->sendEmailVerificationNotification();
-        } catch (\Throwable $e) {
-            report($e);
-
-            return back()->withErrors([
-                'verification' => __('Email verifikasi gagal dikirim. Silakan coba lagi nanti.'),
-            ]);
-        }
-
-        return back()->with('status', __('Email verifikasi baru telah dikirim.'));
-    })->middleware(['throttle:6,1'])->name('verification.send');
-
-    Route::get('/verifikasi-berhasil', function (Request $request) {
-        $user = $request->user();
-
-        if (! $user) {
-            return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
-        }
-
-        if ($user->role === 'penyewa') {
-            return redirect()->route('penyewa.beranda')->with('status', __('Akun berhasil diverifikasi.'));
-        }
-
-        if ($user->role === 'pemilik') {
-            return redirect()->route('dashboard.pemilik')->with('status', __('Akun berhasil diverifikasi.'));
-        }
-
-        if ($user->role === 'admin') {
-            return redirect()->route('dashboard.admin');
-        }
-
-        return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
-    })->name('verification.success');
 });
 
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
-Route::middleware(['auth'])->group(function () {
-    Route::get('/kelola-rekening', [KelolaRekeningController::class, 'index'])->name('rekening.index');
-    Route::post('/kelola-rekening', [KelolaRekeningController::class, 'update'])->name('rekening.update');
-     Route::post('/rekening/cairkan', [DisbursementController::class, 'kirimDana'])->name('rekening.cairkan');
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');
@@ -180,23 +146,48 @@ Route::middleware(['auth'])->group(function () {
 
 });
 
-// Route::middleware('auth')->get('/test-sidebar', function () {
-//     return view('dashboard');
-// })->name('test.sidebar');
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'role:pemilik'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
+        // PERSETUJUAN PEMILIK
+Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
+Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
     Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
+
+    // CRUD Kategori
+    Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
+    Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
+    Route::get('/kategori/{id}', [KategoriController::class, 'show'])->name('kategori.show');
+    Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
+    Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
+
+    // CRUD Lapangan
+    Route::get('/lapangan', [LapanganController::class, 'index'])->name('lapangan.index');
+    Route::post('/lapangan', [LapanganController::class, 'store'])->name('lapangan.store');
+    Route::get('/lapangan/{id}', [LapanganController::class, 'show'])->name('lapangan.show');
+    Route::put('/lapangan/{id}', [LapanganController::class, 'update'])->name('lapangan.update');
+    Route::delete('/lapangan/{id}', [LapanganController::class, 'destroy'])->name('lapangan.destroy');
+
+    // Jadwal Lapangan
+    Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
+    Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
+    Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
+    Route::get('/lapangan/{lapanganId}/section/{sectionId}/jadwal', [LapanganController::class, 'getSectionJadwal'])->name('lapangan.section.jadwal');
+
+    // API Tiket (optional)
+    Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
+    Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
+
 });
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/dashboard/admin', [AdminDashboardController::class, 'index'])
         ->name('dashboard.admin');
 
@@ -246,28 +237,3 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     });
     });
 
-Route::middleware(['auth'])->group(function () {
-    // CRUD Kategori
-    Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
-    Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
-    Route::get('/kategori/{id}', [KategoriController::class, 'show'])->name('kategori.show');
-    Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
-    Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
-
-    // CRUD Lapangan
-    Route::get('/lapangan', [LapanganController::class, 'index'])->name('lapangan.index');
-    Route::post('/lapangan', [LapanganController::class, 'store'])->name('lapangan.store');
-    Route::get('/lapangan/{id}', [LapanganController::class, 'show'])->name('lapangan.show');
-    Route::put('/lapangan/{id}', [LapanganController::class, 'update'])->name('lapangan.update');
-    Route::delete('/lapangan/{id}', [LapanganController::class, 'destroy'])->name('lapangan.destroy');
-
-    // Jadwal Lapangan
-    Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
-    Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
-    Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
-    Route::get('/lapangan/{lapanganId}/section/{sectionId}/jadwal', [LapanganController::class, 'getSectionJadwal'])->name('lapangan.section.jadwal');
-
-    // API Tiket (optional)
-    Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
-    Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
-});
