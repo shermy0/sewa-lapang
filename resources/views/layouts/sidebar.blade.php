@@ -8,7 +8,7 @@
   <title>@yield('title', 'SewaLap Dashboard')</title>
   @php $currentUser = Auth::user(); @endphp
 
-  <link rel="icon" href="{{ asset('images/logo-sewalap.png') }}" type="image/png">
+  <link rel="icon" href="{{ asset('images/logo-sewalap.svg') }}" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
@@ -175,7 +175,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="brand">
-      <img src="{{ asset('images/logo-sewalap.png') }}" alt="Logo SewaLap" class="brand-logo">
+      <img src="{{ asset('images/logo-sewalap.svg') }}" alt="Logo SewaLap" class="brand-logo">
       <span class="brand-text">SewaLap</span>
     </div>
     <button class="toggle-sidebar" id="toggleSidebar">
