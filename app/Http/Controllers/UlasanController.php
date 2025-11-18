@@ -57,7 +57,10 @@ public function simpan(Request $request, $lapanganId)
 
     public function edit($id)
     {
-        $ulasan = Ulasan::findOrFail($id);
+        $ulasan = Ulasan::find($id);
+        if (!$ulasan) {
+            return redirect()->back()->with('error', 'Ulasan tidak ditemukan.');
+        }
         if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
             abort(403);
         }
@@ -67,7 +70,10 @@ public function simpan(Request $request, $lapanganId)
 
     public function destroy($id)
     {
-        $ulasan = Ulasan::findOrFail($id);
+        $ulasan = Ulasan::find($id);
+        if (!$ulasan) {
+            return redirect()->back()->with('error', 'Ulasan tidak ditemukan.');
+        }
 
         if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
             abort(403);
@@ -80,7 +86,10 @@ public function simpan(Request $request, $lapanganId)
 
     public function update(Request $request, $id)
     {
-        $ulasan = Ulasan::findOrFail($id);
+        $ulasan = Ulasan::find($id);
+        if (!$ulasan) {
+            return redirect()->back()->with('error', 'Ulasan tidak ditemukan.');
+        }
 
         if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
             abort(403);

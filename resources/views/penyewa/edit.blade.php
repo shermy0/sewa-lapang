@@ -67,10 +67,10 @@
                         </div>
                     </form>
 
-                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="mt-3" onsubmit="return confirm('Hapus ulasan ini?')">
+                    <form id="hapusUlasanForm" action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="mt-3">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-outline-danger">
+                        <button type="button" id="hapusUlasanBtn" class="btn btn-outline-danger">
                             <i class="fa-solid fa-trash me-1"></i> Hapus Ulasan
                         </button>
                     </form>
@@ -90,5 +90,43 @@
     .rating-stars input[type="radio"] { display: none; }
     .rating-stars label { cursor: pointer; font-size: 1.5rem; margin: 0; }
 </style>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Flash via SweetAlert
+        const flashSuccess = @json(session('success'));
+        const flashError = @json(session('error'));
+        if (flashSuccess) {
+            Swal.fire({ icon: 'success', title: 'Berhasil', text: flashSuccess, confirmButtonColor: '#41A67E' });
+        } else if (flashError) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: flashError, confirmButtonColor: '#41A67E' });
+        }
+
+        // Konfirmasi hapus
+        const hapusBtn = document.getElementById('hapusUlasanBtn');
+        const hapusForm = document.getElementById('hapusUlasanForm');
+        if (hapusBtn && hapusForm) {
+            hapusBtn.addEventListener('click', () => {
+                Swal.fire({
+                    title: 'Hapus ulasan?',
+                    text: 'Tindakan ini tidak bisa dibatalkan.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, hapus',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        hapusForm.submit();
+                    }
+                });
+            });
+        }
+    });
+</script>
+@endpush
 
 @endsection

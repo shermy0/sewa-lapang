@@ -271,7 +271,12 @@
                                                     <a href="{{ route('ulasan.edit', $ulasan->id) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                     </a>
-                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline"
+                                                          data-confirm="Hapus ulasan ini?"
+                                                          data-confirm-title="Konfirmasi Hapus"
+                                                          data-confirm-icon="warning"
+                                                          data-confirm-button="Ya, hapus"
+                                                          data-cancel-button="Batal">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">
