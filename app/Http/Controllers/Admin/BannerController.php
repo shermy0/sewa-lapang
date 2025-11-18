@@ -67,6 +67,17 @@ class BannerController extends Controller
         return redirect()->route('admin.banners.index')->with('success', 'Banner berhasil diperbarui.');
     }
 
+    public function destroy(Request $request, Banner $banner)
+    {
+        if ($banner->gambar && file_exists(public_path($banner->gambar))) {
+            unlink(public_path($banner->gambar));
+        }
+
+        $banner->delete();
+
+        return redirect()->route('admin.banners.index')->with('success', 'Banner berhasil dihapus.');
+    }
+
     // Toggle status aktif/nonaktif
     public function toggle(Banner $banner)
     {
