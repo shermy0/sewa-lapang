@@ -193,11 +193,11 @@
             {{-- tombol aksi --}}
             <div class="d-flex gap-2 mt-3">
                 {{-- Lihat (ulasan) --}}
-                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">
+                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">
                     <i class="fa-solid fa-comment-dots me-1"></i> Ulasan
                 </button>
 
-                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#jadwalModal">
+                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#jadwalModal">
                     <i class="fa-solid fa-calendar-days me-1"></i> Jadwal
                 </button>
 
@@ -268,9 +268,9 @@
                                             <h6 class="mb-1">{{ $penyewaUlasan->name ?? 'Penyewa' }}</h6>
                                             @if(auth()->check() && $ulasan->penyewa_id == auth()->id())
                                                 <div class="d-flex gap-1">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUlasanModal{{ $ulasan->id }}">
+                                                    <a href="{{ route('ulasan.edit', $ulasan->id) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="fa-solid fa-pen-to-square"></i>
-                                                    </button>
+                                                    </a>
                                                     <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
@@ -371,51 +371,6 @@
         </div>
     </div>
 
-    {{-- Modal Edit Ulasan --}}
-    @foreach(($ulasans ?? collect()) as $ulasan)
-        @if(auth()->id() === $ulasan->penyewa_id)
-            <div class="modal fade" id="editUlasanModal{{ $ulasan->id }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Edit Ulasan</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <form action="{{ route('ulasan.update', $ulasan->id) }}" method="POST">
-                            @csrf
-                            @method('PUT')
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Rating</label>
-                                    <div class="rating-stars">
-                                        @for ($i = 1; $i <= 5; $i++)
-                                            <input type="radio" id="edit-star{{ $ulasan->id }}-{{ $i }}" name="rating" value="{{ $i }}" {{ $ulasan->rating == $i ? 'checked' : '' }}>
-                                            <label for="edit-star{{ $ulasan->id }}-{{ $i }}" title="{{ $i }} stars">
-                                                @if($ulasan->rating >= $i)
-                                                    <i class="fa-solid fa-star text-warning"></i>
-                                                @else
-                                                    <i class="fa-regular fa-star text-warning"></i>
-                                                @endif
-                                            </label>
-                                        @endfor
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Komentar</label>
-                                    <textarea name="komentar" class="form-control" rows="4" required>{{ $ulasan->komentar }}</textarea>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                                <button type="submit" class="btn btn-success">Simpan Perubahan</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        @endif
-    @endforeach
 
     {{-- CSS rating bintang --}}
     <style>
@@ -916,13 +871,29 @@
                 });
             });
         }
+
     });
 
 
-document.addEventListener("hidden.bs.modal", function (event) {
+// Jaga kebersihan backdrop/modal-open agar tidak “nyangkut”
+document.addEventListener('show.bs.modal', () => {
+    // kalau ada banyak backdrop tersisa dari modal sebelumnya, sisakan satu saja
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    if (backdrops.length > 1) {
+        backdrops.forEach((bd, idx) => {
+            if (idx < backdrops.length - 1) bd.remove();
+        });
+    }
+    document.body.classList.add('modal-open');
+});
+
+document.addEventListener("hidden.bs.modal", function () {
+    const openModals = document.querySelectorAll('.modal.show');
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('padding-right');
+    if (openModals.length === 0) {
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+    }
 });
 
 </script>
