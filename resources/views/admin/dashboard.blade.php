@@ -413,4 +413,4 @@
         });
     }
 </script>
-@endsection 
+@endsection
