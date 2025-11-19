@@ -279,9 +279,12 @@
                                         <h6 class="mb-1">{{ $penyewaUlasan->name ?? 'Penyewa' }}</h6>
                                         @if(auth()->check() && $ulasan->penyewa_id == auth()->id())
                                             <div class="d-flex gap-1">
-                                                <a href="{{ route('ulasan.edit', $ulasan->id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                </a>
+                                                <a href="javascript:void(0)" 
+   class="btn btn-sm btn-outline-primary btn-edit-ulasan" 
+   data-id="{{ $ulasan->id }}">
+    <i class="fa-solid fa-pen-to-square"></i>
+</a>
+
                                                 <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline"
                                                       data-confirm="Hapus ulasan ini?"
                                                       data-confirm-title="Konfirmasi Hapus"
@@ -475,16 +478,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 150);
         });
     }
-    function bindEditUlasanButtons() {
-    document.querySelectorAll('a.btn-outline-primary').forEach(btn => {
+function bindEditUlasanButtons() {
+    document.querySelectorAll('.btn-edit-ulasan').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
 
+            const ulasanId = btn.dataset.id;
             const ulasanContainer = btn.closest('.d-flex.align-items-start');
             const komentarText = ulasanContainer.querySelector('p:last-of-type').innerText;
             const ratingIcons = ulasanContainer.querySelectorAll('i.fa-star');
             let currentRating = 0;
-            ratingIcons.forEach((star, idx) => {
+            ratingIcons.forEach(star => {
                 if(star.classList.contains('fa-solid')) currentRating++;
             });
 
@@ -551,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if(result.isConfirmed){
                         Swal.fire({ title:'Menyimpan...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
 
-                        fetch(btn.href, {
+                        fetch(`/ulasan/${ulasanId}/update`, {
                             method: "PUT",
                             headers: {
                                 "Content-Type":"application/json",
@@ -565,6 +569,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         })
                         .then(res => res.json())
                         .then(data => {
+                            if(!data.success){
+                                throw new Error(data.message ?? "Terjadi kesalahan");
+                            }
+
                             Swal.fire({ icon:"success", title:"Berhasil!", text:data.message ?? 'Ulasan diperbarui', timer:1500, showConfirmButton:false });
 
                             // Reload ulasan + tombol tanpa refresh
@@ -597,9 +605,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 }
-
-// Panggil ini setelah bindTambahUlasan & initDeleteButtons
 bindEditUlasanButtons();
+
 
 
     bindTambahUlasan();

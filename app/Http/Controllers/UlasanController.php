@@ -98,33 +98,28 @@ class UlasanController extends Controller
         return redirect()->back()->with('success', 'Ulasan berhasil dihapus.');
     }
 
-    public function update(Request $request, $id)
-    {
-        $ulasan = Ulasan::find($id);
-        if (!$ulasan) {
-            return redirect()->back()->with('error', 'Ulasan tidak ditemukan.');
-        }
-
-        if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'rating' => 'nullable|integer|min:1|max:5',
-            'komentar' => 'required|string|max:1000',
-        ]);
-
-        $payload = [
-            'komentar' => $validated['komentar'],
-        ];
-
-        if (isset($validated['rating']) && $validated['rating'] !== null) {
-            $payload['rating'] = $validated['rating'];
-        }
-
-        $ulasan->update($payload);
-
-        return redirect()->route('penyewa.detail', $ulasan->pemesanan->lapangan_id)
-                        ->with('success', 'Ulasan berhasil diperbarui.');
+public function update(Request $request, $id)
+{
+    $ulasan = Ulasan::find($id);
+    if (!$ulasan) {
+        return response()->json(['success'=>false,'message'=>'Ulasan tidak ditemukan'],404);
     }
+
+    if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
+        return response()->json(['success'=>false,'message'=>'Akses ditolak'],403);
+    }
+
+    $validated = $request->validate([
+        'rating' => 'nullable|integer|min:1|max:5',
+        'komentar' => 'required|string|max:1000',
+    ]);
+
+    $payload = ['komentar'=>$validated['komentar']];
+    if(isset($validated['rating'])) $payload['rating'] = $validated['rating'];
+
+    $ulasan->update($payload);
+
+    return response()->json(['success'=>true,'message'=>'Ulasan berhasil diperbarui']);
+}
+
 }
