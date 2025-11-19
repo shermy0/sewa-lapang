@@ -247,272 +247,365 @@
         </div>
     </div>
 
-    <div class="modal fade" id="ulasanModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Ulasan {{ $lapangan->nama_lapangan }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
-                        @if(($ulasans ?? collect())->count() > 0)
-                            @php $ratingShownForUser = []; @endphp
-                            @foreach($ulasans as $ulasan)
-                                @php
-                                    $penyewaUlasan = optional($ulasan->pemesanan)->penyewa;
-                                    $avatarUlasan = $penyewaUlasan?->foto_profil
-                                        ? foto_url($penyewaUlasan->foto_profil)
-                                        : 'https://ui-avatars.com/api/?name=' . urlencode($penyewaUlasan->name ?? 'Penyewa') . '&background=41A67E&color=fff';
-                                    $tampilkanRating = false;
-                                    if (!in_array($ulasan->penyewa_id, $ratingShownForUser, true)) {
-                                        $ratingShownForUser[] = $ulasan->penyewa_id;
-                                        $tampilkanRating = true;
-                                    }
-                                @endphp
-                                <div class="d-flex align-items-start mb-3">
-                                    <img src="{{ $avatarUlasan }}"
-                                         class="rounded-circle me-3" width="50" height="50" alt="{{ $penyewaUlasan->name ?? 'Penyewa' }}">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-1">{{ $penyewaUlasan->name ?? 'Penyewa' }}</h6>
-                                            @if(auth()->check() && $ulasan->penyewa_id == auth()->id())
-                                                <div class="d-flex gap-1">
-                                                    <a href="{{ route('ulasan.edit', $ulasan->id) }}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                    </a>
-                                                    <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline"
-                                                          data-confirm="Hapus ulasan ini?"
-                                                          data-confirm-title="Konfirmasi Hapus"
-                                                          data-confirm-icon="warning"
-                                                          data-confirm-button="Ya, hapus"
-                                                          data-cancel-button="Batal">
-                                                        @csrf @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                            <i class="fa-solid fa-trash"></i>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        @if($tampilkanRating && !is_null($ulasan->rating))
-                                            <p class="mb-1">
-                                                @for($i=1; $i<=5; $i++)
-                                                    @if($i <= $ulasan->rating)
-                                                        <i class="fa-solid fa-star text-warning"></i>
-                                                    @else
-                                                        <i class="fa-regular fa-star text-warning"></i>
-                                                    @endif
-                                                @endfor
-                                            </p>
-                                        @elseif(auth()->check() && $ulasan->penyewa_id == auth()->id())
-                                            <p class="mb-1 text-muted small">Komentar tambahan (rating tetap {{ $ulasan->rating }}/5)</p>
-                                        @endif
-                                        <p>{{ $ulasan->komentar }}</p>
-                                    </div>
-                                </div>
-                                <hr>
-                            @endforeach
-                        @else
-                            <p class="text-muted" id="textBelumAdaUlasan">Belum ada ulasan untuk lapangan ini.</p>
-                        @endif
-                    </div>
+<div class="modal fade" id="ulasanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ulasan {{ $lapangan->nama_lapangan }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
 
-                    {{-- Tombol Tambah Ulasan & Script --}}
-                    <div class="mt-3">
-                        @if ($bolehUlas && !$ratingSudahDiberikan)
-                            <button type="button" class="btn btn-success px-4" id="btnTambahUlasan">
-                                + Tambah Ulasan
-                            </button>
-
-                            {{-- SCRIPT KHUSUS TAMBAH ULASAN (NO RELOAD) --}}
-                            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-                            <script>
-                            document.addEventListener('DOMContentLoaded', function () {
-                                // Fungsi Buka Modal
-                                function openUlasanModal() {
-                                    let el = document.getElementById("ulasanModal");
-                                    if (!el) return;
-                                    let modal = bootstrap.Modal.getOrCreateInstance(el);
-                                    modal.show();
+                {{-- Daftar Ulasan --}}
+                <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
+                    @if(($ulasans ?? collect())->count() > 0)
+                        @php $ratingShownForUser = []; @endphp
+                        @foreach($ulasans as $ulasan)
+                            @php
+                                $penyewaUlasan = optional($ulasan->pemesanan)->penyewa;
+                                $avatarUlasan = $penyewaUlasan?->foto_profil
+                                    ? foto_url($penyewaUlasan->foto_profil)
+                                    : 'https://ui-avatars.com/api/?name=' . urlencode($penyewaUlasan->name ?? 'Penyewa') . '&background=41A67E&color=fff';
+                                $tampilkanRating = false;
+                                if (!in_array($ulasan->penyewa_id, $ratingShownForUser, true)) {
+                                    $ratingShownForUser[] = $ulasan->penyewa_id;
+                                    $tampilkanRating = true;
                                 }
+                            @endphp
+                            <div class="d-flex align-items-start mb-3">
+                                <img src="{{ $avatarUlasan }}" class="rounded-circle me-3" width="50" height="50" alt="{{ $penyewaUlasan->name ?? 'Penyewa' }}">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">{{ $penyewaUlasan->name ?? 'Penyewa' }}</h6>
+                                        @if(auth()->check() && $ulasan->penyewa_id == auth()->id())
+                                            <div class="d-flex gap-1">
+                                                <a href="{{ route('ulasan.edit', $ulasan->id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </a>
+                                                <form action="{{ route('ulasan.hapus', $ulasan->id) }}" method="POST" class="d-inline"
+                                                      data-confirm="Hapus ulasan ini?"
+                                                      data-confirm-title="Konfirmasi Hapus"
+                                                      data-confirm-icon="warning"
+                                                      data-confirm-button="Ya, hapus"
+                                                      data-cancel-button="Batal">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @endif
+                                    </div>
 
-                                // Logic Tombol Tambah Ulasan
-                                document.getElementById('btnTambahUlasan')?.addEventListener('click', function () {
-                                    // Tutup modal daftar ulasan sementara
-                                    let elModal = document.getElementById('ulasanModal');
-                                    let ulasanModal = bootstrap.Modal.getOrCreateInstance(elModal);
-                                    ulasanModal.hide();
+                                    @if($tampilkanRating && !is_null($ulasan->rating))
+                                        <p class="mb-1">
+                                            @for($i=1; $i<=5; $i++)
+                                                @if($i <= $ulasan->rating)
+                                                    <i class="fa-solid fa-star text-warning"></i>
+                                                @else
+                                                    <i class="fa-regular fa-star text-warning"></i>
+                                                @endif
+                                            @endfor
+                                        </p>
+                                    @elseif(auth()->check() && $ulasan->penyewa_id == auth()->id())
+                                        <p class="mb-1 text-muted small">Komentar tambahan (rating tetap {{ $ulasan->rating }}/5)</p>
+                                    @endif
 
-                                    setTimeout(() => {
-                                        Swal.fire({
-                                            title: 'Tambah Ulasan',
-                                            html: `
-                                                <div class="swal-rating mb-3">
-                                                    ${[1,2,3,4,5].map(i => `<i class="fa-regular fa-star" data-rate="${i}"></i>`).join('')}
-                                                </div>
-                                                <textarea id="swalKomentar" class="form-control" rows="4" placeholder="Bagikan pengalamanmu"></textarea>
-                                                <input type="hidden" id="swalRating" value="0">
-                                            `,
-                                            showCancelButton: true,
-                                            confirmButtonText: 'Kirim',
-                                            cancelButtonText: 'Batal',
-                                            width: 500,
-                                            allowOutsideClick: false,
-                                            didOpen: () => {
-                                                const popup = Swal.getPopup();
-                                                const stars = popup.querySelectorAll('.swal-rating i');
-                                                const ratingInput = popup.querySelector('#swalRating');
-
-                                                stars.forEach(star => {
-                                                    star.addEventListener('click', () => {
-                                                        let val = parseInt(star.dataset.rate);
-                                                        ratingInput.value = val;
-                                                        stars.forEach((s, idx) => {
-                                                            if (idx < val) {
-                                                                s.classList.remove('fa-regular');
-                                                                s.classList.add('fa-solid', 'active');
-                                                            } else {
-                                                                s.classList.remove('fa-solid', 'active');
-                                                                s.classList.add('fa-regular');
-                                                            }
-                                                        });
-                                                    });
-                                                });
-                                            },
-                                            preConfirm: () => {
-                                                const komentar = Swal.getPopup().querySelector('#swalKomentar').value;
-                                                const rating = Swal.getPopup().querySelector('#swalRating').value;
-                                                if (!rating || rating == "0") Swal.showValidationMessage("Pilih rating dulu!");
-                                                if (!komentar.trim()) Swal.showValidationMessage("Komentar tidak boleh kosong!");
-                                                return { rating, komentar };
-                                            }
-                                        }).then((result) => {
-                                            // Jika Batal
-                                            if (result.dismiss === Swal.DismissReason.cancel) {
-                                                openUlasanModal();
-                                                return;
-                                            }
-
-                                            // Jika Kirim
-                                            if (result.isConfirmed) {
-                                                Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-                                                fetch("{{ route('ulasan.simpan', $lapangan->id) }}", {
-                                                    method: "POST",
-                                                    headers: {
-                                                        "Content-Type": "application/json",
-                                                        "Accept": "application/json", // PENTING: Paksa respon JSON saat error
-                                                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                                                    },
-                                                    body: JSON.stringify({
-                                                        rating: result.value.rating,
-                                                        komentar: result.value.komentar
-                                                    })
-                                                })
-                                                .then(async res => {
-                                                    if (!res.ok) {
-                                                        const errorText = await res.text();
-                                                        try {
-                                                            const errorJson = JSON.parse(errorText);
-                                                            throw new Error(errorJson.message || "Terjadi kesalahan validasi");
-                                                        } catch (e) {
-                                                            console.error("HTML/Server Error:", errorText);
-                                                            throw new Error("Server Error. Cek Console Browser.");
-                                                        }
-                                                    }
-                                                    return res.json();
-                                                })
-                                                .then(data => {
-                                                    if (data.success) {
-                                                        Swal.fire({
-                                                            icon: "success",
-                                                            title: "Berhasil!",
-                                                            text: data.message,
-                                                            timer: 2000,
-                                                            showConfirmButton: false
-                                                        });
-
-                                                        // Update Tampilan Tanpa Reload
-                                                        const container = document.querySelector('.ulasan-list');
-                                                        if(container) {
-                                                            let starsHtml = '';
-                                                            for(let i=1; i<=5; i++) {
-                                                                starsHtml += i <= result.value.rating ?
-                                                                    '<i class="fa-solid fa-star text-warning"></i>' :
-                                                                    '<i class="fa-regular fa-star text-warning"></i>';
-                                                            }
-
-                                                            const userName = "{{ optional(Auth::user())->name ?? 'Saya' }}";
-                                                            const userPhotoPath = "{{ optional(Auth::user())->foto_profil ?? '' }}";
-                                                            let userAvatar = userPhotoPath ? "{{ asset('storage') }}/" + userPhotoPath :
-                                                                "https://ui-avatars.com/api/?name=" + encodeURIComponent(userName) + "&background=41A67E&color=fff";
-
-                                                            const newReviewHtml = `
-                                                                <div class="d-flex align-items-start mb-3" style="animation: fadeIn 0.5s;">
-                                                                    <img src="${userAvatar}" class="rounded-circle me-3" width="50" height="50">
-                                                                    <div class="flex-grow-1">
-                                                                        <div class="d-flex justify-content-between align-items-center">
-                                                                            <h6 class="mb-1">${userName} <span class="badge bg-success-subtle text-success" style="font-size:0.7em">Baru</span></h6>
-                                                                        </div>
-                                                                        <p class="mb-1">${starsHtml}</p>
-                                                                        <p>${result.value.komentar}</p>
-                                                                    </div>
-                                                                </div>
-                                                                <hr>
-                                                            `;
-                                                            const placeholder = document.getElementById('textBelumAdaUlasan');
-                                                            if (placeholder) placeholder.remove();
-                                                            container.insertAdjacentHTML('afterbegin', newReviewHtml);
-                                                        }
-
-                                                        // Sembunyikan Tombol
-                                                        const btnAdd = document.getElementById('btnTambahUlasan');
-                                                        if(btnAdd) {
-                                                            btnAdd.style.display = 'none';
-                                                            const parentDiv = btnAdd.parentElement;
-                                                            if(parentDiv) {
-                                                                let infoText = document.createElement('p');
-                                                                infoText.className = 'text-muted small mt-2 mb-0';
-                                                                infoText.innerText = 'Terima kasih atas ulasanmu!';
-                                                                parentDiv.appendChild(infoText);
-                                                            }
-                                                        }
-
-                                                        setTimeout(() => { openUlasanModal(); }, 500);
-
-                                                    } else {
-                                                        throw new Error(data.message || "Gagal menyimpan.");
-                                                    }
-                                                })
-                                                .catch(err => {
-                                                    console.error(err);
-                                                    Swal.fire("Gagal", err.message, "error").then(() => {
-                                                        openUlasanModal();
-                                                    });
-                                                });
-                                            }
-                                        });
-                                    }, 150);
-                                });
-                            });
-                            </script>
-
-                        @elseif($bolehUlas && $ratingSudahDiberikan)
-                            <p class="text-muted small mt-2 mb-0">
-                                Kamu sudah pernah mengirim ulasan. Silakan gunakan tombol Edit untuk mengubah ulasanmu.
-                            </p>
-                        @else
-                            <button class="btn btn-secondary px-4" disabled>
-                                + Tambah Ulasan (scan tiket terlebih dahulu)
-                            </button>
-                        @endif
-                    </div>
+                                    <p>{{ $ulasan->komentar }}</p>
+                                </div>
+                            </div>
+                            <hr>
+                        @endforeach
+                    @else
+                        <p class="text-muted" id="textBelumAdaUlasan">Belum ada ulasan untuk lapangan ini.</p>
+                    @endif
                 </div>
+
+                {{-- Container tombol / teks ulasan --}}
+                <div class="ulasan-tombol mt-3">
+                    @if ($bolehUlas && !$ratingSudahDiberikan)
+                        <button type="button" class="btn btn-success px-4" id="btnTambahUlasan">
+                            + Tambah Ulasan
+                        </button>
+                    @elseif($bolehUlas && $ratingSudahDiberikan)
+                        <p class="text-muted small mt-2 mb-0">
+                            Kamu sudah pernah mengirim ulasan. Silakan gunakan tombol Edit untuk mengubah ulasanmu.
+                        </p>
+                    @else
+                        <button class="btn btn-secondary px-4" disabled>
+                            + Tambah Ulasan (scan tiket terlebih dahulu)
+                        </button>
+                    @endif
+                </div>
+
             </div>
         </div>
     </div>
+</div>
 
+{{-- SweetAlert + JS --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    function openUlasanModal() {
+        let el = document.getElementById("ulasanModal");
+        if (!el) return;
+        bootstrap.Modal.getOrCreateInstance(el).show();
+    }
+
+    function initDeleteButtons() {
+        document.querySelectorAll('form[data-confirm]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: form.dataset.confirmTitle ?? "Konfirmasi",
+                    text: form.dataset.confirm ?? "Yakin?",
+                    icon: form.dataset.confirmIcon ?? "warning",
+                    showCancelButton: true,
+                    confirmButtonText: form.dataset.confirmButton ?? "Ya",
+                    cancelButtonText: form.dataset.cancelButton ?? "Batal",
+                }).then(result => {
+                    if (result.isConfirmed) form.submit();
+                });
+            }, { once: true });
+        });
+    }
+
+    function bindTambahUlasan() {
+        const btn = document.getElementById("btnTambahUlasan");
+        if (!btn) return;
+
+        btn.addEventListener('click', function () {
+            // tutup modal
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).hide();
+
+            setTimeout(() => {
+                Swal.fire({
+                    title: 'Tambah Ulasan',
+                    html: `
+                        <div class="swal-rating mb-3">
+                            ${[1,2,3,4,5].map(i => `<i class="fa-regular fa-star" data-rate="${i}"></i>`).join('')}
+                        </div>
+                        <textarea id="swalKomentar" class="form-control" rows="4" placeholder="Bagikan pengalamanmu"></textarea>
+                        <input type="hidden" id="swalRating" value="0">
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Kirim',
+                    cancelButtonText: 'Batal',
+                    width: 500,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+    const popup = Swal.getPopup();
+    const stars = popup.querySelectorAll('.swal-rating i');
+    const ratingInput = popup.querySelector('#swalRating');
+
+    stars.forEach((star, idx) => {
+        star.addEventListener('click', () => {
+            let val = parseInt(star.dataset.rate);
+            ratingInput.value = val;
+
+            stars.forEach((s, i) => {
+                if(i < val) {
+                    s.classList.remove('fa-regular');
+                    s.classList.add('fa-solid', 'text-warning');
+                } else {
+                    s.classList.remove('fa-solid');
+                    s.classList.add('fa-regular', 'text-warning');
+                }
+            });
+        });
+    });
+},
+
+                    preConfirm: () => {
+                        const komentar = Swal.getPopup().querySelector('#swalKomentar').value;
+                        const rating = Swal.getPopup().querySelector('#swalRating').value;
+                        if (!rating || rating == "0") Swal.showValidationMessage("Pilih rating dulu!");
+                        if (!komentar.trim()) Swal.showValidationMessage("Komentar tidak boleh kosong!");
+                        return { rating, komentar };
+                    }
+                }).then((result) => {
+                    if(result.dismiss === Swal.DismissReason.cancel) { openUlasanModal(); return; }
+
+                    if(result.isConfirmed) {
+                        Swal.fire({ title:'Menyimpan...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+
+                        fetch("{{ route('ulasan.simpan', $lapangan->id) }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type":"application/json",
+                                "Accept":"application/json",
+                                "X-CSRF-TOKEN":"{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({ rating: result.value.rating, komentar: result.value.komentar })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            Swal.fire({ icon:"success", title:"Berhasil!", text:data.message, timer:1500, showConfirmButton:false });
+
+                            // Reload ulasan + tombol tanpa refresh
+                            fetch("{{ route('penyewa.detail', $lapangan->id) }}?section=ulasan")
+                                .then(res => res.text())
+                                .then(html => {
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(html,"text/html");
+
+                                    // Update daftar ulasan
+                                    const newList = doc.querySelector(".ulasan-list");
+                                    const oldList = document.querySelector(".ulasan-list");
+                                    if(newList && oldList) oldList.innerHTML = newList.innerHTML;
+
+                                    // Update tombol ulasan
+                                    const newBtnContainer = doc.querySelector(".ulasan-tombol");
+                                    const oldBtnContainer = document.querySelector(".ulasan-tombol");
+                                    if(newBtnContainer && oldBtnContainer) oldBtnContainer.innerHTML = newBtnContainer.innerHTML;
+
+                                    // Re-bind tombol baru jika ada
+                                    bindTambahUlasan();
+                                    initDeleteButtons();
+
+                                    setTimeout(()=>openUlasanModal(),300);
+                                });
+                        })
+                        .catch(err => Swal.fire("Gagal", err.message ?? "Terjadi kesalahan.","error").then(()=>openUlasanModal()));
+                    }
+                });
+
+            }, 150);
+        });
+    }
+    function bindEditUlasanButtons() {
+    document.querySelectorAll('a.btn-outline-primary').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const ulasanContainer = btn.closest('.d-flex.align-items-start');
+            const komentarText = ulasanContainer.querySelector('p:last-of-type').innerText;
+            const ratingIcons = ulasanContainer.querySelectorAll('i.fa-star');
+            let currentRating = 0;
+            ratingIcons.forEach((star, idx) => {
+                if(star.classList.contains('fa-solid')) currentRating++;
+            });
+
+            // tutup modal utama
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).hide();
+
+            setTimeout(() => {
+                Swal.fire({
+                    title: 'Edit Ulasan',
+                    html: `
+                        <div class="swal-rating mb-3">
+                            ${[1,2,3,4,5].map(i => `<i class="fa-regular fa-star" data-rate="${i}"></i>`).join('')}
+                        </div>
+                        <textarea id="swalKomentar" class="form-control" rows="4">${komentarText}</textarea>
+                        <input type="hidden" id="swalRating" value="${currentRating}">
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Simpan',
+                    cancelButtonText: 'Batal',
+                    width: 500,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        const popup = Swal.getPopup();
+                        const stars = popup.querySelectorAll('.swal-rating i');
+                        const ratingInput = popup.querySelector('#swalRating');
+
+                        stars.forEach((star, idx) => {
+                            star.addEventListener('click', () => {
+                                let val = parseInt(star.dataset.rate);
+                                ratingInput.value = val;
+
+                                stars.forEach((s, i) => {
+                                    if(i < val){
+                                        s.classList.remove('fa-regular');
+                                        s.classList.add('fa-solid', 'text-warning');
+                                    } else {
+                                        s.classList.remove('fa-solid');
+                                        s.classList.add('fa-regular', 'text-warning');
+                                    }
+                                });
+                            });
+                        });
+
+                        // Set initial rating
+                        stars.forEach((s, i) => {
+                            if(i < currentRating){
+                                s.classList.remove('fa-regular');
+                                s.classList.add('fa-solid', 'text-warning');
+                            }
+                        });
+                    },
+                    preConfirm: () => {
+                        const komentar = Swal.getPopup().querySelector('#swalKomentar').value;
+                        const rating = Swal.getPopup().querySelector('#swalRating').value;
+                        if (!komentar.trim()) Swal.showValidationMessage("Komentar tidak boleh kosong!");
+                        return { rating, komentar };
+                    }
+                }).then(result => {
+                    if(result.dismiss === Swal.DismissReason.cancel) { 
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).show(); 
+                        return; 
+                    }
+
+                    if(result.isConfirmed){
+                        Swal.fire({ title:'Menyimpan...', allowOutsideClick:false, didOpen:()=>Swal.showLoading() });
+
+                        fetch(btn.href, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type":"application/json",
+                                "Accept":"application/json",
+                                "X-CSRF-TOKEN":"{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({ 
+                                rating: result.value.rating, 
+                                komentar: result.value.komentar 
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            Swal.fire({ icon:"success", title:"Berhasil!", text:data.message ?? 'Ulasan diperbarui', timer:1500, showConfirmButton:false });
+
+                            // Reload ulasan + tombol tanpa refresh
+                            fetch("{{ route('penyewa.detail', $lapangan->id) }}?section=ulasan")
+                                .then(res => res.text())
+                                .then(html => {
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(html,"text/html");
+
+                                    const newList = doc.querySelector(".ulasan-list");
+                                    const oldList = document.querySelector(".ulasan-list");
+                                    if(newList && oldList) oldList.innerHTML = newList.innerHTML;
+
+                                    const newBtnContainer = doc.querySelector(".ulasan-tombol");
+                                    const oldBtnContainer = document.querySelector(".ulasan-tombol");
+                                    if(newBtnContainer && oldBtnContainer) oldBtnContainer.innerHTML = newBtnContainer.innerHTML;
+
+                                    bindTambahUlasan();
+                                    initDeleteButtons();
+                                    bindEditUlasanButtons();
+
+                                    setTimeout(()=>bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).show(),300);
+                                });
+                        })
+                        .catch(err => Swal.fire("Gagal", err.message ?? "Terjadi kesalahan.","error").then(()=>bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).show()));
+                    }
+                });
+
+            }, 150);
+        });
+    });
+}
+
+// Panggil ini setelah bindTambahUlasan & initDeleteButtons
+bindEditUlasanButtons();
+
+
+    bindTambahUlasan();
+    initDeleteButtons();
+});
+</script>
     @if (Auth::check() && Auth::user()->role === 'penyewa')
         <div class="modal fade" id="laporLapanganModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
