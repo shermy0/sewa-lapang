@@ -4,6 +4,22 @@
 @section('title', 'Detail Lapangan')
 
 @section('content')
+<style>
+.swal-rating i {
+    font-size: 2rem;
+    margin: 0 3px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.swal-rating i.active {
+    color: #ffc107 !important;
+}
+#swalKomentar {
+    width: 100%;
+    resize: none;
+}
+</style>
+
 <link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
 
 <div class="container py-4">
@@ -312,9 +328,155 @@
                     {{-- tombol tambah ulasan (jika bisa) --}}
                     <div class="mt-3">
                         @if ($bolehUlas && !$ratingSudahDiberikan)
-    <a href="#" class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#tambahUlasanModal">
-        + Tambah Ulasan
-    </a>
+
+<button type="button" class="btn btn-success px-4" id="btnTambahUlasan">
+    + Tambah Ulasan
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+// =============================================
+// 0. Fungsi: buka modal ulasan dengan aman
+// =============================================
+function openUlasanModal() {
+    let el = document.getElementById("ulasanModal");
+    if (!el) return;
+    let modal = bootstrap.Modal.getOrCreateInstance(el);
+    modal.show();
+}
+
+// =============================================
+// 1. Tombol Tambah Ulasan
+// =============================================
+document.getElementById('btnTambahUlasan')?.addEventListener('click', function () {
+
+    // Tutup modal agar tidak double
+    let ulasanModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal'));
+    ulasanModal.hide();
+
+    setTimeout(() => {
+        Swal.fire({
+            title: 'Tambah Ulasan',
+            html: `
+                <div class="swal-rating mb-3">
+                    ${[1,2,3,4,5].map(i =>
+                        `<i class="fa-regular fa-star" data-rate="${i}"></i>`
+                    ).join('')}
+                </div>
+
+                <textarea id="swalKomentar" class="form-control" rows="4"
+                    placeholder="Bagikan pengalamanmu"></textarea>
+
+                <input type="hidden" id="swalRating" value="0">
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Kirim',
+            width: 500,
+            allowOutsideClick: false,
+
+            didOpen: () => {
+                const popup = Swal.getPopup();
+                const stars = popup.querySelectorAll('.swal-rating i');
+                const ratingInput = popup.querySelector('#swalRating');
+
+                stars.forEach(star => {
+                    star.addEventListener('click', () => {
+                        let val = parseInt(star.dataset.rate);
+                        ratingInput.value = val;
+
+                        stars.forEach((s, idx) => {
+                            if (idx < val) {
+                                s.classList.remove('fa-regular');
+                                s.classList.add('fa-solid', 'active');
+                            } else {
+                                s.classList.remove('fa-solid', 'active');
+                                s.classList.add('fa-regular');
+                            }
+                        });
+                    });
+                });
+            },
+
+            preConfirm: () => {
+                const komentar = Swal.getPopup().querySelector('#swalKomentar').value;
+                const rating = Swal.getPopup().querySelector('#swalRating').value;
+
+                if (!rating || rating == "0") Swal.showValidationMessage("Pilih rating dulu!");
+                if (!komentar.trim()) Swal.showValidationMessage("Komentar tidak boleh kosong!");
+
+                return { rating, komentar };
+            }
+
+        }).then((result) => {
+
+            // Buka modal ulasan lagi (biar tidak bingung)
+            openUlasanModal();
+
+            if (result.isConfirmed) {
+
+fetch("{{ route('ulasan.simpan', $lapangan->id) }}", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+    },
+    body: JSON.stringify({
+        rating: result.value.rating,
+        komentar: result.value.komentar
+    })
+})
+.then(res => res.json())
+.then(data => {
+    if (data.success) {
+
+        // simpan penanda untuk buka modal setelah reload
+        localStorage.setItem("openUlasanAfterReload", "1");
+
+        // tampilkan alert sukses dulu
+        Swal.fire({
+            icon: "success",
+            title: "Berhasil!",
+            text: data.message,
+        }).then(() => {
+
+            // reload setelah user klik OK
+            window.location.reload();
+        });
+
+    } else {
+        Swal.fire("Gagal!", data.message, "error");
+    }
+});
+
+
+            }
+        });
+
+    }, 150);
+});
+
+// =============================================
+// 2. AUTO BUKA MODAL ULASAN SETELAH RELOAD
+// =============================================
+document.addEventListener("DOMContentLoaded", function () {
+
+    if (localStorage.getItem("openUlasanAfterReload") === "1") {
+
+        // Hapus status agar tidak repeat
+        localStorage.removeItem("openUlasanAfterReload");
+
+        // Delay kecil agar DOM modal sudah siap
+        setTimeout(() => {
+            openUlasanModal();
+        }, 300);
+    }
+
+});
+</script>
+
+
+
 @elseif($bolehUlas && $ratingSudahDiberikan)
     <p class="text-muted small mt-2 mb-0">
         Kamu sudah pernah mengirim ulasan. Silakan gunakan tombol Edit untuk mengubah ulasanmu.
@@ -332,49 +494,6 @@
     </div>
 
     @auth
-    {{-- Modal Tambah Ulasan --}}
-    <div class="modal fade" id="tambahUlasanModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Tambah Ulasan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form action="{{ route('ulasan.simpan', $lapangan->id) }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Rating</label>
-                            @if(!$ratingSudahDiberikan)
-                                <div class="rating-stars">
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        <input type="radio" id="star{{ $i }}" name="rating" value="{{ $i }}" required>
-                                        <label for="star{{ $i }}" title="{{ $i }} stars">
-                                            <i class="fa-regular fa-star text-warning"></i>
-                                        </label>
-                                    @endfor
-                                </div>
-                            @else
-                                <div class="alert alert-info py-2 small mb-2">
-                                    Rating kamu sudah terekam ({{ $existingRatingValue }}/5). Kirim komentar baru tanpa mengubah rating.
-                                </div>
-                                <input type="hidden" name="rating" value="{{ $existingRatingValue }}">
-                            @endif
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Komentar</label>
-                            <textarea name="komentar" class="form-control" rows="4" placeholder="Bagikan pengalamanmu" required></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success">Kirim Ulasan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
 
     {{-- CSS rating bintang --}}
@@ -880,28 +999,8 @@
     });
 
 
-// Jaga kebersihan backdrop/modal-open agar tidak “nyangkut”
-document.addEventListener('show.bs.modal', () => {
-    // kalau ada banyak backdrop tersisa dari modal sebelumnya, sisakan satu saja
-    const backdrops = document.querySelectorAll('.modal-backdrop');
-    if (backdrops.length > 1) {
-        backdrops.forEach((bd, idx) => {
-            if (idx < backdrops.length - 1) bd.remove();
-        });
-    }
-    document.body.classList.add('modal-open');
-});
-
-document.addEventListener("hidden.bs.modal", function () {
-    const openModals = document.querySelectorAll('.modal.show');
-    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    if (openModals.length === 0) {
-        document.body.classList.remove('modal-open');
-        document.body.style.removeProperty('padding-right');
-    }
-});
-
 </script>
+
 @endsection
 
 @push('scripts')
