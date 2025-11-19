@@ -1,23 +1,28 @@
-
 @extends('layouts.sidebar')
 
 @section('title', 'Detail Lapangan')
 
 @section('content')
 <style>
-.swal-rating i {
-    font-size: 2rem;
-    margin: 0 3px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.swal-rating i.active {
-    color: #ffc107 !important;
-}
-#swalKomentar {
-    width: 100%;
-    resize: none;
-}
+    /* Styling Rating SweetAlert */
+    .swal-rating i {
+        font-size: 2rem;
+        margin: 0 3px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .swal-rating i.active {
+        color: #ffc107 !important;
+    }
+    #swalKomentar {
+        width: 100%;
+        resize: none;
+    }
+    /* Animasi Fade In untuk ulasan baru */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 
 <link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
@@ -25,7 +30,6 @@
 <div class="container py-4">
     <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
 
-    <!-- ALERT ERROR / SUCCESS -->
     @if(session('error'))
         <div id="alert-error" class="alert alert-danger">{{ session('error') }}</div>
     @endif
@@ -34,7 +38,7 @@
     @endif
 
     @php
-        // normalisasi foto: selalu -> array $fotoList
+        // Helper & Normalisasi Data Foto
         $fotoList = [];
         if (is_array($lapangan->foto)) {
             $fotoList = $lapangan->foto;
@@ -47,17 +51,16 @@
             }
         }
 
-        // helper untuk menghasilkan url gambar
+        // Helper URL Foto
         function foto_url($file) {
             if (!$file) return null;
-            // kalau sudah url lengkap
             if (strpos($file, 'http://') === 0 || strpos($file, 'https://') === 0) {
                 return $file;
             }
-            // coba gunakan storage path dulu
             return asset('storage/' . ltrim($file, '/'));
         }
 
+        // Data & Permissions
         $reportCategories = \App\Models\LaporanPenyalahgunaan::CATEGORIES;
         $bolehLaporkan = false;
         $bolehUlas = false;
@@ -96,7 +99,6 @@
     @endphp
 
     <div class="row g-4 align-items-start">
-        <!-- FOTO (kiri) -->
         <div class="col-md-5">
             @if(count($fotoList) > 1)
                 <div id="carouselLapanganDetail" class="carousel slide shadow-sm rounded-4 overflow-hidden"
@@ -128,7 +130,6 @@
             @endif
         </div>
 
-        <!-- INFORMASI (kanan) -->
         <div class="col-md-7">
             <h2 class="fw-bold mb-1">{{ $lapangan->nama_lapangan }}</h2>
 
@@ -153,12 +154,10 @@
             {{-- harga --}}
             @php
                 $hargaPerJam = $lapangan->harga_per_jam ?? $lapangan->harga_sewa ?? 0;
-
                 if (!is_numeric($hargaPerJam) || $hargaPerJam <= 0) {
                     $sections = $lapangan->sections ?? collect();
                     $totalHarga = 0;
                     $jumlahJadwal = 0;
-
                     foreach ($sections as $section) {
                         foreach ($section->jadwal as $jadwal) {
                             if (is_numeric($jadwal->harga_sewa) && $jadwal->harga_sewa > 0) {
@@ -167,7 +166,6 @@
                             }
                         }
                     }
-
                     if ($jumlahJadwal > 0) {
                         $hargaPerJam = $totalHarga / $jumlahJadwal;
                     }
@@ -208,7 +206,6 @@
 
             {{-- tombol aksi --}}
             <div class="d-flex gap-2 mt-3">
-                {{-- Lihat (ulasan) --}}
                 <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ulasanModal">
                     <i class="fa-solid fa-comment-dots me-1"></i> Ulasan
                 </button>
@@ -217,12 +214,10 @@
                     <i class="fa-solid fa-calendar-days me-1"></i> Jadwal
                 </button>
 
-                {{-- Pesan --}}
                 <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-success">
                     <i class="fa-solid fa-cart-plus me-1"></i> Pesan
                 </a>
 
-                {{-- Favorit (hanya untuk user penyewa) --}}
                 @if (Auth::check() && Auth::user()->role === 'penyewa')
                     @php $favoritAktif = !empty($isFavorit) && $isFavorit; @endphp
                     <button
@@ -252,7 +247,6 @@
         </div>
     </div>
 
-    {{-- Modal Ulasan (sama seperti sebelumnya) --}}
     <div class="modal fade" id="ulasanModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -261,9 +255,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    @if(($ulasans ?? collect())->count() > 0)
-                        @php $ratingShownForUser = []; @endphp
-                        <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
+                    <div class="ulasan-list" style="max-height:400px; overflow-y:auto;">
+                        @if(($ulasans ?? collect())->count() > 0)
+                            @php $ratingShownForUser = []; @endphp
                             @foreach($ulasans as $ulasan)
                                 @php
                                     $penyewaUlasan = optional($ulasan->pemesanan)->penyewa;
@@ -293,8 +287,7 @@
                                                           data-confirm-icon="warning"
                                                           data-confirm-button="Ya, hapus"
                                                           data-cancel-button="Batal">
-                                                        @csrf
-                                                        @method('DELETE')
+                                                        @csrf @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-outline-danger">
                                                             <i class="fa-solid fa-trash"></i>
                                                         </button>
@@ -320,169 +313,196 @@
                                 </div>
                                 <hr>
                             @endforeach
-                        </div>
-                    @else
-                        <p class="text-muted">Belum ada ulasan untuk lapangan ini.</p>
-                    @endif
+                        @else
+                            <p class="text-muted" id="textBelumAdaUlasan">Belum ada ulasan untuk lapangan ini.</p>
+                        @endif
+                    </div>
 
-                    {{-- tombol tambah ulasan (jika bisa) --}}
+                    {{-- Tombol Tambah Ulasan & Script --}}
                     <div class="mt-3">
                         @if ($bolehUlas && !$ratingSudahDiberikan)
+                            <button type="button" class="btn btn-success px-4" id="btnTambahUlasan">
+                                + Tambah Ulasan
+                            </button>
 
-<button type="button" class="btn btn-success px-4" id="btnTambahUlasan">
-    + Tambah Ulasan
-</button>
+                            {{-- SCRIPT KHUSUS TAMBAH ULASAN (NO RELOAD) --}}
+                            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                            <script>
+                            document.addEventListener('DOMContentLoaded', function () {
+                                // Fungsi Buka Modal
+                                function openUlasanModal() {
+                                    let el = document.getElementById("ulasanModal");
+                                    if (!el) return;
+                                    let modal = bootstrap.Modal.getOrCreateInstance(el);
+                                    modal.show();
+                                }
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                                // Logic Tombol Tambah Ulasan
+                                document.getElementById('btnTambahUlasan')?.addEventListener('click', function () {
+                                    // Tutup modal daftar ulasan sementara
+                                    let elModal = document.getElementById('ulasanModal');
+                                    let ulasanModal = bootstrap.Modal.getOrCreateInstance(elModal);
+                                    ulasanModal.hide();
 
-<script>
-// =============================================
-// 0. Fungsi: buka modal ulasan dengan aman
-// =============================================
-function openUlasanModal() {
-    let el = document.getElementById("ulasanModal");
-    if (!el) return;
-    let modal = bootstrap.Modal.getOrCreateInstance(el);
-    modal.show();
-}
+                                    setTimeout(() => {
+                                        Swal.fire({
+                                            title: 'Tambah Ulasan',
+                                            html: `
+                                                <div class="swal-rating mb-3">
+                                                    ${[1,2,3,4,5].map(i => `<i class="fa-regular fa-star" data-rate="${i}"></i>`).join('')}
+                                                </div>
+                                                <textarea id="swalKomentar" class="form-control" rows="4" placeholder="Bagikan pengalamanmu"></textarea>
+                                                <input type="hidden" id="swalRating" value="0">
+                                            `,
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Kirim',
+                                            cancelButtonText: 'Batal',
+                                            width: 500,
+                                            allowOutsideClick: false,
+                                            didOpen: () => {
+                                                const popup = Swal.getPopup();
+                                                const stars = popup.querySelectorAll('.swal-rating i');
+                                                const ratingInput = popup.querySelector('#swalRating');
 
-// =============================================
-// 1. Tombol Tambah Ulasan
-// =============================================
-document.getElementById('btnTambahUlasan')?.addEventListener('click', function () {
+                                                stars.forEach(star => {
+                                                    star.addEventListener('click', () => {
+                                                        let val = parseInt(star.dataset.rate);
+                                                        ratingInput.value = val;
+                                                        stars.forEach((s, idx) => {
+                                                            if (idx < val) {
+                                                                s.classList.remove('fa-regular');
+                                                                s.classList.add('fa-solid', 'active');
+                                                            } else {
+                                                                s.classList.remove('fa-solid', 'active');
+                                                                s.classList.add('fa-regular');
+                                                            }
+                                                        });
+                                                    });
+                                                });
+                                            },
+                                            preConfirm: () => {
+                                                const komentar = Swal.getPopup().querySelector('#swalKomentar').value;
+                                                const rating = Swal.getPopup().querySelector('#swalRating').value;
+                                                if (!rating || rating == "0") Swal.showValidationMessage("Pilih rating dulu!");
+                                                if (!komentar.trim()) Swal.showValidationMessage("Komentar tidak boleh kosong!");
+                                                return { rating, komentar };
+                                            }
+                                        }).then((result) => {
+                                            // Jika Batal
+                                            if (result.dismiss === Swal.DismissReason.cancel) {
+                                                openUlasanModal();
+                                                return;
+                                            }
 
-    // Tutup modal agar tidak double
-    let ulasanModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal'));
-    ulasanModal.hide();
+                                            // Jika Kirim
+                                            if (result.isConfirmed) {
+                                                Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    setTimeout(() => {
-        Swal.fire({
-            title: 'Tambah Ulasan',
-            html: `
-                <div class="swal-rating mb-3">
-                    ${[1,2,3,4,5].map(i =>
-                        `<i class="fa-regular fa-star" data-rate="${i}"></i>`
-                    ).join('')}
-                </div>
+                                                fetch("{{ route('ulasan.simpan', $lapangan->id) }}", {
+                                                    method: "POST",
+                                                    headers: {
+                                                        "Content-Type": "application/json",
+                                                        "Accept": "application/json", // PENTING: Paksa respon JSON saat error
+                                                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                                                    },
+                                                    body: JSON.stringify({
+                                                        rating: result.value.rating,
+                                                        komentar: result.value.komentar
+                                                    })
+                                                })
+                                                .then(async res => {
+                                                    if (!res.ok) {
+                                                        const errorText = await res.text();
+                                                        try {
+                                                            const errorJson = JSON.parse(errorText);
+                                                            throw new Error(errorJson.message || "Terjadi kesalahan validasi");
+                                                        } catch (e) {
+                                                            console.error("HTML/Server Error:", errorText);
+                                                            throw new Error("Server Error. Cek Console Browser.");
+                                                        }
+                                                    }
+                                                    return res.json();
+                                                })
+                                                .then(data => {
+                                                    if (data.success) {
+                                                        Swal.fire({
+                                                            icon: "success",
+                                                            title: "Berhasil!",
+                                                            text: data.message,
+                                                            timer: 2000,
+                                                            showConfirmButton: false
+                                                        });
 
-                <textarea id="swalKomentar" class="form-control" rows="4"
-                    placeholder="Bagikan pengalamanmu"></textarea>
+                                                        // Update Tampilan Tanpa Reload
+                                                        const container = document.querySelector('.ulasan-list');
+                                                        if(container) {
+                                                            let starsHtml = '';
+                                                            for(let i=1; i<=5; i++) {
+                                                                starsHtml += i <= result.value.rating ?
+                                                                    '<i class="fa-solid fa-star text-warning"></i>' :
+                                                                    '<i class="fa-regular fa-star text-warning"></i>';
+                                                            }
 
-                <input type="hidden" id="swalRating" value="0">
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Kirim',
-            width: 500,
-            allowOutsideClick: false,
+                                                            const userName = "{{ optional(Auth::user())->name ?? 'Saya' }}";
+                                                            const userPhotoPath = "{{ optional(Auth::user())->foto_profil ?? '' }}";
+                                                            let userAvatar = userPhotoPath ? "{{ asset('storage') }}/" + userPhotoPath :
+                                                                "https://ui-avatars.com/api/?name=" + encodeURIComponent(userName) + "&background=41A67E&color=fff";
 
-            didOpen: () => {
-                const popup = Swal.getPopup();
-                const stars = popup.querySelectorAll('.swal-rating i');
-                const ratingInput = popup.querySelector('#swalRating');
+                                                            const newReviewHtml = `
+                                                                <div class="d-flex align-items-start mb-3" style="animation: fadeIn 0.5s;">
+                                                                    <img src="${userAvatar}" class="rounded-circle me-3" width="50" height="50">
+                                                                    <div class="flex-grow-1">
+                                                                        <div class="d-flex justify-content-between align-items-center">
+                                                                            <h6 class="mb-1">${userName} <span class="badge bg-success-subtle text-success" style="font-size:0.7em">Baru</span></h6>
+                                                                        </div>
+                                                                        <p class="mb-1">${starsHtml}</p>
+                                                                        <p>${result.value.komentar}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <hr>
+                                                            `;
+                                                            const placeholder = document.getElementById('textBelumAdaUlasan');
+                                                            if (placeholder) placeholder.remove();
+                                                            container.insertAdjacentHTML('afterbegin', newReviewHtml);
+                                                        }
 
-                stars.forEach(star => {
-                    star.addEventListener('click', () => {
-                        let val = parseInt(star.dataset.rate);
-                        ratingInput.value = val;
+                                                        // Sembunyikan Tombol
+                                                        const btnAdd = document.getElementById('btnTambahUlasan');
+                                                        if(btnAdd) {
+                                                            btnAdd.style.display = 'none';
+                                                            const parentDiv = btnAdd.parentElement;
+                                                            if(parentDiv) {
+                                                                let infoText = document.createElement('p');
+                                                                infoText.className = 'text-muted small mt-2 mb-0';
+                                                                infoText.innerText = 'Terima kasih atas ulasanmu!';
+                                                                parentDiv.appendChild(infoText);
+                                                            }
+                                                        }
 
-                        stars.forEach((s, idx) => {
-                            if (idx < val) {
-                                s.classList.remove('fa-regular');
-                                s.classList.add('fa-solid', 'active');
-                            } else {
-                                s.classList.remove('fa-solid', 'active');
-                                s.classList.add('fa-regular');
-                            }
-                        });
-                    });
-                });
-            },
+                                                        setTimeout(() => { openUlasanModal(); }, 500);
 
-            preConfirm: () => {
-                const komentar = Swal.getPopup().querySelector('#swalKomentar').value;
-                const rating = Swal.getPopup().querySelector('#swalRating').value;
+                                                    } else {
+                                                        throw new Error(data.message || "Gagal menyimpan.");
+                                                    }
+                                                })
+                                                .catch(err => {
+                                                    console.error(err);
+                                                    Swal.fire("Gagal", err.message, "error").then(() => {
+                                                        openUlasanModal();
+                                                    });
+                                                });
+                                            }
+                                        });
+                                    }, 150);
+                                });
+                            });
+                            </script>
 
-                if (!rating || rating == "0") Swal.showValidationMessage("Pilih rating dulu!");
-                if (!komentar.trim()) Swal.showValidationMessage("Komentar tidak boleh kosong!");
-
-                return { rating, komentar };
-            }
-
-        }).then((result) => {
-
-            // Buka modal ulasan lagi (biar tidak bingung)
-            openUlasanModal();
-
-            if (result.isConfirmed) {
-
-fetch("{{ route('ulasan.simpan', $lapangan->id) }}", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-TOKEN": "{{ csrf_token() }}"
-    },
-    body: JSON.stringify({
-        rating: result.value.rating,
-        komentar: result.value.komentar
-    })
-})
-.then(res => res.json())
-.then(data => {
-    if (data.success) {
-
-        // simpan penanda untuk buka modal setelah reload
-        localStorage.setItem("openUlasanAfterReload", "1");
-
-        // tampilkan alert sukses dulu
-        Swal.fire({
-            icon: "success",
-            title: "Berhasil!",
-            text: data.message,
-        }).then(() => {
-
-            // reload setelah user klik OK
-            window.location.reload();
-        });
-
-    } else {
-        Swal.fire("Gagal!", data.message, "error");
-    }
-});
-
-
-            }
-        });
-
-    }, 150);
-});
-
-// =============================================
-// 2. AUTO BUKA MODAL ULASAN SETELAH RELOAD
-// =============================================
-document.addEventListener("DOMContentLoaded", function () {
-
-    if (localStorage.getItem("openUlasanAfterReload") === "1") {
-
-        // Hapus status agar tidak repeat
-        localStorage.removeItem("openUlasanAfterReload");
-
-        // Delay kecil agar DOM modal sudah siap
-        setTimeout(() => {
-            openUlasanModal();
-        }, 300);
-    }
-
-});
-</script>
-
-
-
-@elseif($bolehUlas && $ratingSudahDiberikan)
-    <p class="text-muted small mt-2 mb-0">
-        Kamu sudah pernah mengirim ulasan. Silakan gunakan tombol Edit untuk mengubah ulasanmu.
-    </p>
-@else
-
+                        @elseif($bolehUlas && $ratingSudahDiberikan)
+                            <p class="text-muted small mt-2 mb-0">
+                                Kamu sudah pernah mengirim ulasan. Silakan gunakan tombol Edit untuk mengubah ulasanmu.
+                            </p>
+                        @else
                             <button class="btn btn-secondary px-4" disabled>
                                 + Tambah Ulasan (scan tiket terlebih dahulu)
                             </button>
@@ -492,67 +512,6 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
         </div>
     </div>
-
-    @auth
-
-
-    {{-- CSS rating bintang --}}
-    <style>
-        .rating-stars {
-            display: flex;
-            flex-direction: row; /* kiri ke kanan */
-        }
-        .rating-stars input[type="radio"] {
-            display: none;
-        }
-        .rating-stars label {
-            cursor: pointer;
-            font-size: 1.5rem;
-            margin-right: 0.2rem;
-        }
-        .rating-stars label i {
-            transition: color 0.2s;
-        }
-        .rating-stars input[type="radio"]:checked ~ label i,
-        .rating-stars label:hover ~ label i,
-        .rating-stars label:hover i {
-            color: #ffc107 !important;
-        }
-    </style>
-
-    {{-- JS agar saat klik berubah ikon --}}
-    <script>
-        document.querySelectorAll('.rating-stars').forEach(starContainer => {
-            const stars = starContainer.querySelectorAll('label i');
-            const radios = starContainer.querySelectorAll('input[type="radio"]');
-
-            stars.forEach((star, idx) => {
-                star.addEventListener('click', () => {
-                    radios[idx].checked = true;
-                    updateStars(starContainer);
-                });
-            });
-
-            starContainer.addEventListener('mouseover', () => updateStars(starContainer));
-            starContainer.addEventListener('mouseout', () => updateStars(starContainer));
-        });
-
-        function updateStars(container) {
-            const radios = container.querySelectorAll('input[type="radio"]');
-            const stars = container.querySelectorAll('label i');
-            let checkedIndex = Array.from(radios).findIndex(r => r.checked);
-            stars.forEach((star, idx) => {
-                if (idx <= checkedIndex) {
-                    star.classList.remove('fa-regular');
-                    star.classList.add('fa-solid');
-                } else {
-                    star.classList.remove('fa-solid');
-                    star.classList.add('fa-regular');
-                }
-            });
-        }
-    </script>
-@endauth
 
     @if (Auth::check() && Auth::user()->role === 'penyewa')
         <div class="modal fade" id="laporLapanganModal" tabindex="-1" aria-hidden="true">
@@ -576,17 +535,10 @@ document.addEventListener("DOMContentLoaded", function () {
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Lapangan</label>
                                 <div class="form-control bg-light">{{ $lapangan->nama_lapangan }}</div>
-                                @error('lapangan_id')
-                                    <div class="text-danger small mt-1">{{ $message }}</div>
-                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Kategori Laporan</label>
-                                <select
-                                    name="kategori"
-                                    class="form-select @error('kategori') is-invalid @enderror"
-                                    @disabled(!$bolehLaporkan)
-                                >
+                                <select name="kategori" class="form-select @error('kategori') is-invalid @enderror" @disabled(!$bolehLaporkan)>
                                     <option value="">Pilih kategori</option>
                                     @foreach ($reportCategories as $key => $label)
                                         <option value="{{ $key }}" @selected(old('kategori') === $key)>{{ $label }}</option>
@@ -598,13 +550,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Deskripsi Kejadian</label>
-                                <textarea
-                                    name="deskripsi"
-                                    rows="5"
-                                    class="form-control @error('deskripsi') is-invalid @enderror"
-                                    placeholder="Tuliskan kronologi secara rinci"
-                                    @disabled(!$bolehLaporkan)
-                                >{{ old('deskripsi') }}</textarea>
+                                <textarea name="deskripsi" rows="5" class="form-control @error('deskripsi') is-invalid @enderror" placeholder="Tuliskan kronologi secara rinci" @disabled(!$bolehLaporkan)>{{ old('deskripsi') }}</textarea>
                                 @error('deskripsi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -623,23 +569,16 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
     @endif
 
-
-    {{-- MODAL JADWAL LAPANGAN --}}
     <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-
-                {{-- HEADER --}}
                 <div class="modal-header border-0 d-flex align-items-center justify-content-between">
                     <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
                         Jadwal Lapangan {{ $lapangan->nama_lapangan }}
                     </h5>
                     <div class="d-flex align-items-center gap-2">
                         @php
-                            $totalTersedia = $lapangan->sections
-                                ->flatMap->jadwal
-                                ->where('tersedia', true)
-                                ->count();
+                            $totalTersedia = $lapangan->sections->flatMap->jadwal->where('tersedia', true)->count();
                         @endphp
                         <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
                             Total jadwal: {{ $totalTersedia }}
@@ -647,10 +586,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
-
-                {{-- BODY --}}
                 <div class="modal-body">
-
                     {{-- FILTER --}}
                     <div class="row g-2 mb-3 align-items-end">
                         <div class="col-md-3">
@@ -687,7 +623,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                     ->where('tersedia', true)
                                     ->sortBy(['tanggal', 'jam_mulai']);
                             @endphp
-
                             @if($jadwalTersedia->count() > 0)
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0 table-bordered text-center">
@@ -711,11 +646,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
                                                     $durasiJam = $durasiMenit / 60;
                                                 @endphp
-                                                <tr 
-                                                    data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
-                                                    data-section="{{ $jadwal->section->nama_section ?? '' }}" 
-                                                    data-jam-mulai="{{ $mulai->format('H:i') }}"
-                                                >
+                                                <tr data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
+                                                    data-section="{{ $jadwal->section->nama_section ?? '' }}"
+                                                    data-jam-mulai="{{ $mulai->format('H:i') }}">
                                                     <td class="fw-semibold">{{ $i + 1 }}</td>
                                                     <td>{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
                                                     <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
@@ -749,8 +682,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                         </tbody>
                                     </table>
                                 </div>
-
-                                {{-- SUMMARY + PAGINATION --}}
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <div id="pagination-summary" class="small text-muted"></div>
                                     <ul class="pagination mb-0" id="pagination"></ul>
@@ -763,14 +694,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             @endif
                         </div>
                     </div>
-
                 </div>
-
             </div>
         </div>
     </div>
 
-    {{-- SCRIPT PAGINATION + FILTER --}}
+    {{-- Script Pagination --}}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const filterTanggal = document.getElementById('filterTanggal');
@@ -780,9 +709,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.querySelector('#jadwalModal tbody');
         const pagination = document.getElementById('pagination');
         const summaryEl = document.getElementById('pagination-summary');
-
         const rowsPerPage = 6;
         let currentPage = 1;
+
+        if(!tbody) return;
 
         function getFilteredRows() {
             return Array.from(tbody.querySelectorAll('tr')).filter(row => {
@@ -801,11 +731,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const rows = getFilteredRows();
             const totalPages = Math.ceil(rows.length / rowsPerPage);
             currentPage = Math.min(Math.max(1, page), totalPages);
-
-            // sembunyikan semua row
             tbody.querySelectorAll('tr').forEach(row => row.style.display = 'none');
-
-            // tampilkan row yang sesuai halaman
             const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
             let no = start + 1;
@@ -814,38 +740,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 row.querySelector('td:first-child').textContent = no++;
             });
 
-            // update summary
             if(rows.length === 0) {
                 summaryEl.textContent = 'Jadwal tidak tersedia';
             } else {
                 summaryEl.textContent = `Menampilkan ${start + 1} - ${Math.min(end, rows.length)} dari ${rows.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
             }
-
             renderPagination(totalPages);
         }
 
         function renderPagination(totalPages) {
             let html = '';
-
-            // Previous
             html += currentPage > 1
-                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage-1}">&lt;</a></li>`
-                : `<li class="page-item disabled"><span class="page-link">&lt;</span></li>`;
+                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage-1}"><</a></li>`
+                : `<li class="page-item disabled"><span class="page-link"><</span></li>`;
 
-            // Pages
             for (let i = 1; i <= totalPages; i++) {
-                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                            <a class="page-link" href="#" data-page="${i}">${i}</a>
-                        </li>`;
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
             }
-
-            // Next
             html += currentPage < totalPages
-                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage+1}">&gt;</a></li>`
-                : `<li class="page-item disabled"><span class="page-link">&gt;</span></li>`;
+                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage+1}">></a></li>`
+                : `<li class="page-item disabled"><span class="page-link">></span></li>`;
 
             pagination.innerHTML = html;
-
             pagination.querySelectorAll('a.page-link').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -869,13 +785,11 @@ document.addEventListener("DOMContentLoaded", function () {
             filterJamMulai.value = '';
             filterAndPaginate();
         });
-
-        // Init halaman pertama
         showPage(1);
     });
     </script>
 
-    {{-- LAPANGAN LAINNYA (tampilan seperti beranda) --}}
+    {{-- LAPANGAN LAINNYA --}}
     <h4 class="fw-bold mt-5 mb-3">Lapangan Lainnya</h4>
     <div class="row g-4">
         @forelse($lapanganLainnya ?? collect() as $item)
@@ -898,11 +812,8 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="col-lg-6 col-xl-4">
                 <div class="card border-0 shadow-sm h-100 overflow-hidden hover-lift">
                     <div class="position-relative" style="height: 220px; overflow: hidden;">
-                        @if(!empty($fotoArray))
-                            <img src="{{ foto_url(array_values($fotoArray)[0]) }}" class="w-100 h-100" style="object-fit: cover;">
-                        @else
-                            <img src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1200&h=800&fit=crop" class="w-100 h-100" style="object-fit: cover;">
-                        @endif
+                        <img src="{{ !empty($fotoArray) ? foto_url(array_values($fotoArray)[0]) : 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=1200&h=800&fit=crop' }}"
+                             class="w-100 h-100" style="object-fit: cover;">
 
                         <div class="position-absolute top-0 start-0 m-3">
                             <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> {{ $totalSections }} Section</span>
@@ -946,6 +857,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Auto Hide Alert & Favorite Logic
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             const alertError = document.getElementById('alert-error');
@@ -995,10 +907,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             });
         }
-
     });
-
-
 </script>
 
 @endsection
