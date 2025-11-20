@@ -10,7 +10,11 @@ class KategoriController extends Controller
 {
     public function index()
     {
-        $kategori = Kategori::all(); // hapus where('pemilik_id', auth()->id())
+        // hanya kategori milik pemilik yang login
+        $kategori = Kategori::where('pemilik_id', auth()->id())
+            ->withCount('lapangan')
+            ->get();
+
         return view('pemilik.kategori', compact('kategori'));
     }
 
@@ -21,18 +25,26 @@ class KategoriController extends Controller
             'deskripsi' => 'nullable|string',
         ]);
 
-        Kategori::create($request->only('nama_kategori', 'deskripsi'));
+        // simpan kategori berdasarkan pemilik yang login
+        Kategori::create([
+            'nama_kategori' => $request->nama_kategori,
+            'deskripsi' => $request->deskripsi,
+            'pemilik_id' => auth()->id(),
+        ]);
 
         return redirect()->route('kategori.index')->with('success', 'Kategori berhasil ditambahkan!');
     }
 
     public function show($id)
     {
-        return response()->json(Kategori::findOrFail($id));
+        return response()->json(
+            Kategori::where('pemilik_id', auth()->id())->findOrFail($id)
+        );
     }
 
     public function update(Request $request, $id)
     {
+        // pastikan hanya bisa update kategori miliknya
         $kategori = Kategori::where('pemilik_id', auth()->id())->findOrFail($id);
 
         $kategori->update($request->only('nama_kategori', 'deskripsi'));
@@ -44,7 +56,7 @@ class KategoriController extends Controller
     {
         $kategori = Kategori::where('pemilik_id', auth()->id())->findOrFail($id);
 
-        // Cek apakah kategori masih dipakai oleh lapangan milik pemilik ini
+        // cek apakah kategori dipakai oleh lapangan pemilik ini
         $dipakai = Lapangan::where('id_kategori', $id)
             ->where('pemilik_id', auth()->id())
             ->count();

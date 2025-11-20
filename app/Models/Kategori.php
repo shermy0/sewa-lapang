@@ -14,11 +14,12 @@ class Kategori extends Model
     protected $fillable = [
         'nama_kategori',
         'deskripsi',
+        'pemilik_id',
     ];
 
     // Relasi ke tabel lapangan (satu kategori punya banyak lapangan)
     public function lapangan()
     {
-        return $this->hasMany(Lapangan::class, 'id_kategori', 'id');
-    }    
+        return $this->hasMany(Lapangan::class, 'id_kategori');
+    }
 }

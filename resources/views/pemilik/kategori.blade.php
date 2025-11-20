@@ -28,7 +28,6 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 10px var(--shadow);
   padding: 25px 30px;
-  transition: all 0.3s ease;
 }
 
 h2 {
@@ -47,7 +46,6 @@ h2 {
   border-radius: 8px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: 0.3s;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -172,7 +170,6 @@ th {
   border-radius: 8px;
   padding: 9px 14px;
   cursor: pointer;
-  transition: 0.3s;
   width: 100%;
   font-weight: 500;
 }
@@ -202,7 +199,7 @@ th {
   <table>
     <thead>
       <tr>
-        <th>ID</th>
+        <th>No</th>
         <th>Nama Kategori</th>
         <th>Deskripsi</th>
         <th style="width: 120px; text-align:center;">Aksi</th>
@@ -211,7 +208,7 @@ th {
     <tbody>
       @foreach ($kategori as $k)
       <tr>
-        <td>{{ $k->id }}</td>
+        <td>{{ $loop->iteration }}</td>
         <td>{{ $k->nama_kategori }}</td>
         <td>{{ $k->deskripsi }}</td>
         <td class="action-btn">
@@ -222,9 +219,12 @@ th {
                   onclick="editKategoriFromData(this)">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
-          <button type="button" class="icon-btn delete" onclick="hapusKategori({{ $k->id }})">
+
+          <button type="button" class="icon-btn delete" 
+                  onclick="hapusKategori({{ $k->id }}, {{ $k->lapangan_count }})">
             <i class="fa-solid fa-trash"></i>
           </button>
+
           <form id="delete-form-{{ $k->id }}" action="{{ route('kategori.destroy', $k->id) }}" method="POST" style="display:none;">
             @csrf
             @method('DELETE')
@@ -256,7 +256,6 @@ th {
   </div>
 </div>
 
-{{-- SweetAlert2 --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 const modal = document.getElementById('kategoriModal');
@@ -293,23 +292,35 @@ window.addEventListener('click', function(e) {
   if (e.target === modal) closeModal();
 });
 
-function hapusKategori(id) {
-  Swal.fire({
-    title: 'Yakin hapus kategori ini?',
-    text: "Data yang dihapus tidak bisa dikembalikan!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#41A67E',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Ya, hapus!',
-    cancelButtonText: 'Batal'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      document.getElementById('delete-form-' + id).submit();
+// hapus kategori dengan cek lapangan_count
+function hapusKategori(id, lapanganCount) {
+    if(lapanganCount > 0){
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: 'Kategori ini masih digunakan oleh lapangan dan tidak bisa dihapus.',
+            confirmButtonColor: '#41A67E'
+        });
+        return;
     }
-  });
+
+    Swal.fire({
+        title: 'Yakin hapus kategori ini?',
+        text: "Data yang dihapus tidak bisa dikembalikan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#41A67E',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('delete-form-' + id).submit();
+        }
+    });
 }
 
+// Flash messages
 document.addEventListener('DOMContentLoaded', () => {
   const flashMessages = {
     success: @json(session('success')),

@@ -853,8 +853,7 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="{{ route('lapangan.store') }}" method="POST" enctype="multipart/form-data"
-                    id="formTambah" class="form-submit-lapangan">
+                <form action="{{ route('lapangan.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
                         <div class="row g-4">
@@ -863,7 +862,8 @@
                                     <i class="fa-solid fa-tag me-1 text-success"></i> Nama Lapangan
                                 </label>
                                 <input type="text" name="nama_lapangan" class="form-control form-control-lg"
-                                    placeholder="Contoh: GOR Nasional, Futsal Arena Pro" value="{{ old('nama_lapangan') }}" required>
+                                    placeholder="Contoh: GOR Nasional, Futsal Arena Pro"
+                                    value="{{ old('nama_lapangan') }}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-dark">
@@ -872,7 +872,9 @@
                                 <select name="id_kategori" class="form-select form-select-lg" required>
                                     <option value="" disabled selected>Pilih Kategori</option>
                                     @foreach ($kategori as $kat)
-                                        <option value="{{ $kat->id }}">{{ $kat->nama_kategori }}</option>
+                                        <option value="{{ $kat->id }}" {{ old('id_kategori') == $kat->id ? 'selected' : '' }}>
+                                            {{ $kat->nama_kategori }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -881,114 +883,35 @@
                                     <i class="fa-solid fa-location-dot me-1 text-success"></i> Alamat Lengkap
                                 </label>
                                 <input type="text" name="lokasi" class="form-control form-control-lg"
-                                    placeholder="Jl. Sudirman No.123, Jakarta" value="{{ old('lokasi') }}" required>
+                                    placeholder="Jl. Sudirman No.123, Jakarta"
+                                    value="{{ old('lokasi') }}" required>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-dark">
                                     <i class="fa-solid fa-align-left me-1 text-success"></i> Deskripsi
                                 </label>
-                                <textarea name="deskripsi" class="form-control" rows="4" placeholder="Jelaskan fasilitas lapangan...">{{ old('deskripsi') }}</textarea>
+                                <textarea name="deskripsi" class="form-control" rows="4"
+                                        placeholder="Jelaskan fasilitas lapangan...">{{ old('deskripsi') }}</textarea>
                             </div>
 
-                            {{-- Section Management --}}
+                            {{-- Section default --}}
                             <div class="col-12">
-                                <div class="card border-0 shadow-sm">
-                                    <div class="card-header bg-white border-0 pb-0">
-                                        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
-                                            <h6 class="mb-0 fw-bold text-dark">
-                                                <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Section Lapangan
-                                            </h6>
-                                            <span class="badge rounded-pill bg-light text-primary border border-primary fw-semibold px-3 py-2">
-                                                Kelola Area
-                                            </span>
-                                        </div>
-                                        <p class="text-muted small mt-2 mb-0">
-                                            Kelompokkan lapangan menjadi beberapa section (contoh: Lapangan A, Court 1, VIP) agar penyewa lebih mudah memilih.
-                                        </p>
-                                    </div>
-                                    <div class="card-body bg-light">
-                                        <div class="rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4">
-                                            <div class="d-flex align-items-start gap-2 mb-3">
-                                                <i class="fa-solid fa-circle-info text-primary mt-1"></i>
-                                                <div class="small text-muted">
-                                                    Isi minimal satu section sebagai area utama. Tambahkan section baru jika lapangan memiliki lebih dari satu area.
-                                                </div>
-                                            </div>
-                                            <div id="section-container" class="section-wrapper">
-                                                {{-- Section Pertama --}}
-                                                <div class="section-item rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4 mb-3 shadow-sm">
-                                                    <div class="row g-3 align-items-end">
-                                                        <div class="col-md-4">
-                                                            <label class="form-label fw-semibold">
-                                                                Nama Section <span class="text-danger">*</span>
-                                                            </label>
-                                                            <input type="text" name="sections[0][nama_section]"
-                                                                class="form-control"
-                                                                placeholder="Contoh: Lapangan A, Court 1"
-                                                                value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}"
-                                                                required>
-                                                            <div class="form-text">Contoh: Lapangan A, Court 1</div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <label class="form-label fw-semibold">Deskripsi</label>
-                                                            <input type="text" name="sections[0][deskripsi]"
-                                                                class="form-control"
-                                                                placeholder="Deskripsi singkat section..."
-                                                                value="{{ old('sections.0.deskripsi') }}">
-                                                            <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
-                                                        </div>
-                                                        <div class="col-md-1 d-flex align-items-end justify-content-md-end">
-                                                            <span class="text-muted small">Section utama</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3">
-                                                <button type="button" class="btn btn-outline-primary btn-sm px-3" id="tambah-section">
-                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Section Lain
-                                                </button>
-                                                <span class="small text-muted">Section tambahan cocok untuk area indoor/outdoor, court berbeda, atau sesi eksklusif.</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <label class="form-label fw-semibold text-dark">Nama Section</label>
+                                <input type="text" name="sections[0][nama_section]" class="form-control"
+                                    value="{{ old('sections.0.nama_section', 'Lapangan Utama') }}" required>
                             </div>
 
+                            {{-- Upload foto --}}
                             <div class="col-12">
-                                <div class="card border-0 shadow-sm">
-                                    <div class="card-body bg-white p-3 p-md-4">
-                                        <div class="d-flex align-items-start gap-3 mb-3">
-                                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
-                                                <i class="fa-solid fa-image"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="fw-bold text-dark mb-1">Upload Foto Lapangan</h6>
-                                                <p class="text-muted small mb-0">
-                                                    Tampilkan kondisi lapangan terbaik. Unggah beberapa foto untuk memberi gambaran yang jelas kepada penyewa.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="rounded-3 border border-secondary border-opacity-25 p-4 text-center mb-3" style="border-style: dashed;">
-                                            <i class="fa-solid fa-cloud-arrow-up fa-2x text-primary mb-3"></i>
-                                            <p class="fw-semibold text-dark mb-1">Tarik & lepaskan atau pilih foto dari perangkat</p>
-                                            <p class="text-muted small mb-3">Format yang didukung: JPG, PNG, JPEG &middot; Maksimal 2MB per foto</p>
-                                            <input type="file" name="foto[]" class="form-control foto-input"
-                                                accept="image/*" multiple required>
-                                        </div>
-                                        <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
-                                    </div>
-                                </div>
+                                <label class="form-label fw-semibold text-dark">Upload Foto</label>
+                                <input type="file" name="foto[]" class="form-control" multiple required>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer border-0 bg-light p-4">
-                        <button type="button" class="btn btn-lg btn-outline-secondary px-4" data-bs-dismiss="modal">
-                            <i class="fa-solid fa-xmark me-2"></i> Batal
-                        </button>
-                        <button type="submit" class="btn btn-lg btn-success px-5 shadow">
-                            <i class="fa-solid fa-check-circle me-2"></i> Simpan Lapangan
-                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success">Simpan Lapangan</button>
                     </div>
                 </form>
             </div>
