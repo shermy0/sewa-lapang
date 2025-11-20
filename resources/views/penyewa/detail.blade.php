@@ -630,9 +630,7 @@
                                             <th>Tanggal</th>
                                             <th>Section</th>
                                             <th>Rentang Waktu</th>
-                                            <th>Durasi</th>
                                             <th>Harga Total</th>
-                                            <th>Status</th>
                                             <th>Aksi</th>
                                         </tr>
                                     </thead>
@@ -659,18 +657,8 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-success-subtle text-success px-3 py-2">
-                                                        {{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam
-                                                    </span>
-                                                </td>
-                                                <td>
                                                     <div class="fw-bold text-success">Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}</div>
                                                     <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge px-3 py-2 {{ $jadwal->tersedia ? 'bg-gradient bg-success' : 'bg-secondary' }}">
-                                                        {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
-                                                    </span>
                                                 </td>
                                                 <td>
                                                     <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">

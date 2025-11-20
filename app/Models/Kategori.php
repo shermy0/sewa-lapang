@@ -19,6 +19,6 @@ class Kategori extends Model
     // Relasi ke tabel lapangan (satu kategori punya banyak lapangan)
     public function lapangan()
     {
-        return $this->hasMany(Lapangan::class, 'id_kategori');
-    }
+        return $this->hasMany(Lapangan::class, 'id_kategori', 'id');
+    }    
 }

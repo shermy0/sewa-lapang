@@ -215,7 +215,11 @@ th {
         <td>{{ $k->nama_kategori }}</td>
         <td>{{ $k->deskripsi }}</td>
         <td class="action-btn">
-          <button class="icon-btn edit" onclick="editKategori({{ $k->id }}, '{{ $k->nama_kategori }}', '{{ $k->deskripsi }}')">
+          <button class="icon-btn edit" 
+                  data-id="{{ $k->id }}" 
+                  data-nama="{{ $k->nama_kategori }}" 
+                  data-deskripsi="{{ $k->deskripsi }}" 
+                  onclick="editKategoriFromData(this)">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
           <button type="button" class="icon-btn delete" onclick="hapusKategori({{ $k->id }})">
@@ -242,10 +246,10 @@ th {
       <input type="hidden" name="_method" id="formMethod" value="POST">
 
       <label>Nama Kategori</label>
-      <input type="text" name="nama_kategori" id="nama_kategori" required>
+      <input type="text" name="nama_kategori" id="nama_kategori" value="{{ old('nama_kategori') }}" required>
 
       <label>Deskripsi</label>
-      <textarea name="deskripsi" id="deskripsi" rows="3"></textarea>
+      <textarea name="deskripsi" id="deskripsi" rows="3">{{ old('deskripsi') }}</textarea>
 
       <button type="submit"><i class="fa-solid fa-save"></i> Simpan</button>
     </form>
@@ -267,7 +271,11 @@ function openModal() {
   modal.classList.add('show');
 }
 
-function editKategori(id, nama, deskripsi) {
+function editKategoriFromData(btn) {
+  const id = btn.dataset.id;
+  const nama = btn.dataset.nama.replace(/'/g, "’").replace(/"/g, '”');
+  const deskripsi = btn.dataset.deskripsi.replace(/'/g, "’").replace(/"/g, '”');
+
   document.getElementById('modalTitle').innerText = 'Edit Kategori';
   document.getElementById('kategoriForm').action = '/kategori/' + id;
   document.getElementById('formMethod').value = 'PUT';
@@ -281,12 +289,10 @@ function closeModal() {
   modal.classList.remove('show');
 }
 
-// Tutup modal jika klik di luar konten
 window.addEventListener('click', function(e) {
   if (e.target === modal) closeModal();
 });
 
-// SweetAlert untuk hapus
 function hapusKategori(id) {
   Swal.fire({
     title: 'Yakin hapus kategori ini?',
@@ -305,35 +311,21 @@ function hapusKategori(id) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const flashSuccess = @json(session('success'));
-  const flashError = @json(session('error'));
-  const validationErrors = @json($errors->all());
+  const flashMessages = {
+    success: @json(session('success')),
+    error: @json(session('error')),
+    validation: @json($errors->all())
+  };
 
-  if (flashSuccess) {
-    Swal.fire({
-      icon: 'success',
-      title: 'Berhasil',
-      text: flashSuccess,
-      confirmButtonColor: '#41A67E'
-    });
-  }
-
-  if (flashError) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Terjadi Kesalahan',
-      text: flashError,
-      confirmButtonColor: '#41A67E'
-    });
-  }
-
-  if (validationErrors.length) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Validasi Gagal',
-      html: `<ul style="text-align:left;margin:0;padding-left:18px;">${validationErrors.map((msg) => `<li>${msg}</li>`).join('')}</ul>`,
-      confirmButtonColor: '#41A67E'
-    });
+  for (const [type, msg] of Object.entries(flashMessages)) {
+    if (msg && (Array.isArray(msg) ? msg.length : true)) {
+      Swal.fire({
+        icon: type === 'success' ? 'success' : 'error',
+        title: type === 'success' ? 'Berhasil' : 'Terjadi Kesalahan',
+        html: Array.isArray(msg) ? `<ul style="text-align:left;margin:0;padding-left:18px;">${msg.map(m=>`<li>${m}</li>`).join('')}</ul>` : msg,
+        confirmButtonColor: '#41A67E'
+      });
+    }
   }
 });
 </script>
