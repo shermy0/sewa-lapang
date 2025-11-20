@@ -8,31 +8,26 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\DisbursementController;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use App\Http\Controllers\PemesananController;
-use App\Http\Controllers\PembayaranController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use App\Http\Controllers\Penyewa\LaporanPenyalahgunaanController as PenyewaLaporanPenyalahgunaanController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\KelolaRekeningController;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\PemilikPemesananController;
 use App\Http\Controllers\ScanTiketController;
-use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PersetujuanController;
+use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
-
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -79,8 +74,8 @@ Route::post('/ajukan-banding', [BandingPemilikController::class, 'store'])->name
 Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
     Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
     // Route untuk ambil detail permintaan perubahan
-    Route::get('/permintaan-perubahan/{id}', [App\Http\Controllers\PemesananController::class, 'getDetailPermintaan']);
-    Route::post('/permintaan-perubahan/{id}/setujui', [App\Http\Controllers\PemesananController::class, 'setujuiPermintaan'])
+    Route::get('/permintaan-perubahan/{id}', [PemesananController::class, 'getDetailPermintaan']);
+    Route::post('/permintaan-perubahan/{id}/setujui', [PemesananController::class, 'setujuiPermintaan'])
         ->name('permintaan-perubahan.setujui');
     Route::post('/pemesanan/{id}/ajukan-perubahan', [PemesananController::class, 'ajukanPerubahan'])->name('pemesanan.ajukanPerubahan');
     Route::get('/lapangan/{id}/sections', [PemesananController::class, 'getSectionsByLapangan']);
@@ -96,7 +91,7 @@ Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
-    Route::get('/jadwal/section/{section_id}', [App\Http\Controllers\PemesananController::class, 'getJadwalBySection'])
+    Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection'])
         ->name('jadwal.bySection');
     Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
@@ -171,15 +166,15 @@ Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
     Route::put('/lapangan/{id}', [LapanganController::class, 'update'])->name('lapangan.update');
     Route::delete('/lapangan/{id}', [LapanganController::class, 'destroy'])->name('lapangan.destroy');
 
-    // Jadwal Lapangan - TAMBAHKAN ROUTE INI
+    // Jadwal Lapangan
     Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
     Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
     Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
-    
-    // ROUTE BARU UNTUK EDIT HARGA DAN DELETE JADWAL
+
+    // ROUTE KHUSUS UNTUK MODAL (EDIT HARGA & DELETE SINGLE)
     Route::put('/jadwal/{jadwal}/update-harga', [LapanganController::class, 'updateHargaJadwal'])->name('jadwal.update-harga');
     Route::delete('/jadwal/{jadwal}/delete', [LapanganController::class, 'destroyJadwalSingle'])->name('jadwal.destroy-single');
-    
+
     Route::get('/lapangan/{lapanganId}/section/{sectionId}/jadwal', [LapanganController::class, 'getSectionJadwal'])->name('lapangan.section.jadwal');
 
     // API Tiket (optional)

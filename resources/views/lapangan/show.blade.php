@@ -355,7 +355,6 @@
                                                                 <th>Tanggal</th>
                                                                 <th>Jam Mulai</th>
                                                                 <th>Jam Selesai</th>
-                                                                <th>Durasi</th>
                                                                 <th>Total Harga</th>
                                                                 <th>Status</th>
                                                                 <th class="text-center">Aksi</th>
@@ -371,7 +370,6 @@
                                                                     <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
-                                                                    <td>{{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam</td>
                                                                     <td>
                                                                         <div class="fw-bold text-success">
                                                                             Rp {{ number_format($hargaTotal, 0, ',', '.') }}
@@ -385,28 +383,37 @@
                                                                     </td>
                                                                     <td class="text-center">
                                                                         <div class="d-flex justify-content-center gap-1">
-                                                                            {{-- Edit Button --}}
-                                                                            <button type="button" class="btn btn-sm btn-warning text-white" 
-                                                                                data-bs-toggle="modal" 
-                                                                                data-bs-target="#editHargaModal"
-                                                                                data-jadwal-id="{{ $jadwal->id }}"
-                                                                                data-harga-sewa="{{ $jadwal->harga_sewa }}"
-                                                                                data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}"
-                                                                                data-jam-mulai="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}"
-                                                                                data-jam-selesai="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}">
-                                                                                <i class="fa-solid fa-pen-to-square"></i>
-                                                                            </button>
-                                                                            {{-- Delete Button --}}
-                                                                            <button type="button" class="btn btn-sm btn-danger" 
-                                                                                data-bs-toggle="modal" 
-                                                                                data-bs-target="#deleteHargaModal"
-                                                                                data-jadwal-id="{{ $jadwal->id }}"
-                                                                                data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}"
-                                                                                data-jam-mulai="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}"
-                                                                                data-jam-selesai="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}"
-                                                                                data-harga-sewa="{{ $jadwal->harga_sewa }}">
-                                                                                <i class="fa-solid fa-trash"></i>
-                                                                            </button>
+                                                                            @if($jadwal->tersedia)
+                                                                                {{-- JIKA TERSEDIA: Tombol Edit & Hapus Aktif --}}
+                                                                                <button type="button" class="btn btn-sm btn-warning text-white"
+                                                                                    data-bs-toggle="modal"
+                                                                                    data-bs-target="#editHargaModal"
+                                                                                    data-jadwal-id="{{ $jadwal->id }}"
+                                                                                    data-harga-sewa="{{ $jadwal->harga_sewa }}"
+                                                                                    data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}"
+                                                                                    data-jam-mulai="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}"
+                                                                                    data-jam-selesai="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}"
+                                                                                    title="Edit Harga">
+                                                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                                                </button>
+
+                                                                                <button type="button" class="btn btn-sm btn-danger"
+                                                                                    data-bs-toggle="modal"
+                                                                                    data-bs-target="#deleteHargaModal"
+                                                                                    data-jadwal-id="{{ $jadwal->id }}"
+                                                                                    data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}"
+                                                                                    data-jam-mulai="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}"
+                                                                                    data-jam-selesai="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}"
+                                                                                    data-harga-sewa="{{ $jadwal->harga_sewa }}"
+                                                                                    title="Hapus Jadwal">
+                                                                                    <i class="fa-solid fa-trash"></i>
+                                                                                </button>
+                                                                            @else
+                                                                                {{-- JIKA TERISI: Tombol Disabled (Gembok) --}}
+                                                                                <button type="button" class="btn btn-sm btn-secondary" disabled title="Jadwal Terisi (Terkunci)">
+                                                                                    <i class="fa-solid fa-lock"></i>
+                                                                                </button>
+                                                                            @endif
                                                                         </div>
                                                                     </td>
                                                                 </tr>
@@ -481,7 +488,7 @@
                         <label for="editHargaSewa" class="form-label fw-semibold">Harga Sewa per Jam <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light">Rp</span>
-                            <input type="number" class="form-control" id="editHargaSewa" name="harga_sewa" 
+                            <input type="number" class="form-control" id="editHargaSewa" name="harga_sewa"
                                    min="0" step="1000" required>
                         </div>
                         <div class="form-text text-muted">Masukkan harga sewa per jam dalam Rupiah</div>
