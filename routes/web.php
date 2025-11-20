@@ -32,6 +32,8 @@ use App\Http\Controllers\PersetujuanController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 
 Route::get('/', function () {
@@ -59,7 +61,30 @@ Route::middleware('auth')->group(function () {
         ->name('verification.verify');
 
     Route::post('/email/verification-notification', function (Request $request) {
-        $request->user()->sendEmailVerificationNotification();
+        try {
+            $request->user()->sendEmailVerificationNotification();
+        } catch (TransportExceptionInterface $e) {
+            Log::error('Gagal mengirim email verifikasi', [
+                'user_id' => optional($request->user())->id,
+                'email' => optional($request->user())->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'verification' => __('Gagal mengirim email verifikasi: :message', ['message' => $e->getMessage()]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Gagal mengirim email verifikasi (umum)', [
+                'user_id' => optional($request->user())->id,
+                'email' => optional($request->user())->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'verification' => __('Gagal mengirim email verifikasi. Silakan coba lagi nanti.'),
+            ]);
+        }
+
         return back()->with('status', __('Email verifikasi baru telah dikirim.'));
     })->middleware(['throttle:6,1'])
       ->name('verification.send');
@@ -236,4 +261,3 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
     });
     });
-

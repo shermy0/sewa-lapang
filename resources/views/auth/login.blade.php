@@ -70,10 +70,16 @@
 
                     <button
                         type="submit"
-                        class="w-full py-2 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        class="w-full py-2 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 login-button"
                     >
-                        Masuk
+                        <span class="button-loader" aria-hidden="true"></span>
+                        <span class="button-text">Masuk</span>
                     </button>
+
+                    <div id="login-loading" class="loading-indicator" aria-live="polite">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span class="loading-text">Sedang memverifikasi, mohon tunggu...</span>
+                    </div>
                 </form>
 
                 <p class="mt-6 text-center text-sm text-gray-600">
@@ -82,5 +88,41 @@
                 </p>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const form = document.querySelector('form');
+                const submitButton = form?.querySelector('.login-button');
+                const buttonText = submitButton?.querySelector('.button-text');
+                const loadingIndicator = document.getElementById('login-loading');
+                const defaultButtonText = buttonText?.textContent?.trim() || 'Masuk';
+
+                if (!form || !submitButton || !buttonText || !loadingIndicator) return;
+
+                const resetLoadingState = () => {
+                    form.dataset.submitting = 'false';
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('is-loading');
+                    buttonText.textContent = defaultButtonText;
+                    loadingIndicator.classList.remove('active');
+                };
+
+                // Ensure state is clean on initial load (e.g., after failed login redirect or bfcache).
+                resetLoadingState();
+
+                form.addEventListener('submit', () => {
+                    if (form.dataset.submitting === 'true') return;
+
+                    form.dataset.submitting = 'true';
+                    submitButton.disabled = true;
+                    submitButton.classList.add('is-loading');
+                    buttonText.textContent = 'Memverifikasi...';
+                    loadingIndicator.classList.add('active');
+                });
+
+                // Handle browser back/forward cache where submit state might persist visually.
+                window.addEventListener('pageshow', resetLoadingState);
+            });
+        </script>
     </body>
 </html>
