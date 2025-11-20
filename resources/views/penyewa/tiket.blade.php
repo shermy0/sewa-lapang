@@ -294,7 +294,7 @@ html: `
         <!-- TANGGAL -->
         <div id="tanggalWrapper" class="mt-3" style="display:none">
             <label class="modal-label">Pilih Tanggal</label>
-<input type="date" id="filterTanggal" 
+<input type="date" id="filterTanggal"
        class="form-control rounded-3"
        style="max-width: 200px;">
         </div>
