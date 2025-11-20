@@ -279,8 +279,8 @@
                                         <h6 class="mb-1">{{ $penyewaUlasan->name ?? 'Penyewa' }}</h6>
                                         @if(auth()->check() && $ulasan->penyewa_id == auth()->id())
                                             <div class="d-flex gap-1">
-                                                <a href="javascript:void(0)" 
-   class="btn btn-sm btn-outline-primary btn-edit-ulasan" 
+                                                <a href="javascript:void(0)"
+   class="btn btn-sm btn-outline-primary btn-edit-ulasan"
    data-id="{{ $ulasan->id }}">
     <i class="fa-solid fa-pen-to-square"></i>
 </a>
@@ -547,9 +547,9 @@ function bindEditUlasanButtons() {
                         return { rating, komentar };
                     }
                 }).then(result => {
-                    if(result.dismiss === Swal.DismissReason.cancel) { 
-                        bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).show(); 
-                        return; 
+                    if(result.dismiss === Swal.DismissReason.cancel) {
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById('ulasanModal')).show();
+                        return;
                     }
 
                     if(result.isConfirmed){
@@ -562,9 +562,9 @@ function bindEditUlasanButtons() {
                                 "Accept":"application/json",
                                 "X-CSRF-TOKEN":"{{ csrf_token() }}"
                             },
-                            body: JSON.stringify({ 
-                                rating: result.value.rating, 
-                                komentar: result.value.komentar 
+                            body: JSON.stringify({
+                                rating: result.value.rating,
+                                komentar: result.value.komentar
                             })
                         })
                         .then(res => res.json())
@@ -669,16 +669,23 @@ bindEditUlasanButtons();
         </div>
     @endif
 
+
+    {{-- MODAL JADWAL LAPANGAN --}}
     <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
+
+                {{-- HEADER --}}
                 <div class="modal-header border-0 d-flex align-items-center justify-content-between">
                     <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
                         Jadwal Lapangan {{ $lapangan->nama_lapangan }}
                     </h5>
                     <div class="d-flex align-items-center gap-2">
                         @php
-                            $totalTersedia = $lapangan->sections->flatMap->jadwal->where('tersedia', true)->count();
+                            $totalTersedia = $lapangan->sections
+                                ->flatMap->jadwal
+                                ->where('tersedia', true)
+                                ->count();
                         @endphp
                         <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
                             Total jadwal: {{ $totalTersedia }}
@@ -686,7 +693,10 @@ bindEditUlasanButtons();
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
+
+                {{-- BODY --}}
                 <div class="modal-body">
+
                     {{-- FILTER --}}
                     <div class="row g-2 mb-3 align-items-end">
                         <div class="col-md-3">
@@ -723,6 +733,7 @@ bindEditUlasanButtons();
                                     ->where('tersedia', true)
                                     ->sortBy(['tanggal', 'jam_mulai']);
                             @endphp
+
                             @if($jadwalTersedia->count() > 0)
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0 table-bordered text-center">
@@ -746,9 +757,11 @@ bindEditUlasanButtons();
                                                     $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
                                                     $durasiJam = $durasiMenit / 60;
                                                 @endphp
-                                                <tr data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
+                                                <tr
+                                                    data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
                                                     data-section="{{ $jadwal->section->nama_section ?? '' }}"
-                                                    data-jam-mulai="{{ $mulai->format('H:i') }}">
+                                                    data-jam-mulai="{{ $mulai->format('H:i') }}"
+                                                >
                                                     <td class="fw-semibold">{{ $i + 1 }}</td>
                                                     <td>{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
                                                     <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
@@ -782,6 +795,8 @@ bindEditUlasanButtons();
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {{-- SUMMARY + PAGINATION --}}
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <div id="pagination-summary" class="small text-muted"></div>
                                     <ul class="pagination mb-0" id="pagination"></ul>
@@ -794,12 +809,14 @@ bindEditUlasanButtons();
                             @endif
                         </div>
                     </div>
+
                 </div>
+
             </div>
         </div>
     </div>
 
-    {{-- Script Pagination --}}
+    {{-- SCRIPT PAGINATION + FILTER --}}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const filterTanggal = document.getElementById('filterTanggal');
@@ -809,29 +826,41 @@ bindEditUlasanButtons();
         const tbody = document.querySelector('#jadwalModal tbody');
         const pagination = document.getElementById('pagination');
         const summaryEl = document.getElementById('pagination-summary');
+
         const rowsPerPage = 6;
         let currentPage = 1;
 
-        if(!tbody) return;
+    function getFilteredRows() {
+        return Array.from(tbody.querySelectorAll('tr')).filter(row => {
+            const tgl = row.dataset.tanggal; // YYYY-MM-DD
+            const section = row.dataset.section;
+            const jam = row.dataset.jamMulai;
 
-        function getFilteredRows() {
-            return Array.from(tbody.querySelectorAll('tr')).filter(row => {
-                const tgl = row.dataset.tanggal;
-                const section = row.dataset.section;
-                const jam = row.dataset.jamMulai;
-                return (
-                    (!filterTanggal.value || filterTanggal.value === tgl) &&
-                    (!filterSection.value || filterSection.value === section) &&
-                    (!filterJamMulai.value || jam === filterJamMulai.value)
-                );
-            });
-        }
+            let filterOk = true;
+
+            if(filterTanggalBulan.value) {
+                const input = filterTanggalBulan.value; // YYYY-MM
+                filterOk = tgl.startsWith(input); // semua tanggal di bulan itu
+            }
+
+            return (
+                filterOk &&
+                (!filterSection.value || filterSection.value === section) &&
+                (!filterJamMulai.value || jam === filterJamMulai.value) &&
+                (!filterJamSelesai.value || jam === filterJamSelesai.value)
+            );
+        });
+    }
 
         function showPage(page = 1) {
             const rows = getFilteredRows();
             const totalPages = Math.ceil(rows.length / rowsPerPage);
             currentPage = Math.min(Math.max(1, page), totalPages);
+
+            // sembunyikan semua row
             tbody.querySelectorAll('tr').forEach(row => row.style.display = 'none');
+
+            // tampilkan row yang sesuai halaman
             const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
             let no = start + 1;
@@ -840,28 +869,38 @@ bindEditUlasanButtons();
                 row.querySelector('td:first-child').textContent = no++;
             });
 
+            // update summary
             if(rows.length === 0) {
                 summaryEl.textContent = 'Jadwal tidak tersedia';
             } else {
                 summaryEl.textContent = `Menampilkan ${start + 1} - ${Math.min(end, rows.length)} dari ${rows.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
             }
+
             renderPagination(totalPages);
         }
 
         function renderPagination(totalPages) {
             let html = '';
-            html += currentPage > 1
-                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage-1}"><</a></li>`
-                : `<li class="page-item disabled"><span class="page-link"><</span></li>`;
 
+            // Previous
+            html += currentPage > 1
+                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage-1}">&lt;</a></li>`
+                : `<li class="page-item disabled"><span class="page-link">&lt;</span></li>`;
+
+            // Pages
             for (let i = 1; i <= totalPages; i++) {
-                html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" data-page="${i}">${i}</a>
+                        </li>`;
             }
+
+            // Next
             html += currentPage < totalPages
-                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage+1}">></a></li>`
-                : `<li class="page-item disabled"><span class="page-link">></span></li>`;
+                ? `<li class="page-item"><a class="page-link" href="#" data-page="${currentPage+1}">&gt;</a></li>`
+                : `<li class="page-item disabled"><span class="page-link">&gt;</span></li>`;
 
             pagination.innerHTML = html;
+
             pagination.querySelectorAll('a.page-link').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -871,10 +910,10 @@ bindEditUlasanButtons();
             });
         }
 
-        function filterAndPaginate() {
-            currentPage = 1;
-            showPage(currentPage);
-        }
+    function filterAndPaginate() {
+        currentPage = 1;
+        showPage(currentPage);
+    }
 
         filterTanggal.addEventListener('change', filterAndPaginate);
         filterSection.addEventListener('change', filterAndPaginate);
@@ -885,6 +924,8 @@ bindEditUlasanButtons();
             filterJamMulai.value = '';
             filterAndPaginate();
         });
+
+        // Init halaman pertama
         showPage(1);
     });
     </script>
