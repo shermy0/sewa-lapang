@@ -51,27 +51,6 @@
                         </div>
                     @endif
 
-                    <!-- Success Message with Button -->
-                    @if (session('fallbackVerificationUrl'))
-                        <div class="flex items-start p-4 rounded-lg bg-green-50 border border-green-200 space-x-3">
-                            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <div class="flex-1">
-                                <p class="font-medium text-green-900 mb-2">Tautan verifikasi cadangan siap digunakan</p>
-                                <a
-                                    href="{{ session('fallbackVerificationUrl') }}"
-                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg gradient-green text-white font-medium hover:opacity-90 transition-opacity text-sm"
-                                >
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                    Verifikasi Sekarang
-                                </a>
-                            </div>
-                        </div>
-                    @endif
-
                     <!-- Status Message -->
                     @if (session('status'))
                         <div class="flex items-start p-4 rounded-lg bg-blue-50 border border-blue-200 space-x-3">

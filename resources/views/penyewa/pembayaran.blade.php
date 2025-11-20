@@ -160,7 +160,7 @@
 // Countdown pembayaran
 document.querySelectorAll('[data-countdown]').forEach(target => {
     const createdAt = new Date(target.dataset.createdAt);
-    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+    const deadline = new Date(createdAt.getTime() + 20 * 60 * 1000);
     const tick = () => {
         const now = new Date();
         const diff = deadline - now;
@@ -169,10 +169,10 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
             target.classList.add('text-muted');
             return;
         }
-        const h = Math.floor(diff / (1000 * 60 * 60));
+        const totalMinutes = Math.floor(diff / (1000 * 60));
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);
-        target.textContent = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+        target.textContent = `Sisa waktu pembayaran: ${totalMinutes}m ${s}d`;
         setTimeout(tick, 1000);
     };
     tick();

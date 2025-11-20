@@ -143,6 +143,13 @@ public function setujuiPermintaan($id)
         abort(403);
     }
 
+    // Tidak boleh ajukan setelah check-in
+    if ($pemesanan->status_scan === 'sudah_scan') {
+        return response()->json([
+            'error' => 'Tidak bisa mengajukan perubahan setelah check-in.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
     $this->autoExpirePermintaan($pemesanan->permintaanPerubahan);
     if ($pemesanan->permintaanPerubahan && $pemesanan->permintaanPerubahan->status === 'menunggu') {
         return response()->json([
@@ -156,6 +163,24 @@ public function setujuiPermintaan($id)
     if ($jadwalLama && $jadwalLama->id === $jadwalBaru->id) {
         return response()->json([
             'error' => 'Kamu sudah berada di jadwal ini.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    $now = Carbon::now('Asia/Jakarta');
+    $mulaiLama = $jadwalLama ? Carbon::parse($jadwalLama->tanggal . ' ' . $jadwalLama->jam_mulai, 'Asia/Jakarta') : null;
+    $mulaiBaru = $jadwalBaru ? Carbon::parse($jadwalBaru->tanggal . ' ' . $jadwalBaru->jam_mulai, 'Asia/Jakarta') : null;
+
+    // Hanya izinkan ajukan sebelum jadwal lama dimulai
+    if ($mulaiLama && $now->greaterThanOrEqualTo($mulaiLama)) {
+        return response()->json([
+            'error' => 'Jadwal sudah dimulai, tidak bisa diajukan.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    // Pastikan jadwal baru masih di masa depan
+    if ($mulaiBaru && $mulaiBaru->lessThanOrEqualTo($now)) {
+        return response()->json([
+            'error' => 'Tidak bisa pindah ke jadwal yang sudah lewat.',
         ], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
@@ -237,7 +262,7 @@ public function getJadwalBySection($section_id)
 {
     $now = Carbon::now('Asia/Jakarta'); // waktu sekarang
     $jadwal = JadwalLapangan::with(['pemesanan' => function ($q) {
-            $q->whereIn('status', ['menunggu', 'dibayar']);
+            $q->whereIn('status', ['menunggu', 'dibayar'])->with('pembayaran');
         }])
         ->where('section_id', $section_id)
         ->where(function ($q) use ($now) {
@@ -253,7 +278,22 @@ public function getJadwalBySection($section_id)
         ->get();
 
     $jadwal = $jadwal->map(function ($item) {
-        $bookingStatus = optional($item->pemesanan)->status;
+        $booking = $item->pemesanan;
+        $bookingStatus = optional($booking)->status;
+
+        // Lepas blokir jika pesanan menunggu sudah melewati batas waktu (20 menit)
+        if ($booking && $bookingStatus === 'menunggu') {
+            $expiresAt = Carbon::parse($booking->created_at)->addMinutes(20);
+            if (now('Asia/Jakarta')->greaterThan($expiresAt)) {
+                // Tandai kadaluarsa dan buka slot
+                $booking->update(['status' => 'kadaluarsa']);
+                if ($booking->pembayaran) {
+                    $booking->pembayaran->update(['status' => 'kadaluarsa']);
+                }
+                $item->tersedia = true;
+                $bookingStatus = null;
+            }
+        }
 
         return [
             'id' => $item->id,
@@ -345,8 +385,8 @@ public function riwayatBelum()
     foreach ($belumDibayar as $p) {
         $this->autoExpirePermintaan($p->permintaanPerubahan);
 
-        // Cek apakah sudah 24 jam dari dibuat
-        $batasWaktu = Carbon::parse($p->created_at)->addHours(24);
+        // Cek apakah sudah melewati batas waktu pembayaran (20 menit)
+        $batasWaktu = Carbon::parse($p->created_at)->addMinutes(20);
 
         if ($now->greaterThan($batasWaktu)) {
             // Ubah status jadi kadaluarsa dan buka jadwalnya

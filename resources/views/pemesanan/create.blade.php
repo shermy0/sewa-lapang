@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // =================== COUNTDOWN PEMBAYARAN ===================
     const createdAt = new Date("{{ $pemesananPending->created_at }}");
-    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+    const deadline = new Date(createdAt.getTime() + 20 * 60 * 1000);
     const countdownEl = document.getElementById('countdown');
 
     const timer = setInterval(() => {
@@ -134,10 +134,9 @@ document.addEventListener('DOMContentLoaded', function() {
             countdownEl.innerHTML = "⛔ Waktu pembayaran sudah habis!";
             document.getElementById('resume-payment').disabled = true;
         } else {
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const totalMinutes = Math.floor(diff / (1000 * 60));
             const s = Math.floor((diff % (1000 * 60)) / 1000);
-            countdownEl.innerHTML = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+            countdownEl.innerHTML = `Sisa waktu pembayaran: ${totalMinutes}m ${s}d`;
         }
     }, 1000);
 

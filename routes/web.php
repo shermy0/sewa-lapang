@@ -50,6 +50,39 @@ Route::get('/ajukan-banding', [BandingPemilikController::class, 'create'])->name
 Route::post('/ajukan-banding', [BandingPemilikController::class, 'store'])->name('banding.store');
 
 
+// Verifikasi Email (hanya butuh auth, jangan pakai middleware verified supaya tidak loop)
+Route::middleware('auth')->group(function () {
+    Route::get('/verify-email', function (Request $request) {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('verification.success');
+        }
+
+        return view('auth.verify-email');
+    })->name('verification.notice');
+
+    Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+
+    Route::post('/email/verification-notification', function (Request $request) {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('verification.success');
+        }
+
+        try {
+            $request->user()->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors([
+                'verification' => __('Email verifikasi gagal dikirim. Silakan coba lagi nanti.'),
+            ]);
+        }
+
+        return back()->with('status', __('Email verifikasi baru telah dikirim.'));
+    })->middleware(['throttle:6,1'])->name('verification.send');
+});
+
 
 Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
 Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
@@ -107,64 +140,30 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
         Route::post('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'store'])->name('laporan.store');
     });
 
-
-    Route::get('/verify-email', function (Request $request) {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('verification.success');
-        }
-
-        return view('auth.verify-email');
-    })->name('verification.notice');
-
-Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
-    ->middleware(['auth', 'signed', 'throttle:6,1'])
-    ->name('verification.verify');
-
-
-    Route::post('/email/verification-notification', function (Request $request) {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->route('verification.success');
-        }
-
-        try {
-            $request->user()->sendEmailVerificationNotification();
-        } catch (\Throwable $e) {
-            report($e);
-
-            return back()->withErrors([
-                'verification' => __('Email verifikasi gagal dikirim. Silakan coba lagi nanti.'),
-            ]);
-        }
-
-        return back()->with('status', __('Email verifikasi baru telah dikirim.'));
-    })->middleware(['throttle:6,1'])->name('verification.send');
-
-    Route::get('/verifikasi-berhasil', function (Request $request) {
-        $user = $request->user();
-
-        if (! $user) {
-            return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
-        }
-
-        if ($user->role === 'penyewa') {
-            return redirect()->route('penyewa.beranda')->with('status', __('Akun berhasil diverifikasi.'));
-        }
-
-        if ($user->role === 'pemilik') {
-            return redirect()->route('dashboard.pemilik')->with('status', __('Akun berhasil diverifikasi.'));
-        }
-
-        if ($user->role === 'admin') {
-            return redirect()->route('dashboard.admin');
-        }
-
-        return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
-    })->name('verification.success');
 });
 
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
+
+Route::middleware(['auth', 'verified'])->get('/verifikasi-berhasil', function (Request $request) {
+    $user = $request->user();
+
+    if ($user->role === 'penyewa') {
+        return redirect()->route('penyewa.beranda')->with('status', __('Akun berhasil diverifikasi.'));
+    }
+
+    if ($user->role === 'pemilik') {
+        return redirect()->route('dashboard.pemilik')->with('status', __('Akun berhasil diverifikasi.'));
+    }
+
+    if ($user->role === 'admin') {
+        return redirect()->route('dashboard.admin');
+    }
+
+    return redirect('/')->with('status', __('Akun berhasil diverifikasi.'));
+})->name('verification.success');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
