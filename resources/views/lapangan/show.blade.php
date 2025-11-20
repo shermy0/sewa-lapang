@@ -358,6 +358,7 @@
                                                                 <th>Durasi</th>
                                                                 <th>Total Harga</th>
                                                                 <th>Status</th>
+                                                                <th class="text-center">Aksi</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody data-section-table="{{ $section->id }}">
@@ -381,6 +382,32 @@
                                                                         <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
                                                                             {{ $jadwal->tersedia ? 'Tersedia' : 'Terisi' }}
                                                                         </span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <div class="d-flex justify-content-center gap-1">
+                                                                            {{-- Edit Button --}}
+                                                                            <button type="button" class="btn btn-sm btn-warning text-white" 
+                                                                                data-bs-toggle="modal" 
+                                                                                data-bs-target="#editHargaModal"
+                                                                                data-jadwal-id="{{ $jadwal->id }}"
+                                                                                data-harga-sewa="{{ $jadwal->harga_sewa }}"
+                                                                                data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}"
+                                                                                data-jam-mulai="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}"
+                                                                                data-jam-selesai="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}">
+                                                                                <i class="fa-solid fa-pen-to-square"></i>
+                                                                            </button>
+                                                                            {{-- Delete Button --}}
+                                                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                                                data-bs-toggle="modal" 
+                                                                                data-bs-target="#deleteHargaModal"
+                                                                                data-jadwal-id="{{ $jadwal->id }}"
+                                                                                data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('d M Y') }}"
+                                                                                data-jam-mulai="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}"
+                                                                                data-jam-selesai="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}"
+                                                                                data-harga-sewa="{{ $jadwal->harga_sewa }}">
+                                                                                <i class="fa-solid fa-trash"></i>
+                                                                            </button>
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                             @endforeach
@@ -420,6 +447,99 @@
     </div>
 </div>
 
+{{-- Modal Edit Harga --}}
+<div class="modal fade" id="editHargaModal" tabindex="-1" aria-labelledby="editHargaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-dark" id="editHargaModalLabel">Edit Harga Jadwal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editHargaForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Tanggal</label>
+                        <input type="text" class="form-control" id="editTanggal" readonly>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Jam Mulai</label>
+                                <input type="text" class="form-control" id="editJamMulai" readonly>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Jam Selesai</label>
+                                <input type="text" class="form-control" id="editJamSelesai" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editHargaSewa" class="form-label fw-semibold">Harga Sewa per Jam <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">Rp</span>
+                            <input type="number" class="form-control" id="editHargaSewa" name="harga_sewa" 
+                                   min="0" step="1000" required>
+                        </div>
+                        <div class="form-text text-muted">Masukkan harga sewa per jam dalam Rupiah</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning text-white">
+                        <i class="fa-solid fa-floppy-disk me-2"></i> Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Delete Harga --}}
+<div class="modal fade" id="deleteHargaModal" tabindex="-1" aria-labelledby="deleteHargaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-danger" id="deleteHargaModalLabel">Hapus Jadwal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteHargaForm" method="POST">
+                @csrf
+                @method('DELETE')
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <i class="fa-solid fa-triangle-exclamation fa-3x text-warning mb-3"></i>
+                        <h6 class="fw-semibold">Apakah Anda yakin ingin menghapus jadwal ini?</h6>
+                    </div>
+                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 small">
+                        <i class="fa-solid fa-exclamation-circle me-2"></i>
+                        Tindakan ini akan menghapus jadwal secara permanen dan tidak dapat dikembalikan.
+                    </div>
+                    <div class="border rounded p-3 bg-light">
+                        <div class="row small">
+                            <div class="col-4 text-muted">Tanggal:</div>
+                            <div class="col-8 fw-semibold" id="deleteTanggal"></div>
+                            <div class="col-4 text-muted">Jam:</div>
+                            <div class="col-8 fw-semibold" id="deleteJam"></div>
+                            <div class="col-4 text-muted">Harga:</div>
+                            <div class="col-8 fw-semibold text-success" id="deleteHarga"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-trash me-2"></i> Ya, Hapus
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {{-- Styling tambahan --}}
 <style>
     .bg-light-subtle { background: #f8f9fa; }
@@ -432,6 +552,7 @@
     .carousel-lapangan { height: 400px; }
     .carousel-lapangan .carousel-item { height: 400px; }
     .carousel-lapangan .carousel-item img { height: 100%; object-fit: cover; }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
 </style>
 
 <script>
@@ -539,6 +660,51 @@
                     }
                 });
             });
+
+            // Modal Edit Events
+            const editHargaModal = document.getElementById('editHargaModal');
+            if (editHargaModal) {
+                editHargaModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const jadwalId = button.getAttribute('data-jadwal-id');
+                    const hargaSewa = button.getAttribute('data-harga-sewa');
+                    const tanggal = button.getAttribute('data-tanggal');
+                    const jamMulai = button.getAttribute('data-jam-mulai');
+                    const jamSelesai = button.getAttribute('data-jam-selesai');
+
+                    const modal = this;
+                    modal.querySelector('#editTanggal').value = tanggal;
+                    modal.querySelector('#editJamMulai').value = jamMulai;
+                    modal.querySelector('#editJamSelesai').value = jamSelesai;
+                    modal.querySelector('#editHargaSewa').value = hargaSewa;
+
+                    const form = modal.querySelector('#editHargaForm');
+                    // Gunakan route yang baru
+                    form.action = `/jadwal/${jadwalId}/update-harga`;
+                });
+            }
+
+            // Modal Delete Events
+            const deleteHargaModal = document.getElementById('deleteHargaModal');
+            if (deleteHargaModal) {
+                deleteHargaModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const jadwalId = button.getAttribute('data-jadwal-id');
+                    const hargaSewa = button.getAttribute('data-harga-sewa');
+                    const tanggal = button.getAttribute('data-tanggal');
+                    const jamMulai = button.getAttribute('data-jam-mulai');
+                    const jamSelesai = button.getAttribute('data-jam-selesai');
+
+                    const modal = this;
+                    modal.querySelector('#deleteTanggal').textContent = tanggal;
+                    modal.querySelector('#deleteJam').textContent = `${jamMulai} - ${jamSelesai}`;
+                    modal.querySelector('#deleteHarga').textContent = `Rp ${parseInt(hargaSewa).toLocaleString('id-ID')} / jam`;
+
+                    const form = modal.querySelector('#deleteHargaForm');
+                    // Gunakan route yang baru
+                    form.action = `/jadwal/${jadwalId}/delete`;
+                });
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
