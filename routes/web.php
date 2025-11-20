@@ -71,21 +71,23 @@ Route::middleware('auth')->group(function () {
 Route::get('/ajukan-banding', [BandingPemilikController::class, 'create'])->name('banding.create');
 Route::post('/ajukan-banding', [BandingPemilikController::class, 'store'])->name('banding.store');
 
+
+
 Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
-    Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
-    // Route untuk ambil detail permintaan perubahan
-    Route::get('/permintaan-perubahan/{id}', [PemesananController::class, 'getDetailPermintaan']);
-    Route::post('/permintaan-perubahan/{id}/setujui', [PemesananController::class, 'setujuiPermintaan'])
-        ->name('permintaan-perubahan.setujui');
-    Route::post('/pemesanan/{id}/ajukan-perubahan', [PemesananController::class, 'ajukanPerubahan'])->name('pemesanan.ajukanPerubahan');
-    Route::get('/lapangan/{id}/sections', [PemesananController::class, 'getSectionsByLapangan']);
-    Route::get('/jadwal/{id}', [PemesananController::class, 'getJadwalBySection']);
+Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
+// Route untuk ambil detail permintaan perubahan
+Route::get('/permintaan-perubahan/{id}', [App\Http\Controllers\PemesananController::class, 'getDetailPermintaan']);
+Route::post('/permintaan-perubahan/{id}/setujui', [App\Http\Controllers\PemesananController::class, 'setujuiPermintaan'])
+    ->name('permintaan-perubahan.setujui');
+Route::post('/pemesanan/{id}/ajukan-perubahan', [PemesananController::class, 'ajukanPerubahan'])->name('pemesanan.ajukanPerubahan');
+Route::get('/lapangan/{id}/sections', [PemesananController::class, 'getSectionsByLapangan']);
+Route::get('/jadwal/{id}', [PemesananController::class, 'getJadwalBySection']);
 
     Route::post('/permintaan-perubahan/{pemesananId}', [PemesananController::class, 'ajukanPerubahan'])
         ->name('permintaan-perubahan.store');
 
-    Route::delete('/permintaan-perubahan/{id}', [PemesananController::class, 'batalkanPermintaan'])
-        ->name('permintaan-perubahan.delete');
+Route::delete('/permintaan-perubahan/{id}', [PemesananController::class, 'batalkanPermintaan'])
+    ->name('permintaan-perubahan.delete');
 
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
@@ -130,7 +132,6 @@ Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
-
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
@@ -138,14 +139,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 });
 
+
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
-    // PERSETUJUAN PEMILIK
-    Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
-    Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
+        // PERSETUJUAN PEMILIK
+Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
+Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
@@ -170,16 +172,12 @@ Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
     Route::post('/lapangan/{lapanganId}/jadwal', [LapanganController::class, 'storeJadwal'])->name('lapangan.jadwal.store');
     Route::put('/lapangan/{lapanganId}/jadwal/{jadwalId}', [LapanganController::class, 'updateJadwal'])->name('lapangan.jadwal.update');
     Route::delete('/lapangan/{lapanganId}/jadwal/{jadwalId?}', [LapanganController::class, 'destroyJadwal'])->name('lapangan.jadwal.destroy');
-
-    // ROUTE KHUSUS UNTUK MODAL (EDIT HARGA & DELETE SINGLE)
-    Route::put('/jadwal/{jadwal}/update-harga', [LapanganController::class, 'updateHargaJadwal'])->name('jadwal.update-harga');
-    Route::delete('/jadwal/{jadwal}/delete', [LapanganController::class, 'destroyJadwalSingle'])->name('jadwal.destroy-single');
-
     Route::get('/lapangan/{lapanganId}/section/{sectionId}/jadwal', [LapanganController::class, 'getSectionJadwal'])->name('lapangan.section.jadwal');
 
     // API Tiket (optional)
     Route::post('/lapangan/{id}/reduce-ticket/{quantity?}', [LapanganController::class, 'reduceTicket'])->name('lapangan.reduceTicket');
     Route::post('/lapangan/{id}/add-ticket/{quantity?}', [LapanganController::class, 'addTicket'])->name('lapangan.addTicket');
+
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
@@ -228,4 +226,4 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::get('akun', [AdminAccountController::class, 'edit'])->name('account.edit');
         Route::put('akun', [AdminAccountController::class, 'update'])->name('account.update');
     });
-});
+    });

@@ -3,8 +3,8 @@
 @section('title', 'Kelola Banner')
 
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <div class="container mt-4">
-
     <!-- Header + Tombol Tambah Banner -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold">Kelola Banner</h3>
@@ -68,18 +68,55 @@
                             {{ ucfirst($banner->status) }}
                         </span>
                     </td>
-                    <td class="d-flex justify-content-center gap-2">
-                        <!-- Tombol Edit -->
-                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ $banner->id }}">
-                            <i class="fa-solid fa-pen-to-square"></i> Edit
-                        </button>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center align-items-center gap-2">
+                            <!-- Tombol Edit -->
+                            <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ $banner->id }}">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </button>
 
-                        <!-- Tombol On/Off -->
-                        <form action="{{ route('admin.banners.toggle', $banner->id) }}" method="POST">
+                            <!-- Tombol Hapus -->
+                            <form action="{{ route('admin.banners.destroy', $banner->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete">
+                                    <i class="fa-solid fa-trash"></i> Hapus
+                                </button>
+                            </form>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    const deleteButtons = document.querySelectorAll('.btn-delete');
+
+                                    deleteButtons.forEach(button => {
+                                        button.addEventListener('click', function () {
+                                            const form = this.closest('form');
+
+                                            Swal.fire({
+                                                title: 'Apakah kamu yakin?',
+                                                text: "Banner ini akan dihapus permanen!",
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonColor: '#d33', // merah
+                                                cancelButtonColor: '#3085d6', // biru
+                                                confirmButtonText: 'Ya, hapus!',
+                                                cancelButtonText: 'Batal'
+                                            }).then((result) => {
+                                                if (result.isConfirmed) {
+                                                    form.submit(); // submit form kalau user konfirmasi
+                                                }
+                                            });
+                                        });
+                                    });
+                                });
+                            </script>
+
+                            <!-- Tombol Toggle -->
+                            <form action="{{ route('admin.banners.toggle', $banner->id) }}" method="POST" class="d-inline">
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="btn btn-warning btn-sm">
-                                {{ $banner->status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' }}
+                            <button type="submit" class="btn btn-outline-success btn-sm">
+                                <i class="fa-solid fa-power-off"></i>
                             </button>
                         </form>
                     </td>

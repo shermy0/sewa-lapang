@@ -102,7 +102,7 @@
     <div class="row" id="ticketContainer">
         @forelse($sudahDibayar as $p)
         <div class="col-md-6 mb-4 ticket-card" data-status="{{ $p->status_scan }}">
-            
+
             {{-- Notifikasi perubahan --}}
             @if($p->permintaanPerubahan)
                 @if($p->permintaanPerubahan->status === 'menunggu')
@@ -192,7 +192,7 @@
                     <div class="ticket-right p-4 bg-white flex-grow-1 position-relative">
                         <div class="ticket-info">
                             <p class="mb-1"><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
-                            <p class="mb-1"><strong>Status:</strong> 
+                            <p class="mb-1"><strong>Status:</strong>
                                 <span class="badge bg-success">Dibayar</span>
                             </p>
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
@@ -271,6 +271,9 @@ document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
     });
 });
 function ajukanPerubahan(pemesananId, lapanganId) {
+    window.selectedSection = null;
+    window.selectedJadwal = null;
+
     Swal.fire({
         title: "Ajukan Perubahan Jadwal / Section",
         width: "90%",
@@ -411,7 +414,8 @@ document.querySelectorAll(".section-card").forEach(card => {
                     title: "Permintaan dikirim!",
                     confirmButtonColor: "#41A67E"
                 }).then(() => location.reload());
-            });
+            })
+            .catch(() => Swal.fire('Gagal', 'Terjadi kesalahan saat mengirim permintaan.', 'error'));
         }
     });
 }
@@ -482,24 +486,29 @@ function lihatDetailPerubahan(permintaanId) {
         .then(res => res.json())
         .then(data => {
             const jadwalBaru = data.jadwal_baru ? `
-                ${new Date(data.jadwal_baru.tanggal).toLocaleDateString('id-ID')} 
+                ${new Date(data.jadwal_baru.tanggal).toLocaleDateString('id-ID')}
                 (${data.jadwal_baru.jam_mulai} - ${data.jadwal_baru.jam_selesai})
             ` : '-';
+            const expiresText = data.expires_at
+                ? new Date(data.expires_at).toLocaleString('id-ID')
+                : '-';
 
             Swal.fire({
                 title: '<i class="fa-solid fa-arrows-rotate me-1 text-success"></i> Detail Permintaan Perubahan',
                 html: `
                     <div class="text-start">
-                        <p><strong>Status:</strong> 
-                            ${data.status === 'menunggu' 
-                                ? '<span class="badge bg-warning text-dark">Menunggu Persetujuan</span>' 
-                                : data.status === 'disetujui' 
-                                ? '<span class="badge bg-success">Disetujui</span>' 
+                        <p><strong>Status:</strong>
+                            ${data.status === 'menunggu'
+                                ? '<span class="badge bg-warning text-dark">Menunggu Persetujuan</span>'
+                                : data.status === 'disetujui'
+                                ? '<span class="badge bg-success">Disetujui</span>'
                                 : '<span class="badge bg-danger">Ditolak</span>'}
                         </p>
+                        <p><strong>Berlaku hingga:</strong> ${expiresText}</p>
                         <p><strong>Section Baru:</strong> ${data.section_baru?.nama_section ?? '-'}</p>
                         <p><strong>Jadwal Baru:</strong> ${jadwalBaru}</p>
                         <p><strong>Alasan:</strong> ${data.alasan ?? '-'}</p>
+                        ${data.alasan_internal ? `<p class="text-muted"><strong>Catatan:</strong> ${data.alasan_internal}</p>` : ''}
                     </div>
                 `,
                 showCancelButton: true,
