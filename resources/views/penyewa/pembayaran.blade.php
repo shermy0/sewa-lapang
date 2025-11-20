@@ -158,25 +158,32 @@
         data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 // Countdown pembayaran
+// Countdown pembayaran
 document.querySelectorAll('[data-countdown]').forEach(target => {
     const createdAt = new Date(target.dataset.createdAt);
-    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+
+    // ⏳ WAKTU BAYAR = 15 MENIT
+    const deadline = new Date(createdAt.getTime() + 15 * 60 * 1000);
+
     const tick = () => {
         const now = new Date();
         const diff = deadline - now;
+
         if (diff <= 0) {
             target.textContent = '⛔ Waktu pembayaran sudah habis.';
             target.classList.add('text-muted');
             return;
         }
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        const m = Math.floor(diff / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);
-        target.textContent = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+
+        target.textContent = `Sisa waktu pembayaran: ${m}m ${s}d`;
         setTimeout(tick, 1000);
     };
     tick();
 });
+
 
 // 💳 Midtrans - Bayar Sekarang + Loading
 document.querySelectorAll('.btn-pay-again').forEach(btn => {

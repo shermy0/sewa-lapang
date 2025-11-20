@@ -282,23 +282,22 @@ public function riwayatBelum()
         ->latest()
         ->get();
 
-    foreach ($belumDibayar as $p) {
-        // Cek apakah sudah 24 jam dari dibuat
-        $batasWaktu = Carbon::parse($p->created_at)->addHours(24);
+foreach ($belumDibayar as $p) {
+    $batasWaktu = Carbon::parse($p->created_at)->addMinutes(15);
 
-        if ($now->greaterThan($batasWaktu)) {
-            // Ubah status jadi kadaluarsa dan buka jadwalnya
-            $p->update(['status' => 'kadaluarsa']);
-            if ($p->jadwal) {
-                $p->jadwal->update(['tersedia' => true]);
-            }
+    if ($now->greaterThan($batasWaktu)) {
+        $p->update(['status' => 'kadaluarsa']);
 
-            // Kalau ada pembayaran pending, ubah juga statusnya
-            if ($p->pembayaran) {
-                $p->pembayaran->update(['status' => 'kadaluarsa']);
-            }
+        if ($p->jadwal) {
+            $p->jadwal->update(['tersedia' => true]);
+        }
+
+        if ($p->pembayaran) {
+            $p->pembayaran->update(['status' => 'kadaluarsa']);
         }
     }
+}
+
 
     // Setelah update, ambil ulang hanya yang benar-benar masih menunggu
     $belumDibayar = Pemesanan::with(['jadwal'])
