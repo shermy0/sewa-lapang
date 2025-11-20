@@ -228,6 +228,7 @@ public function riwayatTiket()
     ])
     ->where('penyewa_id', $userId)
     ->where('status', 'dibayar')
+    ->latest()
     ->get();
 
     // 🔹 Cek apakah sudah lewat waktu tapi belum di-scan
@@ -254,6 +255,7 @@ public function riwayatTiket()
     ])
     ->where('penyewa_id', $userId)
     ->where('status', 'dibayar')
+    ->latest()
     ->get()
     ->map(function ($p) {
         if ($p->permintaanPerubahan && $p->permintaanPerubahan->status === 'disetujui') {
@@ -277,6 +279,7 @@ public function riwayatBelum()
     $belumDibayar = Pemesanan::with(['jadwal'])
         ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
+        ->latest()
         ->get();
 
     foreach ($belumDibayar as $p) {
@@ -301,6 +304,7 @@ public function riwayatBelum()
     $belumDibayar = Pemesanan::with(['jadwal'])
         ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
+        ->latest()
         ->get();
 
     return view('penyewa.pembayaran', compact('belumDibayar'));
@@ -317,7 +321,9 @@ public function riwayatBatal()
     $dibatalkan = Pemesanan::with('lapangan', 'jadwal')
         ->where('penyewa_id', $userId)
         ->whereIn('status', ['batal', 'kadaluarsa', 'di-scan'])
+        ->latest()
         ->get();
+        
 
     return view('penyewa.riwayat', compact('dibatalkan'));
 }
