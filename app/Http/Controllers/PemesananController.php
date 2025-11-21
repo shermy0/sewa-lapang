@@ -15,6 +15,51 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 class PemesananController extends Controller
 {
+    public function pindahLangsung(Request $request, $pemesananId)
+{
+    $request->validate([
+        'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
+        'section_baru_id' => 'nullable|exists:section_lapangan,id',
+    ]);
+
+    $pemesanan = Pemesanan::with('jadwal')->findOrFail($pemesananId);
+
+    // hanya pemilik pemesanan (penyewa) yang boleh
+    if ($pemesanan->penyewa_id !== Auth::id()) {
+        abort(403);
+    }
+
+    // tidak boleh pindah jika sudah discan / sudah selesai
+    if ($pemesanan->status === 'dibayar' && $pemesanan->status_scan === 'sudah_scan') {
+        return response()->json(['error' => 'Sudah discan, tidak bisa dipindah.'], 422);
+    }
+
+    $jadwalBaru = JadwalLapangan::findOrFail($request->jadwal_baru_id);
+
+    // Pastikan jadwal baru benar-benar tersedia (tersedia == true)
+    if (! $jadwalBaru->tersedia) {
+        return response()->json(['error' => 'Jadwal tidak tersedia.'], 422);
+    }
+
+    // Ubah jadwal lama jadi tersedia lagi
+    if ($pemesanan->jadwal) {
+        $pemesanan->jadwal->update(['tersedia' => true]);
+    }
+
+    // Lakukan pemindahan
+    $pemesanan->update([
+        'jadwal_id' => $jadwalBaru->id,
+    ]);
+
+    // Lock jadwal baru
+    $jadwalBaru->update(['tersedia' => false]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Berhasil memindahkan jadwal.',
+        'pemesanan' => $pemesanan->fresh()->load('jadwal.section')
+    ]);
+}
 
         public function __construct()
     {
@@ -192,17 +237,27 @@ public function getJadwalBySection($section_id)
         ->get()
         ->map(function($j) {
 
-            // 🔍 Cek apakah jadwal sedang dipesan oleh orang lain (status MENUNGGU)
-            $pending = \App\Models\Pemesanan::where('jadwal_id', $j->id)
-                ->where('status', 'menunggu')
-                ->exists();
+            // cari pemesanan aktif utk jadwal ini
+$p = Pemesanan::where('jadwal_id', $j->id)
+    ->whereIn('status', ['menunggu', 'dibayar'])
+    ->whereHas('pembayaran', function($q) {
+        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+    })
+    ->first();
 
-            // 🔒 Jika pending, jadikan tidak tersedia
-            // Catatan: jika j.tersedia == true tetapi pending == true → menjadi false
-            $j->tersedia = $j->tersedia && !$pending;
 
-            // pastikan tanggal format "YYYY-MM-DD"
-            $j->tanggal = \Carbon\Carbon::parse($j->tanggal)->toDateString();
+            if ($p) {
+                $j->booking_status = $p->status; // menunggu / dibayar
+            } else {
+                $j->booking_status = null; // available
+            }
+
+            // lock pending
+            if ($j->booking_status === 'menunggu') {
+                $j->tersedia = false;
+            }
+
+            $j->tanggal = Carbon::parse($j->tanggal)->toDateString();
 
             return $j;
         });
@@ -213,11 +268,23 @@ public function getJadwalBySection($section_id)
 
 
 
+
     // ========================== HALAMAN TIKET ==========================
 public function riwayatTiket()
 {
     $userId = Auth::id();
     $now = Carbon::now('Asia/Jakarta');
+$semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
+    ->where('penyewa_id', auth()->id())
+    ->get();
+
+// kirim ke blade: status pembayaran yang benar
+$userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
+    return [
+        $p->jadwal_id => optional($p->pembayaran)->status // pending / berhasil / gagal / ...
+    ];
+});
+
 
     // Ambil semua tiket yang sudah dibayar
     $sudahDibayar = Pemesanan::with([
@@ -264,7 +331,12 @@ public function riwayatTiket()
         return $p;
     });
 
-    return view('penyewa.tiket', compact('sudahDibayar'));
+return view('penyewa.tiket', [
+    'sudahDibayar' => $sudahDibayar,
+    'semuaPemesananUser' => $semuaPemesananUser,
+            'userOrders' => $userOrders
+
+]);
 }
 
 

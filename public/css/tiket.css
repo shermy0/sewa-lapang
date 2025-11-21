@@ -7,6 +7,21 @@
   --border: #ddd;
   --shadow: rgba(0, 0, 0, 0.1);
 }
+.jadwal-item.available {
+    background: #E8FFF3;
+    border-color: #41A67E;
+}
+
+.jadwal-item.pending {
+    background: #FFF7D9;
+    border-color: #E1A200;
+}
+
+.jadwal-item.paid {
+    background: #F1F1F1;
+    border-color: #BEBEBE;
+    opacity: 0.6;
+}
 
 
 /* --- Ticket container --- */
