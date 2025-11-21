@@ -49,11 +49,18 @@
                                 <a href="{{ route('penyewa.detail', $lapangan->id) }}" class="btn btn-success flex-grow-1">
                                     Detail
                                 </a>
-                                <form action="{{ route('favorit.destroy', $lapangan) }}" method="POST" class="d-inline">
+                                <form
+                                    action="{{ route('favorit.destroy', $lapangan) }}"
+                                    method="POST"
+                                    class="d-inline"
+                                    data-confirm="Hapus lapangan dari favorit?"
+                                    data-confirm-title="Hapus Favorit"
+                                    data-confirm-button="Ya, hapus"
+                                    data-cancel-button="Batal"
+                                >
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger flex-grow-1"
-                                            onclick="return confirm('Hapus lapangan dari favorit?')">
+                                    <button type="submit" class="btn btn-outline-danger flex-grow-1">
                                         <i class="fa-solid fa-heart me-1"></i> Hapus
                                     </button>
                                 </form>
