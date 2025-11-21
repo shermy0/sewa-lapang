@@ -501,7 +501,7 @@ if ($existing) {
 
 
 
-public function batalkan($id)
+public function batalkan(Request $request, $id)
 {
     $pemesanan = Pemesanan::findOrFail($id);
 
@@ -519,6 +519,10 @@ public function batalkan($id)
     // Hapus atau update pembayaran (optional)
     if ($pemesanan->pembayaran) {
         $pemesanan->pembayaran->update(['status' => 'batal']);
+    }
+
+    if ($request->wantsJson()) {
+        return response()->json(['success' => true]);
     }
 
     return redirect()->back()->with('success', 'Pemesanan berhasil dibatalkan.');

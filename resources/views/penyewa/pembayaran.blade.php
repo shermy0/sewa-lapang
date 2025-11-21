@@ -167,6 +167,7 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
         if (diff <= 0) {
             target.textContent = '⛔ Waktu pembayaran sudah habis.';
             target.classList.add('text-muted');
+            setTimeout(() => window.location.reload(), 800);
             return;
         }
         const totalMinutes = Math.floor(diff / (1000 * 60));
@@ -242,9 +243,16 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
             cancelButtonColor: '#aaa'
         }).then(result => {
             if (result.isConfirmed) {
-                fetch(`/pemesanan/${id}`, {
+                fetch(`/pemesanan/batalkan/${id}`, {
                     method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then((res) => {
+                    if (!res.ok) throw new Error('Failed');
+                    return res.json().catch(() => ({}));
                 })
                 .then(() => Swal.fire('Dibatalkan!', 'Pemesanan berhasil dibatalkan.', 'success')
                     .then(() => location.reload()))
