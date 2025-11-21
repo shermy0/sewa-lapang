@@ -202,9 +202,8 @@
                                     data-bs-target="#kelolaJadwalModal{{ $item->id }}">
                                     <i class="fa-solid fa-calendar me-1"></i> Jadwal
                                 </button>
-
                                 <button type="button" class="btn btn-outline-danger delete-lapangan-btn"
-                                    data-id="{{ $item->id }}" data-nama="{{ $item->nama_lapangan }}">
+                                        data-id="{{ $item->id }}" data-nama="{{ $item->nama_lapangan }}">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </div>
@@ -2314,6 +2313,67 @@
             syncDurationFromTimes();
             updateTotalHarga();
         });
+    </script>
+
+    <script>
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    document.querySelectorAll('.delete-lapangan-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const lapanganId = this.dataset.id;
+            const nama = this.dataset.nama;
+
+            Swal.fire({
+                title: `Hapus Lapangan "${nama}"?`,
+                text: "Data yang dihapus tidak bisa dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/lapangan/${lapanganId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Hapus row dari DOM tanpa reload
+                            const row = document.getElementById(`lapangan-row-${lapanganId}`);
+                            if(row) row.remove();
+
+                            Swal.fire(
+                                'Terhapus!',
+                                data.success,
+                                'success'
+                            );
+                        } else if (data.error) {
+                            Swal.fire(
+                                'Gagal!',
+                                data.error,
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire(
+                            'Error!',
+                            'Terjadi kesalahan saat menghapus lapangan.',
+                            'error'
+                        );
+                    });
+                }
+            });
+        });
+    });
     </script>
 
     <style>

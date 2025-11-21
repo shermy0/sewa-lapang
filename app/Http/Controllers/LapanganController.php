@@ -180,25 +180,23 @@ class LapanganController extends Controller
         return redirect()->route('lapangan.index')->with('success', 'Data lapangan berhasil diperbarui!');
     }
 
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
         $lapangan = Lapangan::findOrFail($id);
 
-        // Get photos (already decoded by Laravel)
         $fotoPaths = $lapangan->foto ?? [];
-
-        // Ensure it's an array
         if (is_array($fotoPaths)) {
             foreach ($fotoPaths as $foto) {
                 Storage::disk('public')->delete($foto);
             }
         }
 
-        // Delete related schedules
         $lapangan->jadwal()->delete();
-
-        // Delete the lapangan
         $lapangan->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => 'Lapangan berhasil dihapus!']);
+        }
 
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil dihapus!');
     }
