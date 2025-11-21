@@ -21,7 +21,7 @@ class BerandaController extends Controller
         $banners = Banner::where('status', 'aktif')->get();
 
         // Ambil semua kategori
-        $kategoris = Kategori::all();
+        $kategoris = Kategori::orderBy('nama_kategori')->get()->unique('nama_kategori');
 
         $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
 
