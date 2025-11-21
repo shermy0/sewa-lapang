@@ -309,7 +309,7 @@ public function getJadwalBySection($section_id)
     });
 
     return response()->json($jadwal);
-}
+    }
 
 
     // ========================== HALAMAN TIKET ==========================
@@ -333,7 +333,7 @@ public function riwayatTiket()
     foreach ($sudahDibayar as $p) {
         $this->autoExpirePermintaan($p->permintaanPerubahan);
 
-        if ($p->jadwal && $p->status_scan === 'belum_scan') {
+        if ($p->jadwal && $p->status_scan !== 'sudah_scan') {
             $tanggal = Carbon::parse($p->jadwal->tanggal)->format('Y-m-d');
             $jamSelesai = $p->jadwal->jam_selesai;
             $tanggalWaktuMain = Carbon::parse("$tanggal $jamSelesai", 'Asia/Jakarta');
@@ -366,11 +366,10 @@ public function riwayatTiket()
     });
 
     return view('penyewa.tiket', compact('sudahDibayar'));
-}
+    }
 
 
 
-    // ========================== HALAMAN MENUNGGU PEMBAYARAN ==========================
 public function riwayatBelum()
 {
     $userId = Auth::id();
