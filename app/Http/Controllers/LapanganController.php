@@ -37,7 +37,7 @@ public function index(Request $request)
                 $query->where('tiket_tersedia', '>', 0);
             } elseif ($request->tiket_tersedia === 'habis') {
                 $query->where('tiket_tersedia', '<=', 0);
-            } 
+            }
         })
         ->latest()
         ->paginate(6)
@@ -290,7 +290,7 @@ public function index(Request $request)
         return $this->storeJadwalSimple($request, $lapanganId);
     }
 
-    private function storeJadwalCustom(Request $request, $lapanganId)
+   private function storeJadwalCustom(Request $request, $lapanganId)
     {
         $request->validate([
             'section_id' => [
@@ -301,21 +301,31 @@ public function index(Request $request)
             'tipe_jadwal' => ['nullable', Rule::in(['simple', 'custom'])],
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
             'jam_mulai' => ['required', 'date_format:H:i'],
-            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
-            'durasi_sewa' => ['nullable', 'numeric', 'min:0.25', 'max:24'],
+
+            // Hapus validasi jam_selesai input manual, kita hitung di backend
+            // 'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+
+            // UBAH VALIDASI: Integer only, min 1 jam, max 4 jam (atau sesuai kebutuhan)
+            'durasi_sewa' => ['required', 'integer', 'min:1', 'max:12'],
+
             'harga_sewa' => ['nullable', 'numeric', 'min:0'],
             'tersedia' => ['required', 'boolean'],
         ]);
 
-        if ($this->hasJadwalConflict($request->section_id, $request->tanggal, $request->jam_mulai, $request->jam_selesai)) {
+        // LOGIKA BARU: Hitung Jam Selesai berdasarkan Durasi Integer
+        $jamMulai = Carbon::createFromFormat('H:i', $request->jam_mulai);
+        $durasiJam = (int) $request->durasi_sewa;
+
+        // Tambahkan durasi jam ke jam mulai
+        $jamSelesai = $jamMulai->copy()->addHours($durasiJam)->format('H:i');
+
+        // Validasi Konflik
+        if ($this->hasJadwalConflict($request->section_id, $request->tanggal, $request->jam_mulai, $jamSelesai)) {
             return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!');
         }
 
-        try {
-            $durasiMenit = $this->resolveDurasiMenit($request->jam_mulai, $request->jam_selesai, $request->input('durasi_sewa'));
-        } catch (\InvalidArgumentException $e) {
-            return redirect()->back()->withErrors(['durasi_sewa' => $e->getMessage()])->withInput();
-        }
+        // Convert ke menit (jam * 60) karena database menyimpan menit
+        $durasiMenit = $durasiJam * 60;
 
         $hargaPerJam = $this->resolveHargaPerJam($request->input('harga_sewa'), $request->section_id, $lapanganId);
 
@@ -323,7 +333,7 @@ public function index(Request $request)
             'section_id' => $request->section_id,
             'tanggal' => $request->tanggal,
             'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
+            'jam_selesai' => $jamSelesai, // Gunakan hasil hitungan backend
             'durasi_sewa' => $durasiMenit,
             'harga_sewa' => $hargaPerJam,
             'tersedia' => $request->tersedia,
@@ -331,7 +341,6 @@ public function index(Request $request)
 
         return redirect()->back()->with('success', 'Jadwal berhasil ditambahkan!');
     }
-
     private function storeJadwalSimple(Request $request, $lapanganId)
     {
         $hariMapping = [
