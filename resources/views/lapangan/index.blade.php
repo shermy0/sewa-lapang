@@ -575,66 +575,55 @@
                                                 $durasiPreviewDisplay = rtrim(rtrim(number_format($durasiInputDefault, 2, ',', '.'), '0'), ',');
                                             @endphp
 
-                                            <div class="card border-0 shadow-sm mb-3" data-jadwal-section="custom" style="display: none;">
-                                                <div class="card-body">
-                                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                                        <div>
-                                                            <small class="text-uppercase text-muted fw-bold d-block">Langkah 2</small>
-                                                            <h6 class="fw-bold text-dark mb-0">Atur Slot Custom</h6>
-                                                        </div>
-                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary">Manual</span>
-                                                    </div>
-                                                    <div class="row g-3">
-                                                        <div class="col-lg-4 col-md-6">
-                                                            <label class="form-label fw-semibold text-dark">Tanggal</label>
-                                                            <input type="date" name="tanggal" class="form-control"
-                                                                min="{{ date('Y-m-d') }}" data-required-mode="custom">
-                                                        </div>
-                                                        <div class="col-lg-4 col-md-6">
-                                                            <label class="form-label fw-semibold text-dark">Jam Mulai</label>
-                                                            <input type="time" name="jam_mulai" class="form-control"
-                                                                data-jam-mulai-input data-required-mode="custom">
-                                                        </div>
-                                                        <div class="col-lg-4 col-md-6">
-                                                            <label class="form-label fw-semibold text-dark">Jam Selesai</label>
-                                                            <input type="time" name="jam_selesai" class="form-control"
-                                                                data-jam-selesai-input data-required-mode="custom">
-                                                            <div class="form-text text-muted">Durasi menyesuaikan otomatis.</div>
-                                                        </div>
-                                                        <div class="col-lg-4 col-md-6">
-                                                            <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
-                                                            <input type="text" name="durasi_sewa" class="form-control"
-                                                                inputmode="decimal" pattern="^\d+([,.]\d{1,2})?$"
-                                                                min="0.25" max="12" step="0.25" placeholder="1"
-                                                                value="{{ $durasiInputDefault }}" data-durasi-jam-input
-                                                                id="durasi-custom-{{ $item->id }}" data-required-mode="custom">
-                                                            <div class="d-flex flex-wrap gap-2 mt-2">
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                    data-duration-preset="0.5"
-                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
-                                                                    data-duration-group="custom-{{ $item->id }}">30 mnt</button>
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                    data-duration-preset="1"
-                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
-                                                                    data-duration-group="custom-{{ $item->id }}">1 jam</button>
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                    data-duration-preset="1.5"
-                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
-                                                                    data-duration-group="custom-{{ $item->id }}">1.5 jam</button>
-                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                    data-duration-preset="2"
-                                                                    data-duration-target="#durasi-custom-{{ $item->id }}"
-                                                                    data-duration-group="custom-{{ $item->id }}">2 jam</button>
-                                                            </div>
-                                                            <div class="form-text text-muted">
-                                                                <span data-durasi-jam-preview>{{ $durasiPreviewDisplay }}</span> jam.
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                           <div class="card border-0 shadow-sm mb-3" data-jadwal-section="custom" style="display: none;">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <small class="text-uppercase text-muted fw-bold d-block">Langkah 2</small>
+                <h6 class="fw-bold text-dark mb-0">Atur Slot Custom</h6>
+            </div>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary">Manual</span>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold text-dark">Tanggal</label>
+                <input type="date" name="tanggal" class="form-control"
+                    min="{{ date('Y-m-d') }}" data-required-mode="custom">
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold text-dark">Jam Mulai</label>
+                <input type="time" name="jam_mulai" class="form-control"
+                    data-jam-mulai-input data-required-mode="custom">
+            </div>
 
-                                            <div class="card border-0 shadow-sm mb-3">
+            {{-- BAGIAN YANG DIUBAH: Durasi menjadi Dropdown Integer --}}
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold text-dark">Durasi (Jam)</label>
+                <select name="durasi_sewa" class="form-select"
+                    id="durasi-custom-{{ $item->id }}"
+                    data-durasi-jam-input
+                    data-required-mode="custom">
+                    <option value="1" selected>1 Jam</option>
+                    <option value="2">2 Jam</option>
+                    <option value="3">3 Jam</option>
+                    <option value="4">4 Jam</option>
+                </select>
+                <div class="form-text text-muted">
+                    <span data-durasi-jam-preview>1</span> jam.
+                </div>
+            </div>
+            {{-- SELESAI PERUBAHAN --}}
+
+            {{-- Input Jam Selesai digeser ke baris baru atau tetap di flow (Dihitung otomatis oleh JS) --}}
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold text-dark">Jam Selesai</label>
+                <input type="time" name="jam_selesai" class="form-control"
+                    data-jam-selesai-input data-required-mode="custom" readonly style="background-color: #e9ecef;">
+                <div class="form-text text-muted">Otomatis dihitung dari durasi.</div>
+            </div>
+        </div>
+    </div>
+</div>                     <div class="card border-0 shadow-sm mb-3">
                                                 <div class="card-body">
                                                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                                                         <div>

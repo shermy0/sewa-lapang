@@ -158,10 +158,11 @@
                         </div>
                         <div class="modal-footer justify-content-between">
                             @if ($ulasan)
-                                <button type="submit"
-                                        form="hapusUlasanForm{{ $item->id }}"
-                                        class="btn btn-outline-danger"
-                                        onclick="return confirm('Hapus ulasan ini?')">
+                                <button
+                                    type="submit"
+                                    form="hapusUlasanForm{{ $item->id }}"
+                                    class="btn btn-outline-danger"
+                                >
                                     Hapus
                                 </button>
                             @endif
@@ -172,7 +173,16 @@
                         </div>
                     </form>
                     @if ($ulasan)
-                        <form id="hapusUlasanForm{{ $item->id }}" action="{{ route('penyewa.ulasan.destroy', $ulasan) }}" method="POST" class="d-none">
+                        <form
+                            id="hapusUlasanForm{{ $item->id }}"
+                            action="{{ route('penyewa.ulasan.destroy', $ulasan) }}"
+                            method="POST"
+                            class="d-none"
+                            data-confirm="Hapus ulasan ini?"
+                            data-confirm-title="Hapus Ulasan"
+                            data-confirm-button="Ya, hapus"
+                            data-cancel-button="Batal"
+                        >
                             @csrf
                             @method('DELETE')
                         </form>

@@ -160,19 +160,20 @@
 // Countdown pembayaran
 document.querySelectorAll('[data-countdown]').forEach(target => {
     const createdAt = new Date(target.dataset.createdAt);
-    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+    const deadline = new Date(createdAt.getTime() + 20 * 60 * 1000);
     const tick = () => {
         const now = new Date();
         const diff = deadline - now;
         if (diff <= 0) {
             target.textContent = '⛔ Waktu pembayaran sudah habis.';
             target.classList.add('text-muted');
+            setTimeout(() => window.location.reload(), 800);
             return;
         }
-        const h = Math.floor(diff / (1000 * 60 * 60));
+        const totalMinutes = Math.floor(diff / (1000 * 60));
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);
-        target.textContent = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+        target.textContent = `Sisa waktu pembayaran: ${totalMinutes}m ${s}d`;
         setTimeout(tick, 1000);
     };
     tick();
@@ -242,9 +243,16 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
             cancelButtonColor: '#aaa'
         }).then(result => {
             if (result.isConfirmed) {
-                fetch(`/pemesanan/${id}`, {
+                fetch(`/pemesanan/batalkan/${id}`, {
                     method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then((res) => {
+                    if (!res.ok) throw new Error('Failed');
+                    return res.json().catch(() => ({}));
                 })
                 .then(() => Swal.fire('Dibatalkan!', 'Pemesanan berhasil dibatalkan.', 'success')
                     .then(() => location.reload()))
@@ -255,6 +263,9 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
 });
 // 🟢 Ajukan Perubahan (SweetAlert)
 function ajukanPerubahan(pemesananId, lapanganId) {
+    window.selectedSection = null;
+    window.selectedJadwal = null;
+
     Swal.fire({
         title: 'Ajukan Perubahan Jadwal / Section',
         html: `
@@ -299,20 +310,59 @@ function ajukanPerubahan(pemesananId, lapanganId) {
                                                 <div class="col-md-4">
                                                     <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}" 
                                                         data-id="${j.id}"
+                                                        data-status="${j.booking_status || (j.tersedia ? 'available' : 'unavailable')}"
                                                         style="padding:10px;border-radius:8px;border:2px solid #eee;
                                                                cursor:${j.tersedia ? 'pointer' : 'not-allowed'};
                                                                background:${j.tersedia ? '#fff' : '#f3f3f3'};">
                                                         ${j.jam_mulai} - ${j.jam_selesai}<br>
                                                         <small>${new Date(j.tanggal).toLocaleDateString('id-ID')}</small>
+                                                        <div class="mt-1">
+                                                            ${
+                                                                j.booking_status === 'menunggu'
+                                                                    ? '<span class="badge bg-warning text-dark">Menunggu pembayaran</span>'
+                                                                    : j.booking_status === 'dibayar'
+                                                                        ? '<span class="badge bg-danger">Sudah dibayar</span>'
+                                                                        : j.tersedia
+                                                                            ? '<span class="badge bg-success">Tersedia</span>'
+                                                                            : '<span class="badge bg-secondary">Tidak tersedia</span>'
+                                                            }
+                                                        </div>
                                                     </div>
                                                 </div>`).join('')}
                                         </div>`;
-                                    document.querySelectorAll('.jadwal-item.available').forEach(item => {
+                                    document.querySelectorAll('.jadwal-item').forEach(item => {
                                         item.addEventListener('click', function() {
-                                            document.querySelectorAll('.jadwal-item').forEach(i => i.style.borderColor='#eee');
-                                            this.style.borderColor='#41A67E';
-                                            window.selectedSection = sectionId;
-                                            window.selectedJadwal = this.dataset.id;
+                                            const status = this.dataset.status;
+                                            const selectItem = () => {
+                                                document.querySelectorAll('.jadwal-item').forEach(i => i.style.borderColor='#eee');
+                                                this.style.borderColor='#41A67E';
+                                                window.selectedSection = sectionId;
+                                                window.selectedJadwal = this.dataset.id;
+                                            };
+
+                                            if (status === 'dibayar') {
+                                                return Swal.fire('Tidak bisa', 'Jadwal ini sudah dibayar.', 'error');
+                                            }
+
+                                            if (status === 'menunggu') {
+                                                return Swal.fire({
+                                                    title: 'Jadwal sudah dibooking',
+                                                    text: 'Pesanan lain menunggu pembayaran. Ajukan untuk mengambil jadwal ini?',
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonText: 'Kirim Ajukan',
+                                                    cancelButtonText: 'Batal',
+                                                    confirmButtonColor: '#41A67E',
+                                                }).then(res => {
+                                                    if (res.isConfirmed) selectItem();
+                                                });
+                                            }
+
+                                            if (status === 'unavailable') {
+                                                return Swal.fire('Tidak tersedia', 'Pilih jadwal lain.', 'info');
+                                            }
+
+                                            selectItem();
                                         });
                                     });
                                 });
@@ -339,12 +389,21 @@ function ajukanPerubahan(pemesananId, lapanganId) {
                 body: JSON.stringify(result.value)
             })
             .then(res => res.json())
-            .then(() => Swal.fire({
-                icon: 'success',
-                title: 'Permintaan dikirim!',
-                text: 'Menunggu persetujuan pemilik lapangan.',
-                confirmButtonColor: '#41A67E'
-            }).then(() => location.reload()));
+            .then((data) => {
+                if (data.error) {
+                    return Swal.fire('Gagal', data.error, 'error');
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Permintaan dikirim!',
+                    text: data.expires_at
+                        ? `Menunggu persetujuan pemilik. Berlaku sampai ${new Date(data.expires_at).toLocaleString('id-ID')}.`
+                        : 'Menunggu persetujuan pemilik lapangan.',
+                    confirmButtonColor: '#41A67E'
+                }).then(() => location.reload());
+            })
+            .catch(() => Swal.fire('Gagal', 'Terjadi kesalahan saat mengirim permintaan.', 'error'));
         }
     });
 }
@@ -358,6 +417,9 @@ function lihatDetailPerubahan(permintaanId) {
                 ${new Date(data.jadwal_baru.tanggal).toLocaleDateString('id-ID')} 
                 (${data.jadwal_baru.jam_mulai} - ${data.jadwal_baru.jam_selesai})
             ` : '-';
+            const expiresText = data.expires_at
+                ? new Date(data.expires_at).toLocaleString('id-ID')
+                : '-';
             Swal.fire({
                 title: '<i class="fa-solid fa-arrows-rotate me-1 text-success"></i> Detail Permintaan Perubahan',
                 html: `
@@ -369,9 +431,11 @@ function lihatDetailPerubahan(permintaanId) {
                                 ? '<span class="badge bg-success">Disetujui</span>' 
                                 : '<span class="badge bg-danger">Ditolak</span>'}
                         </p>
+                        <p><strong>Berlaku hingga:</strong> ${expiresText}</p>
                         <p><strong>Section Baru:</strong> ${data.section_baru?.nama_section ?? '-'}</p>
                         <p><strong>Jadwal Baru:</strong> ${jadwalBaru}</p>
                         <p><strong>Alasan:</strong> ${data.alasan ?? '-'}</p>
+                        ${data.alasan_internal ? `<p class="mb-0 text-muted"><strong>Catatan:</strong> ${data.alasan_internal}</p>` : ''}
                     </div>
                 `,
                 showCancelButton: true,

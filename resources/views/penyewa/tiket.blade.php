@@ -5,9 +5,7 @@
 @section('content')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="{{ asset('css/tiket.css') }}">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<style>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script><style>
 :root {
     --green: #41A67E;
     --yellow: #F6C445;
@@ -61,8 +59,8 @@
     {{-- ====================== DAFTAR TIKET ====================== --}}
     <div class="row" id="ticketContainer">
         @forelse($sudahDibayar as $p)
-        <div class="col-md-6 mb-4 ticket-card" data-status="{{ $p->status_scan }}">
-            
+        <div class="col-md-6 mb-4 ticket-card" data-status="{{ $p->status_scan === 'sudah_scan' ? 'sudah_scan' : 'belum_scan' }}">
+
             {{-- Notifikasi perubahan --}}
             @if($p->permintaanPerubahan)
                 @if($p->permintaanPerubahan->status === 'menunggu')
@@ -144,7 +142,7 @@
                     <div class="ticket-right p-4 bg-white flex-grow-1 position-relative">
                         <div class="ticket-info">
                             <p class="mb-1"><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
-                            <p class="mb-1"><strong>Status:</strong> 
+                            <p class="mb-1"><strong>Status:</strong>
                                 <span class="badge bg-success">Dibayar</span>
                             </p>
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
@@ -155,6 +153,10 @@
                                 @if($p->status_scan === 'sudah_scan')
                                     <span class="ticket-status-scan sudah">
                                         <i class="fa-solid fa-check-circle me-1"></i>Sudah Discan
+                                    </span>
+                                @elseif($p->status_scan === 'scan_lobby')
+                                    <span class="ticket-status-scan belum bg-info text-dark">
+                                        <i class="fa-solid fa-door-open me-1"></i>Sudah Scan GOR
                                     </span>
                                 @else
                                     <span class="ticket-status-scan belum">
@@ -173,7 +175,7 @@
                         </div>
 
                         {{-- Aksi --}}
-                        <div class="text-end mt-3 d-flex justify-content-between align-items-center">
+                        <div class="text-end mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <a href="{{ route('tiket.download', $p->id) }}" class="btn btn-outline-success btn-sm px-3">
                                 <i class="fa-solid fa-download me-1"></i> Download
                             </a>
@@ -219,6 +221,9 @@ document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
 });
 
 function ajukanPerubahan(pemesananId, lapanganId) {
+    window.selectedSection = null;
+    window.selectedJadwal = null;
+
     Swal.fire({
         title: 'Ajukan Perubahan Jadwal / Section',
         html: `
@@ -237,7 +242,7 @@ function ajukanPerubahan(pemesananId, lapanganId) {
                     const list = document.getElementById('sectionList');
                     list.innerHTML = data.map(s => `
                         <div class="col-md-3">
-                            <div class="section-card" data-id="${s.id}" 
+                            <div class="section-card" data-id="${s.id}"
                                  style="border:2px solid #ddd;padding:10px;border-radius:8px;cursor:pointer;">
                                 <strong>${s.nama_section}</strong><br>
                                 <small>${s.deskripsi ?? ''}</small>
@@ -258,23 +263,62 @@ function ajukanPerubahan(pemesananId, lapanganId) {
                                         <div class="row g-2">
                                             ${jadwals.map(j => `
                                                 <div class="col-md-3">
-                                                    <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}" 
+                                                    <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}"
                                                         data-id="${j.id}"
+                                                        data-status="${j.booking_status || (j.tersedia ? 'available' : 'unavailable')}"
                                                         style="padding:10px;border-radius:8px;border:2px solid #eee;
                                                                cursor:${j.tersedia ? 'pointer' : 'not-allowed'};
                                                                background:${j.tersedia ? '#fff' : '#f3f3f3'};">
                                                         ${j.jam_mulai} - ${j.jam_selesai}<br>
                                                         <small>${new Date(j.tanggal).toLocaleDateString('id-ID')}</small>
+                                                        <div class="mt-1">
+                                                            ${
+                                                                j.booking_status === 'menunggu'
+                                                                    ? '<span class="badge bg-warning text-dark">Menunggu pembayaran</span>'
+                                                                    : j.booking_status === 'dibayar'
+                                                                        ? '<span class="badge bg-danger">Sudah dibayar</span>'
+                                                                        : j.tersedia
+                                                                            ? '<span class="badge bg-success">Tersedia</span>'
+                                                                            : '<span class="badge bg-secondary">Tidak tersedia</span>'
+                                                            }
+                                                        </div>
                                                     </div>
                                                 </div>`).join('')}
                                         </div>`;
 
-                                    document.querySelectorAll('.jadwal-item.available').forEach(item => {
+                                    document.querySelectorAll('.jadwal-item').forEach(item => {
                                         item.addEventListener('click', function() {
-                                            document.querySelectorAll('.jadwal-item').forEach(i => i.style.borderColor='#eee');
-                                            this.style.borderColor='#41A67E';
-                                            window.selectedSection = sectionId;
-                                            window.selectedJadwal = this.dataset.id;
+                                            const status = this.dataset.status;
+                                            const selectItem = () => {
+                                                document.querySelectorAll('.jadwal-item').forEach(i => i.style.borderColor='#eee');
+                                                this.style.borderColor='#41A67E';
+                                                window.selectedSection = sectionId;
+                                                window.selectedJadwal = this.dataset.id;
+                                            };
+
+                                            if (status === 'dibayar') {
+                                                return Swal.fire('Tidak bisa', 'Jadwal ini sudah dibayar.', 'error');
+                                            }
+
+                                            if (status === 'menunggu') {
+                                                return Swal.fire({
+                                                    title: 'Jadwal sudah dibooking',
+                                                    text: 'Pesanan lain sedang menunggu pembayaran. Kirim permintaan untuk mengambil jadwal ini?',
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonText: 'Kirim Ajukan',
+                                                    cancelButtonText: 'Batal',
+                                                    confirmButtonColor: '#41A67E',
+                                                }).then(res => {
+                                                    if (res.isConfirmed) selectItem();
+                                                });
+                                            }
+
+                                            if (status === 'unavailable') {
+                                                return Swal.fire('Tidak tersedia', 'Pilih jadwal lain.', 'info');
+                                            }
+
+                                            selectItem();
                                         });
                                     });
                                 });
@@ -301,14 +345,24 @@ function ajukanPerubahan(pemesananId, lapanganId) {
                 body: JSON.stringify(result.value)
             })
             .then(res => res.json())
-            .then(() => {
+            .then((data) => {
+                if (data.error) {
+                    return Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.error,
+                    });
+                }
                 Swal.fire({
                     icon: 'success',
                     title: 'Permintaan dikirim!',
-                    text: 'Menunggu persetujuan pemilik lapangan.',
+                    text: data.expires_at
+                        ? `Menunggu persetujuan pemilik. Berlaku sampai ${new Date(data.expires_at).toLocaleString('id-ID')}.`
+                        : 'Menunggu persetujuan pemilik lapangan.',
                     confirmButtonColor: '#41A67E'
                 }).then(() => location.reload());
-            });
+            })
+            .catch(() => Swal.fire('Gagal', 'Terjadi kesalahan saat mengirim permintaan.', 'error'));
         }
     });
 }
@@ -319,24 +373,29 @@ function lihatDetailPerubahan(permintaanId) {
         .then(res => res.json())
         .then(data => {
             const jadwalBaru = data.jadwal_baru ? `
-                ${new Date(data.jadwal_baru.tanggal).toLocaleDateString('id-ID')} 
+                ${new Date(data.jadwal_baru.tanggal).toLocaleDateString('id-ID')}
                 (${data.jadwal_baru.jam_mulai} - ${data.jadwal_baru.jam_selesai})
             ` : '-';
+            const expiresText = data.expires_at
+                ? new Date(data.expires_at).toLocaleString('id-ID')
+                : '-';
 
             Swal.fire({
                 title: '<i class="fa-solid fa-arrows-rotate me-1 text-success"></i> Detail Permintaan Perubahan',
                 html: `
                     <div class="text-start">
-                        <p><strong>Status:</strong> 
-                            ${data.status === 'menunggu' 
-                                ? '<span class="badge bg-warning text-dark">Menunggu Persetujuan</span>' 
-                                : data.status === 'disetujui' 
-                                ? '<span class="badge bg-success">Disetujui</span>' 
+                        <p><strong>Status:</strong>
+                            ${data.status === 'menunggu'
+                                ? '<span class="badge bg-warning text-dark">Menunggu Persetujuan</span>'
+                                : data.status === 'disetujui'
+                                ? '<span class="badge bg-success">Disetujui</span>'
                                 : '<span class="badge bg-danger">Ditolak</span>'}
                         </p>
+                        <p><strong>Berlaku hingga:</strong> ${expiresText}</p>
                         <p><strong>Section Baru:</strong> ${data.section_baru?.nama_section ?? '-'}</p>
                         <p><strong>Jadwal Baru:</strong> ${jadwalBaru}</p>
                         <p><strong>Alasan:</strong> ${data.alasan ?? '-'}</p>
+                        ${data.alasan_internal ? `<p class="text-muted"><strong>Catatan:</strong> ${data.alasan_internal}</p>` : ''}
                     </div>
                 `,
                 showCancelButton: true,

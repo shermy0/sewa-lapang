@@ -13,6 +13,7 @@ use Midtrans\Snap;
 use Midtrans\Config;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\Response;
 class PemesananController extends Controller
 {
 
@@ -39,6 +40,14 @@ public function setujuiPermintaan($id)
     // Cegah yang bukan pemilik lapangan
     if ($permintaan->pemesanan->lapangan->pemilik_id != Auth::id()) {
         abort(403, 'Tidak punya akses.');
+    }
+
+    $this->autoExpirePermintaan($permintaan);
+    if ($permintaan->status !== 'menunggu') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Permintaan sudah tidak aktif.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     // Update status permintaan
@@ -70,6 +79,20 @@ public function setujuiPermintaan($id)
     ]);
 }
 
+    private function autoExpirePermintaan(?\App\Models\PermintaanPerubahan $permintaan): void
+    {
+        if (! $permintaan || $permintaan->status !== 'menunggu') {
+            return;
+        }
+
+        if ($permintaan->expires_at && now()->greaterThan($permintaan->expires_at)) {
+            $permintaan->update([
+                'status' => 'ditolak',
+                'alasan_internal' => 'Permintaan kadaluarsa otomatis.',
+            ]);
+        }
+    }
+
     public function getDetailPermintaan($id)
 {
     $permintaan = \App\Models\PermintaanPerubahan::with(['sectionBaru', 'jadwalBaru', 'pemesanan.lapangan'])
@@ -80,10 +103,14 @@ public function setujuiPermintaan($id)
         abort(403);
     }
 
+    $this->autoExpirePermintaan($permintaan);
+
     return response()->json([
         'id' => $permintaan->id,
         'status' => $permintaan->status,
         'alasan' => $permintaan->alasan,
+        'alasan_internal' => $permintaan->alasan_internal,
+        'expires_at' => optional($permintaan->expires_at)->toIso8601String(),
         'pemesanan_id' => $permintaan->pemesanan_id,
         'lapangan_id' => $permintaan->pemesanan->lapangan_id,
         'section_baru' => $permintaan->sectionBaru,
@@ -116,7 +143,65 @@ public function setujuiPermintaan($id)
         abort(403);
     }
 
-    \App\Models\PermintaanPerubahan::create([
+    // Tidak boleh ajukan setelah check-in
+    if ($pemesanan->status_scan === 'sudah_scan') {
+        return response()->json([
+            'error' => 'Tidak bisa mengajukan perubahan setelah check-in.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    $this->autoExpirePermintaan($pemesanan->permintaanPerubahan);
+    if ($pemesanan->permintaanPerubahan && $pemesanan->permintaanPerubahan->status === 'menunggu') {
+        return response()->json([
+            'error' => 'Masih ada permintaan perubahan yang menunggu. Selesaikan dahulu.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    $jadwalBaru = JadwalLapangan::with('pemesanan')->findOrFail($request->jadwal_baru_id);
+    $jadwalLama = $pemesanan->jadwal;
+
+    if ($jadwalLama && $jadwalLama->id === $jadwalBaru->id) {
+        return response()->json([
+            'error' => 'Kamu sudah berada di jadwal ini.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    $now = Carbon::now('Asia/Jakarta');
+    $mulaiLama = $jadwalLama ? Carbon::parse($jadwalLama->tanggal . ' ' . $jadwalLama->jam_mulai, 'Asia/Jakarta') : null;
+    $mulaiBaru = $jadwalBaru ? Carbon::parse($jadwalBaru->tanggal . ' ' . $jadwalBaru->jam_mulai, 'Asia/Jakarta') : null;
+
+    // Hanya izinkan ajukan sebelum jadwal lama dimulai
+    if ($mulaiLama && $now->greaterThanOrEqualTo($mulaiLama)) {
+        return response()->json([
+            'error' => 'Jadwal sudah dimulai, tidak bisa diajukan.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    // Pastikan jadwal baru masih di masa depan
+    if ($mulaiBaru && $mulaiBaru->lessThanOrEqualTo($now)) {
+        return response()->json([
+            'error' => 'Tidak bisa pindah ke jadwal yang sudah lewat.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    // Izinkan ajukan di slot unavailable hanya jika bookingnya status menunggu (belum bayar)
+    $bookingStatus = optional($jadwalBaru->pemesanan)->status;
+    $slotPending = $bookingStatus === 'menunggu';
+    $slotPaid = $bookingStatus === 'dibayar';
+
+    if (! $jadwalBaru->tersedia && ! $slotPending) {
+        return response()->json([
+            'error' => 'Jadwal ini sudah tidak tersedia.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    if ($slotPaid) {
+        return response()->json([
+            'error' => 'Jadwal ini sudah dibayar dan tidak bisa diajukan.',
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    $permintaan = \App\Models\PermintaanPerubahan::create([
         'pemesanan_id' => $pemesanan->id,
         'section_lama_id' => $pemesanan->jadwal->section_id,
         'section_baru_id' => $request->section_baru_id,
@@ -124,9 +209,13 @@ public function setujuiPermintaan($id)
         'jadwal_baru_id' => $request->jadwal_baru_id,
         'alasan' => $request->alasan,
         'status' => 'menunggu',
+        'expires_at' => now()->addMinutes(60),
+        'alasan_internal' => $slotPending
+            ? 'Slot target sedang menunggu pembayaran; permintaan takeover.'
+            : null,
     ]);
 
-    return response()->json(['success' => true]);
+    return response()->json(['success' => true, 'expires_at' => optional($permintaan->expires_at)->toIso8601String()]);
 }
 
 public function getSectionsByLapangan($lapangan_id)
@@ -172,7 +261,10 @@ public function create($lapangan_id)
 public function getJadwalBySection($section_id)
 {
     $now = Carbon::now('Asia/Jakarta'); // waktu sekarang
-    $jadwal = JadwalLapangan::where('section_id', $section_id)
+    $jadwal = JadwalLapangan::with(['pemesanan' => function ($q) {
+            $q->whereIn('status', ['menunggu', 'dibayar'])->with('pembayaran');
+        }])
+        ->where('section_id', $section_id)
         ->where(function ($q) use ($now) {
             $q->where('tanggal', '>', $now->toDateString()) // tanggal di masa depan
               ->orWhere(function ($q2) use ($now) {
@@ -185,8 +277,39 @@ public function getJadwalBySection($section_id)
         ->orderBy('jam_mulai')
         ->get();
 
+    $jadwal = $jadwal->map(function ($item) {
+        $booking = $item->pemesanan;
+        $bookingStatus = optional($booking)->status;
+
+        // Lepas blokir jika pesanan menunggu sudah melewati batas waktu (20 menit)
+        if ($booking && $bookingStatus === 'menunggu') {
+            $expiresAt = Carbon::parse($booking->created_at)->addMinutes(20);
+            if (now('Asia/Jakarta')->greaterThan($expiresAt)) {
+                // Tandai kadaluarsa dan buka slot
+                $booking->update(['status' => 'kadaluarsa']);
+                if ($booking->pembayaran) {
+                    $booking->pembayaran->update(['status' => 'kadaluarsa']);
+                }
+                $item->tersedia = true;
+                $bookingStatus = null;
+            }
+        }
+
+        return [
+            'id' => $item->id,
+            'section_id' => $item->section_id,
+            'tanggal' => $item->tanggal,
+            'jam_mulai' => $item->jam_mulai,
+            'jam_selesai' => $item->jam_selesai,
+            'tersedia' => (bool) $item->tersedia,
+            'harga_sewa' => $item->harga_sewa,
+            'durasi_sewa' => $item->durasi_sewa,
+            'booking_status' => $bookingStatus,
+        ];
+    });
+
     return response()->json($jadwal);
-}
+    }
 
 
     // ========================== HALAMAN TIKET ==========================
@@ -208,7 +331,9 @@ public function riwayatTiket()
 
     // 🔹 Cek apakah sudah lewat waktu tapi belum di-scan
     foreach ($sudahDibayar as $p) {
-        if ($p->jadwal && $p->status_scan === 'belum_scan') {
+        $this->autoExpirePermintaan($p->permintaanPerubahan);
+
+        if ($p->jadwal && $p->status_scan !== 'sudah_scan') {
             $tanggal = Carbon::parse($p->jadwal->tanggal)->format('Y-m-d');
             $jamSelesai = $p->jadwal->jam_selesai;
             $tanggalWaktuMain = Carbon::parse("$tanggal $jamSelesai", 'Asia/Jakarta');
@@ -232,6 +357,8 @@ public function riwayatTiket()
     ->where('status', 'dibayar')
     ->get()
     ->map(function ($p) {
+        $this->autoExpirePermintaan($p->permintaanPerubahan);
+
         if ($p->permintaanPerubahan && $p->permintaanPerubahan->status === 'disetujui') {
             $p->refresh();
         }
@@ -239,25 +366,26 @@ public function riwayatTiket()
     });
 
     return view('penyewa.tiket', compact('sudahDibayar'));
-}
+    }
 
 
 
-    // ========================== HALAMAN MENUNGGU PEMBAYARAN ==========================
 public function riwayatBelum()
 {
     $userId = Auth::id();
     $now = Carbon::now('Asia/Jakarta');
 
     // Ambil semua pesanan menunggu
-    $belumDibayar = Pemesanan::with(['jadwal'])
+    $belumDibayar = Pemesanan::with(['jadwal', 'permintaanPerubahan'])
         ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
         ->get();
 
     foreach ($belumDibayar as $p) {
-        // Cek apakah sudah 24 jam dari dibuat
-        $batasWaktu = Carbon::parse($p->created_at)->addHours(24);
+        $this->autoExpirePermintaan($p->permintaanPerubahan);
+
+        // Cek apakah sudah melewati batas waktu pembayaran (20 menit)
+        $batasWaktu = Carbon::parse($p->created_at)->addMinutes(20);
 
         if ($now->greaterThan($batasWaktu)) {
             // Ubah status jadi kadaluarsa dan buka jadwalnya
@@ -274,7 +402,7 @@ public function riwayatBelum()
     }
 
     // Setelah update, ambil ulang hanya yang benar-benar masih menunggu
-    $belumDibayar = Pemesanan::with(['jadwal'])
+    $belumDibayar = Pemesanan::with(['jadwal', 'permintaanPerubahan'])
         ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
         ->get();
@@ -372,7 +500,7 @@ if ($existing) {
 
 
 
-public function batalkan($id)
+public function batalkan(Request $request, $id)
 {
     $pemesanan = Pemesanan::findOrFail($id);
 
@@ -390,6 +518,10 @@ public function batalkan($id)
     // Hapus atau update pembayaran (optional)
     if ($pemesanan->pembayaran) {
         $pemesanan->pembayaran->update(['status' => 'batal']);
+    }
+
+    if ($request->wantsJson()) {
+        return response()->json(['success' => true]);
     }
 
     return redirect()->back()->with('success', 'Pemesanan berhasil dibatalkan.');

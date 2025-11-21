@@ -642,9 +642,9 @@
                                                 $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
                                                 $durasiJam = $durasiMenit / 60;
                                             @endphp
-                                            <tr 
+                                            <tr
                                                 data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
-                                                data-section="{{ $jadwal->section->nama_section ?? '' }}" 
+                                                data-section="{{ $jadwal->section->nama_section ?? '' }}"
                                                 data-jam-mulai="{{ $mulai->format('H:i') }}"
                                             >
                                                 <td class="fw-semibold">{{ $i + 1 }}</td>
@@ -948,5 +948,3 @@ document.addEventListener("hidden.bs.modal", function (event) {
     </script>
 @endif
 @endpush
-
-
