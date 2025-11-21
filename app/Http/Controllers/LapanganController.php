@@ -61,6 +61,85 @@ class LapanganController extends Controller
         return view('pemilik.lapangan.create', compact('kategori'));
     }
 
+    public function show($id)
+    {
+        $lapangan = Lapangan::with([
+                'jadwal',
+                'sections' => function ($query) {
+                    $query->with([
+                        'jadwal' => function ($jadwalQuery) {
+                            $jadwalQuery->orderBy('tanggal')->orderBy('jam_mulai');
+                        },
+                    ]);
+                },
+            ])
+            ->findOrFail($id);
+
+        return view('lapangan.show', compact('lapangan'));
+    }
+    
+    public function update(Request $request, $id)
+    {
+        $lapangan = Lapangan::findOrFail($id);
+
+        $request->validate([
+            'nama_lapangan' => ['required', 'string', 'max:255'],
+            'id_kategori' => ['required', 'integer', 'exists:kategori,id'],
+            'lokasi' => ['required', 'string', 'max:255'],
+            'deskripsi' => ['nullable', 'string'],
+            // 'tiket_tersedia' => ['nullable', 'integer', 'min:0'],
+            'sections' => ['nullable', 'array'],
+            'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
+            'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
+            'foto.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+        ]);
+
+        // Get existing photos (already decoded by Laravel)
+        $fotoPaths = $lapangan->foto ?? [];
+
+        // Ensure it's an array
+        if (!is_array($fotoPaths)) {
+            $fotoPaths = [];
+        }
+
+        // Handle new photo uploads
+        if ($request->hasFile('foto')) {
+            // Delete old photos
+            foreach ($fotoPaths as $oldFoto) {
+                Storage::disk('public')->delete($oldFoto);
+            }
+
+            // Upload new photos
+            $fotoPaths = [];
+            foreach ($request->file('foto') as $foto) {
+                $fotoPaths[] = $foto->store('lapangan', 'public');
+            }
+        }
+
+        $kategoriModel = Kategori::find($request->id_kategori);
+        $tiketTersedia = $request->filled('tiket_tersedia')
+            ? max(0, (int) $request->input('tiket_tersedia'))
+            : ($lapangan->tiket_tersedia ?? 0);
+        $sectionsInput = $request->input('sections', []);
+
+        DB::transaction(function () use ($lapangan, $request, $kategoriModel, $fotoPaths, $sectionsInput) {
+            $lapangan->update([
+                'nama_lapangan' => $request->nama_lapangan,
+                'id_kategori' => $request->id_kategori,
+                'kategori' => $kategoriModel?->nama_kategori,
+                'lokasi' => $request->lokasi,
+                'deskripsi' => $request->deskripsi,
+                // 'tiket_tersedia' => $tiketTersedia,
+                'status' => $request->input('status', $lapangan->status),
+                'foto' => $fotoPaths, // Laravel akan otomatis convert ke JSON
+            ]);
+
+            $this->syncSections($lapangan, $sectionsInput, true);
+        });
+
+        return redirect()->route('lapangan.index')->with('success', 'Data lapangan berhasil diperbarui!');
+    }
+
     // Simpan lapangan
     public function store(Request $request)
     {

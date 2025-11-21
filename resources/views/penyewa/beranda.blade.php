@@ -40,18 +40,17 @@
         </div>
     </div>
 
-
     {{-- FILTER KATEGORI --}}
     <div class="d-flex gap-2 flex-wrap my-4">
         <a href="{{ route('penyewa.beranda', ['kategori' => 'all']) }}"
-           class="btn {{ ($kategori ?? 'all') === 'all' ? 'btn-success' : 'btn-outline-success' }}">
+        class="btn {{ ($kategori ?? 'all') === 'all' ? 'btn-success' : 'btn-outline-success' }}">
             Semua
         </a>
 
         @foreach($kategoris as $k)
-            <a href="{{ route('penyewa.beranda', ['kategori' => $k->id]) }}"
-               class="btn {{ $kategori == $k->id ? 'btn-success' : 'btn-outline-success' }}">
-               {{ $k->nama_kategori }}
+            <a href="{{ route('penyewa.beranda', ['kategori' => $k->nama_kategori]) }}"
+            class="btn {{ $kategori == $k->nama_kategori ? 'btn-success' : 'btn-outline-success' }}">
+            {{ $k->nama_kategori }}
             </a>
         @endforeach
     </div>
