@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\PermintaanPerubahan;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Pemesanan;
+use App\Models\Pembayaran;
+use Illuminate\Support\Facades\DB;
 
 class PersetujuanController extends Controller
 {
@@ -53,26 +56,48 @@ class PersetujuanController extends Controller
             abort(403);
         }
 
-        $permintaan->status = $data['status'];
-        $permintaan->save();
+        DB::transaction(function () use ($permintaan, $data) {
+            $permintaan->update(['status' => $data['status']]);
 
-        if ($data['status'] === 'disetujui' && $permintaan->jadwal_baru_id) {
-            if ($permintaan->jadwalLama) {
-                $permintaan->jadwalLama->update(['tersedia' => true]);
+            // Jika disetujui, pindah jadwal pemesanan utama, buka jadwal lama, kunci jadwal baru, dan batalkan booking lain yang bentrok
+            if ($data['status'] === 'disetujui' && $permintaan->jadwal_baru_id) {
+                $pemesananUtama = $permintaan->pemesanan;
+
+                if ($permintaan->jadwalLama) {
+                    $permintaan->jadwalLama->update(['tersedia' => true]);
+                }
+
+                if ($permintaan->jadwalBaru) {
+                    $permintaan->jadwalBaru->update(['tersedia' => false]);
+                }
+
+                // Batalkan pemesanan lain yang sudah booking jadwal baru (menunggu/dibayar)
+                $pemesananLain = Pemesanan::where('jadwal_id', $permintaan->jadwal_baru_id)
+                    ->where('id', '!=', $pemesananUtama->id)
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->get();
+
+                foreach ($pemesananLain as $p) {
+                    $p->update(['status' => 'batal']);
+                    if ($p->jadwal) {
+                        $p->jadwal->update(['tersedia' => true]);
+                    }
+                    Pembayaran::where('pemesanan_id', $p->id)
+                        ->whereNotIn('status', ['berhasil', 'gagal'])
+                        ->update(['status' => 'batal']);
+                }
+
+                // Update jadwal pemesanan utama ke jadwal baru
+                $pemesananUtama->update([
+                    'jadwal_id' => $permintaan->jadwal_baru_id,
+                ]);
             }
 
-            if ($permintaan->jadwalBaru) {
-                $permintaan->jadwalBaru->update(['tersedia' => false]);
+            // Jika ditolak, jadwal baru dibuka kembali
+            if ($data['status'] === 'ditolak' && $permintaan->jadwalBaru) {
+                $permintaan->jadwalBaru->update(['tersedia' => true]);
             }
-
-            $permintaan->pemesanan->update([
-                'jadwal_id' => $permintaan->jadwal_baru_id,
-            ]);
-        }
-
-        if ($data['status'] === 'ditolak' && $permintaan->jadwalBaru) {
-            $permintaan->jadwalBaru->update(['tersedia' => true]);
-        }
+        });
 
         return response()->json(['success' => true]);
     }
