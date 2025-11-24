@@ -19,10 +19,21 @@ class LapanganController extends Controller
             });
         }
 
+        if ($kategori = $request->input('kategori')) {
+            $query->where('kategori', $kategori);
+        }
+
         $lapangan = $query->paginate(10)->appends($request->query());
+        $categories = Lapangan::whereNotNull('kategori')
+            ->select('kategori')
+            ->distinct()
+            ->orderBy('kategori')
+            ->pluck('kategori');
 
         return view('admin.lapangan.index', [
             'lapangan' => $lapangan,
+            'categories' => $categories,
+            'activeCategory' => $kategori,
         ]);
     }
 

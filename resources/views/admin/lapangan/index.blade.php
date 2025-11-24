@@ -32,6 +32,24 @@
                 </div>
             </form>
 
+            @if(isset($categories) && $categories->count())
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    @php
+                        $active = $activeCategory ?? '';
+                    @endphp
+                    <a href="{{ route('admin.lapangan.index', array_merge(request()->except('page'), ['kategori' => null])) }}"
+                        class="btn btn-sm {{ $active === null || $active === '' ? 'btn-success text-white' : 'btn-outline-success' }}">
+                        Semua
+                    </a>
+                    @foreach ($categories as $cat)
+                        <a href="{{ route('admin.lapangan.index', array_merge(request()->except('page'), ['kategori' => $cat])) }}"
+                            class="btn btn-sm {{ $active === $cat ? 'btn-success text-white' : 'btn-outline-success' }}">
+                            {{ $cat }}
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
