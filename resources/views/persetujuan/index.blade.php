@@ -213,27 +213,49 @@
                   </div>
                 </td>
                 <td>{{ $item->alasan ?? '-' }}</td>
-                <td>
-                  <span class="badge 
-                    @if($item->status == 'menunggu') bg-warning text-dark
-                    @elseif($item->status == 'disetujui') bg-success
-                    @else bg-danger @endif">
-                    {{ ucfirst($item->status) }}
-                  </span>
-                </td>
-                <td>
-                  @if($item->status === 'menunggu')
-                    <button class="btn btn-sm btn-success me-1" onclick="updateStatus({{ $item->id }}, 'disetujui')">
-                      <i class="fa-solid fa-check"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="updateStatus({{ $item->id }}, 'ditolak')">
-                      <i class="fa-solid fa-xmark"></i>
-                    </button>
-                  @else
-                    <span class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Sudah {{ $item->status }}</span>
-                  @endif
-                </td>
+<td>
+    @php
+        $statusClass = match($item->status) {
+            'menunggu' => 'bg-warning text-dark',
+            'disetujui' => 'bg-success',
+            'ditolak' => 'bg-danger',
+            'kadaluarsa' => 'bg-secondary text-white',
+            default => 'bg-light'
+        };
+    @endphp
+    <span class="badge {{ $statusClass }}">
+        {{ ucfirst($item->status) }}
+    @if($item->status === 'menunggu' && $item->expires_at)
+        <span 
+            class="countdown"
+            data-expire="{{ $item->expires_at }}"
+            id="cd-{{ $item->id }}"
+        >
+            ... memuat
+        </span>
+    @endif
+</span>
+
+    </span>
+</td>
+
+<td>
+    @if($item->status === 'menunggu')
+        <button class="btn btn-sm btn-success me-1" onclick="updateStatus({{ $item->id }}, 'disetujui')">
+            <i class="fa-solid fa-check"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="updateStatus({{ $item->id }}, 'ditolak')">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    @elseif($item->status === 'kadaluarsa')
+        <span class="text-muted"><i class="fa-solid fa-ban me-1"></i> Kadaluarsa</span>
+    @else
+        <span class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> Sudah {{ $item->status }}</span>
+    @endif
+</td>
+
               </tr>
+            
             @endforeach
           </tbody>
         </table>
@@ -241,6 +263,39 @@
     @endif
   </div>
 </div>
+<script>
+function startCountdown() {
+    const timers = document.querySelectorAll('.countdown');
+
+    timers.forEach(el => {
+        const expireTime = new Date(el.dataset.expire).getTime();
+
+        function update() {
+            const now = new Date().getTime();
+            let diff = Math.floor((expireTime - now) / 1000);
+
+            if (diff <= 0) {
+                el.innerHTML = " - 00:00";
+                el.closest("tr").querySelector(".badge").classList.remove("bg-warning");
+                el.closest("tr").querySelector(".badge").classList.add("bg-secondary");
+                el.closest("tr").querySelector(".badge").innerHTML = "Kadaluarsa";
+                return;
+            }
+
+            const minutes = String(Math.floor(diff / 60)).padStart(2, '0');
+            const seconds = String(diff % 60).padStart(2, '0');
+
+            el.innerHTML = ` - ${minutes}:${seconds}`;
+
+            requestAnimationFrame(update);
+        }
+
+        update();
+    });
+}
+
+document.addEventListener("DOMContentLoaded", startCountdown);
+</script>
 
 <script>
 function updateStatus(id, status) {

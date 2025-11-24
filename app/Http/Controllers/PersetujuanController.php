@@ -7,38 +7,58 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Pemesanan;
 use App\Models\Pembayaran;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
 
 class PersetujuanController extends Controller
 {
-    public function index(Request $request)
-    {
-        $search = $request->input('search');
-        $status = $request->input('status');
 
-        $pemilikId = Auth::id();
+public function index(Request $request)
+{
+    $search = $request->input('search');
+    $status = $request->input('status');
 
-        $permintaan = PermintaanPerubahan::with([
-            'pemesanan.user',
-            'pemesanan.lapangan',
-            'jadwalLama.section',
-            'jadwalBaru.section'
-        ])
-        ->whereHas('pemesanan.lapangan', fn ($q) => $q->where('pemilik_id', $pemilikId))
-        ->when($search, function ($query, $search) {
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('pemesanan.user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', "%{$search}%");
-                })->orWhereHas('pemesanan.lapangan', function ($lapanganQuery) use ($search) {
-                    $lapanganQuery->where('nama_lapangan', 'like', "%{$search}%");
-                });
-            });
-        })
-        ->when($status !== null && $status !== '', fn($query) => $query->where('status', $status))
-        ->orderByDesc('created_at')
-        ->paginate(8);
+    $pemilikId = Auth::id();
 
-        return view('persetujuan.index', compact('permintaan'));
-    }
+    $permintaan = PermintaanPerubahan::with([
+        'pemesanan.user',
+        'pemesanan.lapangan',
+        'jadwalLama.section',
+        'jadwalBaru.section'
+    ])
+    ->whereHas('pemesanan.lapangan', fn ($q) => $q->where('pemilik_id', $pemilikId))
+    ->when($search, function ($query, $search) {
+        $query->where(function ($q) use ($search) {
+            $q->whereHas('pemesanan.user', fn($userQuery) => $userQuery->where('name', 'like', "%{$search}%"))
+              ->orWhereHas('pemesanan.lapangan', fn($lapanganQuery) => $lapanganQuery->where('nama_lapangan', 'like', "%{$search}%"));
+        });
+    })
+    ->when($status !== null && $status !== '', fn($query) => $query->where('status', $status))
+    ->orderByDesc('created_at')
+    ->paginate(8);
+
+    // Hitung sisa waktu & set kadaluarsa
+    $permintaan->transform(function ($item) {
+        if ($item->status === 'menunggu' && $item->expires_at) {
+            $now = Carbon::now();
+            $expires = Carbon::parse($item->expires_at);
+            $diffMinutes = $now->diffInMinutes($expires, false); // negatif kalau sudah lewat
+
+            if ($diffMinutes <= 0) {
+                $item->status = 'kadaluarsa';
+                $diffMinutes = 0;
+            }
+
+            $item->sisa_menit = $diffMinutes;
+        } else {
+            $item->sisa_menit = null;
+        }
+
+        return $item;
+    });
+
+    return view('persetujuan.index', compact('permintaan'));
+}
 
     public function update($id)
     {

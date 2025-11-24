@@ -79,86 +79,44 @@ public function boot(): void
 
 public function setujuiPermintaan($id)
 {
-    $permintaan = \App\Models\PermintaanPerubahan::with([
-        'pemesanan',
-        'jadwalLama',
-        'jadwalBaru',
-        'pemesanan.pembayaran'
-    ])->findOrFail($id);
+    $permintaan = \App\Models\PermintaanPerubahan::with(['pemesanan', 'jadwalLama', 'jadwalBaru'])
+        ->findOrFail($id);
 
-    // Validasi pemilik lapangan
     if ($permintaan->pemesanan->lapangan->pemilik_id != Auth::id()) {
         abort(403, 'Tidak punya akses.');
     }
 
-    // Expired otomatis
-    if ($permintaan->status === 'menunggu' && $permintaan->expires_at < now()) {
-        $permintaan->update(['status' => 'kadaluarsa']);
-        return response()->json(['error' => 'Waktu persetujuan sudah habis.'], 410);
+// ❗ Cek apakah sudah expired
+if ($permintaan->status === 'menunggu' && $permintaan->expires_at < now()) {
+    $permintaan->update(['status' => 'kadaluarsa']);
+    return response()->json(['error' => 'Waktu persetujuan sudah habis.'], 410);
+}
+
+    $permintaan->update(['status' => 'disetujui']);
+
+    // buka jadwal lama
+    if ($permintaan->jadwalLama) {
+        $permintaan->jadwalLama->update(['tersedia' => true]);
     }
 
-    \DB::beginTransaction();
-    try {
-
-        // 1. Update status permintaan
-        $permintaan->update(['status' => 'disetujui']);
-
-        $pemesananUtama = $permintaan->pemesanan;
-
-        // 2. Buka jadwal lama
-        if ($permintaan->jadwalLama) {
-            $permintaan->jadwalLama->update(['tersedia' => true]);
-        }
-
-        // 3. Kunci jadwal baru
-        if ($permintaan->jadwalBaru) {
-            $permintaan->jadwalBaru->update(['tersedia' => false]);
-        }
-
-        // 4. Cari pemesanan lain yang menunggu di jadwal baru
-        $pemesananLain = \App\Models\Pemesanan::where('jadwal_id', $permintaan->jadwal_baru_id)
-            ->where('id', '!=', $pemesananUtama->id)
-            ->whereIn('status', ['menunggu', 'dibayar'])
-            ->get();
-
-        foreach ($pemesananLain as $p) {
-
-            // 🔥 4.1 Set pemesanan mereka menjadi BATAL
-            $p->update(['status' => 'batal']);
-
-            // 🔥 4.2 Jadwal mereka dibuka kembali
-            if ($p->jadwal) {
-                $p->jadwal->update(['tersedia' => true]);
-            }
-
-            // 🔥 4.3 Set pembayaran mereka menjadi batal
-            \App\Models\Pembayaran::where('pemesanan_id', $p->id)
-                ->whereNotIn('status', ['berhasil', 'gagal'])
-                ->update(['status' => 'batal']);
-        }
-
-        // 5. Update jadwal pemesanan utama
-        $pemesananUtama->update([
-            'jadwal_id' => $permintaan->jadwal_baru_id,
-        ]);
-
-        \DB::commit();
-
-        $pemesananUtama->load('jadwal.section');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Permintaan perubahan jadwal disetujui.',
-            'pemesanan' => $pemesananUtama
-        ]);
-
-    } catch (\Exception $e) {
-        \DB::rollBack();
-
-        return response()->json([
-            'error' => 'Terjadi kesalahan: ' . $e->getMessage()
-        ], 500);
+    // kunci jadwal baru
+    if ($permintaan->jadwalBaru) {
+        $permintaan->jadwalBaru->update(['tersedia' => false]);
     }
+
+    // update pemesanan
+    $pemesanan = $permintaan->pemesanan;
+    $pemesanan->update([
+        'jadwal_id' => $permintaan->jadwal_baru_id,
+    ]);
+
+    $pemesanan->load('jadwal.section');
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Permintaan disetujui.',
+        'pemesanan' => $pemesanan
+    ]);
 }
 
 public function getDetailPermintaan($id)
