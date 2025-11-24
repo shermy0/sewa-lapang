@@ -98,7 +98,12 @@
                     @php
                         $jadwalAktif = $p->jadwal;
                         $sectionAktif = $p->jadwal?->section;
-                        if ($p->permintaanPerubahan && $p->permintaanPerubahan->status === 'disetujui') {
+                        if (
+    $p->permintaanPerubahan &&
+    $p->permintaanPerubahan->status === 'disetujui' &&
+    $p->permintaanPerubahan->jadwal_baru_id == $p->jadwal_id
+) {
+
                             $jadwalAktif = $p->permintaanPerubahan->jadwalBaru ?? $jadwalAktif;
                             $sectionAktif = $p->permintaanPerubahan->sectionBaru ?? $sectionAktif;
                         }

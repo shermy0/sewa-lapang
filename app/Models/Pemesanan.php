@@ -78,8 +78,9 @@ protected static function boot()
     }
 public function permintaanPerubahan()
 {
-    return $this->hasOne(\App\Models\PermintaanPerubahan::class, 'pemesanan_id')->latest();
+    return $this->hasOne(PermintaanPerubahan::class)->latestOfMany();
 }
+
 public function isExpired()
 {
     if ($this->status !== 'menunggu') return false;
