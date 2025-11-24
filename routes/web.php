@@ -102,6 +102,7 @@ Route::patch('/pemesanan/{pemesanan}/pindah', [PemesananController::class, 'pind
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
     Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection'])
         ->name('jadwal.bySection');
+        
     Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);

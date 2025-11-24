@@ -7,19 +7,7 @@
 <link rel="stylesheet" href="{{ asset('css/tiket.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-/* (pakai style yang sama seperti sebelumnya, disingkat di sini untuk ringkas) */
-.swal2-popup { border-radius: 16px !important; }
-.modal-title-custom { font-size: 1.1rem; font-weight:700;color:#41A67E;margin-bottom:10px;}
-.card-select{padding:12px;border-radius:10px;border:2px solid #e5e5e5;background:#fff;cursor:pointer}
-.card-select.active{border-color:#41A67E;background:#f6fffa}
-.modal-label{font-weight:700;margin-bottom:6px;color:#333}
-.ticket-status-scan.sudah{background:#E6F5EF;color:#41A67E}
-.ticket-status-scan.belum{background:#FFF5D6;color:#C78C00}
-.jadwal-item.pending { background:#fffbe6; cursor:pointer; }
-.jadwal-item.paid { background:#f2f2f2; cursor:not-allowed; opacity:0.7; }
-.jadwal-item.available { background:#fff; cursor:pointer; }
-</style>
+
 
 <div class="container py-4">
     <h2 class="fw-bold mb-4 text-success">
@@ -35,21 +23,75 @@
     <div class="row" id="ticketContainer">
         @forelse($sudahDibayar as $p)
         <div class="col-md-6 mb-4 ticket-card" data-status="{{ $p->status_scan }}">
-            @if($p->permintaanPerubahan)
-                @if($p->permintaanPerubahan->status === 'menunggu')
-                    <div class="alert alert-warning py-2 px-3 small mb-2">
-                        <i class="fa-solid fa-hourglass-half me-1"></i> Menunggu persetujuan perubahan jadwal / section...
-                    </div>
-                @elseif($p->permintaanPerubahan->status === 'disetujui')
-                    <div class="alert alert-success py-2 px-3 small mb-2">
-                        <i class="fa-solid fa-check-circle me-1"></i> Perubahan telah disetujui dan diperbarui.
-                    </div>
-                @elseif($p->permintaanPerubahan->status === 'ditolak')
-                    <div class="alert alert-danger py-2 px-3 small mb-2">
-                        <i class="fa-solid fa-xmark me-1"></i> Permintaan perubahan ditolak.
-                    </div>
-                @endif
-            @endif
+@if($p->permintaanPerubahan)
+
+    {{-- STATUS MENUNGGU --}}
+    @if($p->permintaanPerubahan->status === 'menunggu')
+        @php
+            $expires = \Carbon\Carbon::parse($p->permintaanPerubahan->expires_at);
+            $now = \Carbon\Carbon::now();
+            $selisihDetik = intval($expires->diffInSeconds($now, false));
+        @endphp
+
+@if($selisihDetik < 0)
+    <div class="alert alert-warning py-2 px-3 small mb-2">
+        <i class="fa-solid fa-hourglass-half me-1"></i>
+        Permintaan sedang menunggu persetujuan.
+        <br>
+        Sisa waktu: <span class="text-danger fw-bold" id="countdown-{{ $p->id }}"></span>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let sisa = {{ abs($selisihDetik) }}; // detik tersisa
+
+            function updateCountdown() {
+                if (sisa <= 0) {
+                    document.getElementById("countdown-{{ $p->id }}").innerText = "00:00";
+                    location.reload();
+                    return;
+                }
+
+                let menit = Math.floor(sisa / 60);
+                let detik = sisa % 60;
+
+                document.getElementById("countdown-{{ $p->id }}")
+                    .innerText = `${String(menit).padStart(2, '0')}:${String(detik).padStart(2, '0')}`;
+
+                sisa--;
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        });
+    </script>
+
+            {{-- script countdown --}}
+        @else
+            <div class="alert alert-danger py-2 px-3 small mb-2">
+                <i class="fa-solid fa-clock-rotate-left me-1"></i>
+                Waktu persetujuan habis. Slot jadwal kembali tersedia.
+            </div>
+            <button onclick="location.reload()" class="btn btn-outline-danger btn-sm mb-2">
+                <i class="fa-solid fa-rotate me-1"></i> Reload Halaman
+            </button>
+        @endif
+
+    {{-- STATUS DISETUJUI --}}
+    @elseif($p->permintaanPerubahan->status === 'disetujui')
+        <div class="alert alert-success py-2 px-3 small mb-2">
+            <i class="fa-solid fa-check-circle me-1"></i> Perubahan telah disetujui dan diperbarui.
+        </div>
+
+    {{-- STATUS DITOLAK --}}
+    @elseif($p->permintaanPerubahan->status === 'ditolak')
+        <div class="alert alert-danger py-2 px-3 small mb-2">
+            <i class="fa-solid fa-xmark me-1"></i> Permintaan perubahan ditolak.
+        </div>
+
+    @endif
+
+@endif
 
             <div class="ticket shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="d-flex flex-column flex-md-row">
@@ -119,17 +161,39 @@
                                 <i class="fa-solid fa-download me-1"></i> Download
                             </a>
 
-                            @if($p->status_scan !== 'sudah_scan')
-                                @if(!$p->permintaanPerubahan)
-                                    <button class="btn btn-warning btn-sm px-3" onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
-                                        <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Perubahan
-                                    </button>
-                                @else
-                                    <button class="btn btn-outline-primary btn-sm px-3" onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
-                                        <i class="fa-solid fa-eye me-1"></i> Lihat Detail Permintaan
-                                    </button>
-                                @endif
-                            @endif
+                            {{-- Tombol aksi perubahan --}}
+@if($p->status_scan !== 'sudah_scan')
+
+    {{-- BELUM PERNAH AJUKAN --}}
+    @if(!$p->permintaanPerubahan)
+        <button class="btn btn-warning btn-sm px-3"
+                onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
+            <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Perubahan
+        </button>
+
+    {{-- MASIH MENUNGGU --}}
+    @elseif($p->permintaanPerubahan->status === 'menunggu')
+        <button class="btn btn-outline-primary btn-sm px-3"
+                onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
+            <i class="fa-solid fa-hourglass-half me-1"></i> Menunggu Persetujuan
+        </button>
+
+    {{-- DITOLAK ATAU DISETUJUI → BOLEH AJUKAN LAGI --}}
+    @else
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm px-3"
+                    onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
+                <i class="fa-solid fa-eye me-1"></i> Lihat Detail
+            </button>
+
+            <button class="btn btn-warning btn-sm px-3"
+                    onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Lagi
+            </button>
+        </div>
+    @endif
+@endif
+
                         </div>
                     </div>
                 </div>

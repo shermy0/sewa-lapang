@@ -79,51 +79,58 @@ public function boot(): void
 
 public function setujuiPermintaan($id)
 {
-    $permintaan = \App\Models\PermintaanPerubahan::with(['pemesanan', 'jadwalLama', 'jadwalBaru'])->findOrFail($id);
+    $permintaan = \App\Models\PermintaanPerubahan::with(['pemesanan', 'jadwalLama', 'jadwalBaru'])
+        ->findOrFail($id);
 
-    // Cegah yang bukan pemilik lapangan
     if ($permintaan->pemesanan->lapangan->pemilik_id != Auth::id()) {
         abort(403, 'Tidak punya akses.');
     }
 
-    // Update status permintaan
+// ❗ Cek apakah sudah expired
+if ($permintaan->status === 'menunggu' && $permintaan->expires_at < now()) {
+    $permintaan->update(['status' => 'kadaluarsa']);
+    return response()->json(['error' => 'Waktu persetujuan sudah habis.'], 410);
+}
+
     $permintaan->update(['status' => 'disetujui']);
 
-    // Ubah jadwal lama jadi tersedia lagi
+    // buka jadwal lama
     if ($permintaan->jadwalLama) {
         $permintaan->jadwalLama->update(['tersedia' => true]);
     }
 
-    // Tandai jadwal baru jadi tidak tersedia
+    // kunci jadwal baru
     if ($permintaan->jadwalBaru) {
         $permintaan->jadwalBaru->update(['tersedia' => false]);
     }
 
-    // Update data pemesanan ke jadwal baru
+    // update pemesanan
     $pemesanan = $permintaan->pemesanan;
     $pemesanan->update([
         'jadwal_id' => $permintaan->jadwal_baru_id,
     ]);
 
-    // ✅ refresh relasi agar ambil jadwal & section baru
     $pemesanan->load('jadwal.section');
 
     return response()->json([
         'success' => true,
-        'message' => 'Permintaan perubahan telah disetujui.',
-        'pemesanan' => $pemesanan, // kirim data baru kalau perlu di-ajax
+        'message' => 'Permintaan disetujui.',
+        'pemesanan' => $pemesanan
     ]);
 }
 
-    public function getDetailPermintaan($id)
+public function getDetailPermintaan($id)
 {
     $permintaan = \App\Models\PermintaanPerubahan::with(['sectionBaru', 'jadwalBaru', 'pemesanan.lapangan'])
         ->findOrFail($id);
 
-    // Cegah akses data orang lain
     if ($permintaan->pemesanan->penyewa_id != Auth::id()) {
         abort(403);
     }
+
+    $countdown = $permintaan->expires_at
+        ? now()->diffInMinutes($permintaan->expires_at, false)
+        : null;
 
     return response()->json([
         'id' => $permintaan->id,
@@ -133,6 +140,7 @@ public function setujuiPermintaan($id)
         'lapangan_id' => $permintaan->pemesanan->lapangan_id,
         'section_baru' => $permintaan->sectionBaru,
         'jadwal_baru' => $permintaan->jadwalBaru,
+        'countdown' => $countdown,  // ⏳ berapa menit tersisa
     ]);
 }
 
@@ -148,7 +156,7 @@ public function setujuiPermintaan($id)
     return response()->json(['success' => true]);
 }
 
-    public function ajukanPerubahan(Request $request, $pemesananId)
+public function ajukanPerubahan(Request $request, $pemesananId)
 {
     $request->validate([
         'section_baru_id' => 'required|exists:section_lapangan,id',
@@ -157,28 +165,59 @@ public function setujuiPermintaan($id)
     ]);
 
     $pemesanan = Pemesanan::findOrFail($pemesananId);
+
+    // Pastikan penyewa benar
     if ($pemesanan->penyewa_id != Auth::id()) {
         abort(403);
     }
+
+    // Tidak boleh ubah bila sudah scan
     if ($pemesanan->status_scan === 'sudah_scan') {
-    return response()->json([
-        'error' => 'Tiket sudah discan dan tidak bisa diubah.',
-    ], 403);
-}
+        return response()->json([
+            'error' => 'Tiket sudah discan dan tidak bisa diubah.',
+        ], 403);
+    }
 
+    // ============================================================
+    // 🔥 1. Update semua permintaan yang sudah EXPIRED → jadikan kadaluarsa
+    // ============================================================
+    \App\Models\PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
+        ->where('status', 'menunggu')
+        ->where('expires_at', '<', now())
+        ->update(['status' => 'kadaluarsa']);
 
+    // ============================================================
+    // 🔥 2. Hapus hanya permintaan LAMA yang masih "menunggu"
+    //    (agar hanya ada 1 request pending)
+    // ============================================================
+    \App\Models\PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
+        ->where('status', 'menunggu')
+        ->delete();
+
+    // NOTE:
+    // - Status "disetujui", "ditolak", "kadaluarsa" TIDAK DIHAPUS
+    //   (tetap jadi riwayat, aman)
+
+    // ============================================================
+    // 🔥 3. Buat permintaan baru (UNLIMITED)
+    // ============================================================
     \App\Models\PermintaanPerubahan::create([
-        'pemesanan_id' => $pemesanan->id,
-        'section_lama_id' => $pemesanan->jadwal->section_id,
-        'section_baru_id' => $request->section_baru_id,
-        'jadwal_lama_id' => $pemesanan->jadwal_id,
-        'jadwal_baru_id' => $request->jadwal_baru_id,
-        'alasan' => $request->alasan,
-        'status' => 'menunggu',
+        'pemesanan_id'       => $pemesanan->id,
+        'section_lama_id'    => $pemesanan->jadwal->section_id,
+        'section_baru_id'    => $request->section_baru_id,
+        'jadwal_lama_id'     => $pemesanan->jadwal_id,
+        'jadwal_baru_id'     => $request->jadwal_baru_id,
+        'alasan'             => $request->alasan,
+        'status'             => 'menunggu',
+        'expires_at'         => now()->addMinutes(15),
     ]);
 
-    return response()->json(['success' => true]);
+    return response()->json([
+        'success' => true,
+        'message' => 'Permintaan perubahan berhasil diajukan.',
+    ]);
 }
+
 
 public function getSectionsByLapangan($lapangan_id)
 {
@@ -330,7 +369,9 @@ $userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
         }
         return $p;
     });
-
+    \App\Models\PermintaanPerubahan::where('status', 'menunggu')
+        ->where('expires_at', '<', now())
+        ->update(['status' => 'kadaluarsa']);
 return view('penyewa.tiket', [
     'sudahDibayar' => $sudahDibayar,
     'semuaPemesananUser' => $semuaPemesananUser,
@@ -341,11 +382,23 @@ return view('penyewa.tiket', [
 
 
 
+
+
     // ========================== HALAMAN MENUNGGU PEMBAYARAN ==========================
 public function riwayatBelum()
 {
     $userId = Auth::id();
     $now = Carbon::now('Asia/Jakarta');
+    $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
+    ->where('penyewa_id', auth()->id())
+    ->get();
+
+// kirim ke blade: status pembayaran yang benar
+$userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
+    return [
+        $p->jadwal_id => optional($p->pembayaran)->status // pending / berhasil / gagal / ...
+    ];
+});
 
     // Ambil semua pesanan menunggu
     $belumDibayar = Pemesanan::with(['jadwal'])
@@ -378,8 +431,12 @@ foreach ($belumDibayar as $p) {
         ->latest()
         ->get();
 
-    return view('penyewa.pembayaran', compact('belumDibayar'));
-}
+return view('penyewa.pembayaran', [
+    'belumDibayar' => $belumDibayar,
+    'semuaPemesananUser' => $semuaPemesananUser,
+            'userOrders' => $userOrders
+
+]);}
 
 
 
