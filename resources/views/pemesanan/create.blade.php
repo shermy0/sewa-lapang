@@ -263,7 +263,7 @@ function showJadwal(jadwals){
                              data-selesai="${j.jam_selesai}"
                              data-harga="${j.harga_sewa}">
                             <i class="fa-solid fa-clock me-1"></i> ${j.jam_mulai} - ${j.jam_selesai}
-                            <small class="d-block mt-1 fw-semibold text-muted">Rp ${(parseInt(j.harga_sewa) || 0).toLocaleString('id-ID')}</small>
+                            <small class="d-block mt-1 fw-semibold text-muted">Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}</small>
                         </div>
                     </div>
                 `).join('')}
