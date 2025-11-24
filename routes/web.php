@@ -13,6 +13,7 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\PembayaranController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\UlasanController;
@@ -37,6 +38,22 @@ use App\Http\Controllers\BandingPemilikController;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+// Fallback dashboard untuk pengguna yang sudah login (menghindari redirect loop ke /login)
+Route::get('/dashboard', function () {
+    $user = Auth::user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    return match ($user->role) {
+        'penyewa' => redirect()->route('penyewa.beranda'),
+        'pemilik' => redirect()->route('dashboard.pemilik'),
+        'admin' => redirect()->route('dashboard.admin'),
+        default => redirect()->route('login'),
+    };
+})->name('dashboard');
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
@@ -250,6 +267,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
         Route::get('banners/{banner}/edit', [BannerController::class, 'edit'])->name('banners.edit');
         Route::put('banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
+        Route::delete('banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');
         Route::patch('banners/{banner}/toggle', [BannerController::class, 'toggle'])->name('banners.toggle');
 
         Route::get('lapangan', [AdminLapanganController::class, 'index'])->name('lapangan.index');

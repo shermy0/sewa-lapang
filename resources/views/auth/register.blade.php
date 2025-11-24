@@ -33,7 +33,7 @@
                     $availableRoles = isset($roles) && is_array($roles) && count($roles) ? $roles : ['penyewa'];
                     $defaultRole = old('role', $availableRoles[0] ?? 'penyewa');
                 @endphp
-                <form method="POST" action="{{ url('/register') }}" class="space-y-4">
+                <form method="POST" action="{{ url('/register') }}" class="space-y-4" id="registerForm">
                     @csrf
 
                     <div>
@@ -113,6 +113,7 @@
 
                     <button
                         type="submit"
+                        id="registerSubmit"
                         class="w-full py-2 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
                         Daftar
@@ -125,5 +126,19 @@
                 </p>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const form = document.getElementById('registerForm');
+                const submitBtn = document.getElementById('registerSubmit');
+
+                if (form && submitBtn) {
+                    form.addEventListener('submit', () => {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Memproses...';
+                    });
+                }
+            });
+        </script>
     </body>
 </html>
