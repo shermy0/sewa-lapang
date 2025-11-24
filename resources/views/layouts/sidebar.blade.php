@@ -94,6 +94,12 @@
                 'active_routes' => ['lapangan.index'],
             ],
             [
+                'label' => 'Pemesanan',
+                'icon' => 'fa-solid fa-calendar-check',
+                'route' => 'pemilik.pemesanan.index',
+                'active_routes' => ['pemilik.pemesanan.index'],
+            ],
+            [
                 'label' => 'Kelola Kategori',
                 'icon' => 'fa-solid fa-tags',
                 'route' => 'kategori.index',
