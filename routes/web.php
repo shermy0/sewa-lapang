@@ -84,7 +84,8 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::middleware(['auth', 'verified', 'role:penyewa'])->group(function () {
+// Izinkan akses laporan untuk penyewa (dan pemilik bila diperlukan)
+Route::middleware(['auth', 'verified', 'role:penyewa|pemilik'])->group(function () {
 Route::get('/sections/{lapangan_id}', [PemesananController::class, 'getSectionsByLapangan']);
 // Route untuk ambil detail permintaan perubahan
 Route::get('/permintaan-perubahan/{id}', [App\Http\Controllers\PemesananController::class, 'getDetailPermintaan']);
@@ -135,7 +136,7 @@ Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->nam
     Route::post('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'store'])->name('favorit.store');
     Route::delete('lapangan/{lapangan}/favorit', [PenyewaFavoritController::class, 'destroy'])->name('favorit.destroy');
 
-    Route::middleware('role:penyewa')->prefix('penyewa')->name('penyewa.')->group(function () {
+    Route::middleware('role:penyewa|pemilik')->prefix('penyewa')->name('penyewa.')->group(function () {
         Route::get('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'index'])->name('laporan.index');
         Route::post('/laporan', [PenyewaLaporanPenyalahgunaanController::class, 'store'])->name('laporan.store');
     });
@@ -261,4 +262,4 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::put('akun', [AdminAccountController::class, 'update'])->name('account.update');
 
     });
-    });
+});
