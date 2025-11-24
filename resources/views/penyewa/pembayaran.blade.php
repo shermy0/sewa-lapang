@@ -158,26 +158,29 @@
         data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 // Countdown pembayaran
+// Countdown pembayaran
 document.querySelectorAll('[data-countdown]').forEach(target => {
     const createdAt = new Date(target.dataset.createdAt);
-    const deadline = new Date(createdAt.getTime() + 20 * 60 * 1000);
+    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
     const tick = () => {
         const now = new Date();
         const diff = deadline - now;
+
         if (diff <= 0) {
             target.textContent = '⛔ Waktu pembayaran sudah habis.';
             target.classList.add('text-muted');
             setTimeout(() => window.location.reload(), 800);
             return;
         }
-        const totalMinutes = Math.floor(diff / (1000 * 60));
+        const h = Math.floor(diff / (1000 * 60 * 60));
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);
-        target.textContent = `Sisa waktu pembayaran: ${totalMinutes}m ${s}d`;
+        target.textContent = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
         setTimeout(tick, 1000);
     };
     tick();
 });
+
 
 // 💳 Midtrans - Bayar Sekarang + Loading
 document.querySelectorAll('.btn-pay-again').forEach(btn => {
@@ -229,6 +232,8 @@ document.querySelectorAll('.btn-pay-again').forEach(btn => {
 });
 
 // ❌ SweetAlert konfirmasi pembatalan
+const cancelEndpoint = '{{ url('/pemesanan/batalkan') }}';
+
 document.querySelectorAll('.btn-cancel').forEach(btn => {
     btn.addEventListener('click', function() {
         const id = this.dataset.id;
@@ -243,16 +248,9 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
             cancelButtonColor: '#aaa'
         }).then(result => {
             if (result.isConfirmed) {
-                fetch(`/pemesanan/batalkan/${id}`, {
+                fetch(`/pemesanan/${id}`, {
                     method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    }
-                })
-                .then((res) => {
-                    if (!res.ok) throw new Error('Failed');
-                    return res.json().catch(() => ({}));
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
                 })
                 .then(() => Swal.fire('Dibatalkan!', 'Pemesanan berhasil dibatalkan.', 'success')
                     .then(() => location.reload()))

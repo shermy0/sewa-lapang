@@ -65,6 +65,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ->withTimestamps();
     }
 
+    public function lapangan()
+    {
+        return $this->hasMany(Lapangan::class, 'pemilik_id');
+    }
+
     /**
      * Koleksi favorit sebagai model pivot.
      */

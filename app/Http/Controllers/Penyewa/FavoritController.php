@@ -51,7 +51,7 @@ class FavoritController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Lapangan ditambahkan ke favorit.');
+        return back();
     }
 
     /**
@@ -72,6 +72,6 @@ class FavoritController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Lapangan dihapus dari favorit.');
+        return back();
     }
 }

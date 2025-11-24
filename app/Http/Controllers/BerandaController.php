@@ -16,25 +16,29 @@ class BerandaController extends Controller
 {
     public function index(Request $request)
     {
-        $keyword = $request->input('search');
+        $keyword  = $request->input('search');
         $kategori = $request->input('kategori');
-        $banners = Banner::where('status', 'aktif')->get();
+        $banners  = Banner::where('status', 'aktif')->get();
 
-        // Ambil semua kategori
-        $kategoris = Kategori::all();
+        // Ambil kategori unik
+        $kategoris = Kategori::select('nama_kategori')
+            ->groupBy('nama_kategori')
+            ->get();
 
         $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
 
-        $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])
-            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
-            ->get();
-
-        // Ambil semua lapangan + relasi kategori, sections, dan jadwal
+        // Query lapangan
         $lapangan = Lapangan::with(['kategori', 'sections.jadwal'])
-            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
+            ->when($hasSuspensionColumn, fn ($query) => 
+                $query->where('is_suspended', false)
+            )
+            // FILTER KATEGORI PAKAI NAMA_KATEGORI
             ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
-                $query->where('id_kategori', $kategori);
+                $query->whereHas('kategori', function ($q) use ($kategori) {
+                    $q->where('nama_kategori', $kategori);
+                });
             })
+            // SEARCH KEYWORD
             ->when($keyword, function ($query) use ($keyword) {
                 $query->where('nama_lapangan', 'like', "%$keyword%");
             })
@@ -42,7 +46,13 @@ class BerandaController extends Controller
             ->limit(12)
             ->get();
 
-        return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris', 'banners'));
+        return view('penyewa.beranda', compact(
+            'lapangan',
+            'keyword',
+            'kategori',
+            'kategoris',
+            'banners'
+        ));
     }
 
     public function detail($id)

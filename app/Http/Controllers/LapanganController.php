@@ -16,38 +16,40 @@ class LapanganController extends Controller
 {
     private const MAX_SIMPLE_RANGE_DAYS = 90;
     private const MAX_GENERATED_SLOTS = 500;
-public function index(Request $request)
-{
-    $lapangan = Lapangan::query()
-        ->with('jadwal')
-        ->when($request->filled('search'), function ($query) use ($request) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nama_lapangan', 'like', '%' . $request->search . '%')
-                    ->orWhere('lokasi', 'like', '%' . $request->search . '%');
-            });
-        })
-        ->when($request->filled('kategori'), function ($query) use ($request) {
-            $query->where('kategori', 'like', '%' . $request->kategori . '%');
-        })
-        ->when($request->filled('status'), function ($query) use ($request) {
-            $query->where('status', $request->status);
-        })
-        ->when($request->filled('tiket_tersedia'), function ($query) use ($request) {
-            if ($request->tiket_tersedia === 'tersedia') {
-                $query->where('tiket_tersedia', '>', 0);
-            } elseif ($request->tiket_tersedia === 'habis') {
-                $query->where('tiket_tersedia', '<=', 0);
-            }
-        })
-        ->latest()
-        ->paginate(6)
-        ->appends($request->query());
+    
+    public function index(Request $request)
+    {
+        $userId = auth()->id();
 
-    $kategori = Kategori::orderBy('nama_kategori')->get();
+        $lapangan = Lapangan::with('jadwal')
+            ->where('pemilik_id', $userId)
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('nama_lapangan', 'like', '%' . $request->search . '%')
+                      ->orWhere('lokasi', 'like', '%' . $request->search . '%');
+                });
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', $request->status);
+            })
+            ->when($request->filled('tiket_tersedia'), function ($query) use ($request) {
+                if ($request->tiket_tersedia === 'tersedia') {
+                    $query->where('tiket_tersedia', '>', 0);
+                } elseif ($request->tiket_tersedia === 'habis') {
+                    $query->where('tiket_tersedia', '<=', 0);
+                }
+            })
+            ->latest()
+            ->paginate(6)
+            ->appends($request->query());
 
-    return view('lapangan.index', compact('lapangan', 'kategori'));
-}
+        // Ambil semua kategori milik user, bukan hanya yang sudah punya lapangan
+        $kategori = Kategori::where('pemilik_id', $userId)
+                            ->orderBy('nama_kategori')
+                            ->get();
 
+        return view('lapangan.index', compact('lapangan', 'kategori'));
+    }
 
     public function store(Request $request)
     {
@@ -99,9 +101,6 @@ public function index(Request $request)
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
     }
 
-
-
-
     public function show($id)
     {
         $lapangan = Lapangan::with([
@@ -118,7 +117,7 @@ public function index(Request $request)
 
         return view('lapangan.show', compact('lapangan'));
     }
-
+    
     public function update(Request $request, $id)
     {
         $lapangan = Lapangan::findOrFail($id);
@@ -181,25 +180,23 @@ public function index(Request $request)
         return redirect()->route('lapangan.index')->with('success', 'Data lapangan berhasil diperbarui!');
     }
 
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
         $lapangan = Lapangan::findOrFail($id);
 
-        // Get photos (already decoded by Laravel)
         $fotoPaths = $lapangan->foto ?? [];
-
-        // Ensure it's an array
         if (is_array($fotoPaths)) {
             foreach ($fotoPaths as $foto) {
                 Storage::disk('public')->delete($foto);
             }
         }
 
-        // Delete related schedules
         $lapangan->jadwal()->delete();
-
-        // Delete the lapangan
         $lapangan->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => 'Lapangan berhasil dihapus!']);
+        }
 
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil dihapus!');
     }
@@ -290,7 +287,7 @@ public function index(Request $request)
         return $this->storeJadwalSimple($request, $lapanganId);
     }
 
-   private function storeJadwalCustom(Request $request, $lapanganId)
+    private function storeJadwalCustom(Request $request, $lapanganId)
     {
         $request->validate([
             'section_id' => [
@@ -301,31 +298,21 @@ public function index(Request $request)
             'tipe_jadwal' => ['nullable', Rule::in(['simple', 'custom'])],
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
             'jam_mulai' => ['required', 'date_format:H:i'],
-
-            // Hapus validasi jam_selesai input manual, kita hitung di backend
-            // 'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
-
-            // UBAH VALIDASI: Integer only, min 1 jam, max 4 jam (atau sesuai kebutuhan)
-            'durasi_sewa' => ['required', 'integer', 'min:1', 'max:12'],
-
+            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'durasi_sewa' => ['nullable', 'numeric', 'min:0.25', 'max:24'],
             'harga_sewa' => ['nullable', 'numeric', 'min:0'],
             'tersedia' => ['required', 'boolean'],
         ]);
 
-        // LOGIKA BARU: Hitung Jam Selesai berdasarkan Durasi Integer
-        $jamMulai = Carbon::createFromFormat('H:i', $request->jam_mulai);
-        $durasiJam = (int) $request->durasi_sewa;
-
-        // Tambahkan durasi jam ke jam mulai
-        $jamSelesai = $jamMulai->copy()->addHours($durasiJam)->format('H:i');
-
-        // Validasi Konflik
-        if ($this->hasJadwalConflict($request->section_id, $request->tanggal, $request->jam_mulai, $jamSelesai)) {
+        if ($this->hasJadwalConflict($request->section_id, $request->tanggal, $request->jam_mulai, $request->jam_selesai)) {
             return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!');
         }
 
-        // Convert ke menit (jam * 60) karena database menyimpan menit
-        $durasiMenit = $durasiJam * 60;
+        try {
+            $durasiMenit = $this->resolveDurasiMenit($request->jam_mulai, $request->jam_selesai, $request->input('durasi_sewa'));
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withErrors(['durasi_sewa' => $e->getMessage()])->withInput();
+        }
 
         $hargaPerJam = $this->resolveHargaPerJam($request->input('harga_sewa'), $request->section_id, $lapanganId);
 
@@ -333,7 +320,7 @@ public function index(Request $request)
             'section_id' => $request->section_id,
             'tanggal' => $request->tanggal,
             'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $jamSelesai, // Gunakan hasil hitungan backend
+            'jam_selesai' => $request->jam_selesai,
             'durasi_sewa' => $durasiMenit,
             'harga_sewa' => $hargaPerJam,
             'tersedia' => $request->tersedia,
@@ -341,6 +328,7 @@ public function index(Request $request)
 
         return redirect()->back()->with('success', 'Jadwal berhasil ditambahkan!');
     }
+
     private function storeJadwalSimple(Request $request, $lapanganId)
     {
         $hariMapping = [

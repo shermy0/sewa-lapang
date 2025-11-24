@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // =================== COUNTDOWN PEMBAYARAN ===================
     const createdAt = new Date("{{ $pemesananPending->created_at }}");
-    const deadline = new Date(createdAt.getTime() + 20 * 60 * 1000);
+    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
     const countdownEl = document.getElementById('countdown');
 
     const timer = setInterval(() => {
@@ -134,9 +134,10 @@ document.addEventListener('DOMContentLoaded', function() {
             countdownEl.innerHTML = "⛔ Waktu pembayaran sudah habis!";
             document.getElementById('resume-payment').disabled = true;
         } else {
-            const totalMinutes = Math.floor(diff / (1000 * 60));
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((diff % (1000 * 60)) / 1000);
-            countdownEl.innerHTML = `Sisa waktu pembayaran: ${totalMinutes}m ${s}d`;
+            countdownEl.innerHTML = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
         }
     }, 1000);
 
@@ -262,7 +263,7 @@ function showJadwal(jadwals){
                              data-selesai="${j.jam_selesai}"
                              data-harga="${j.harga_sewa}">
                             <i class="fa-solid fa-clock me-1"></i> ${j.jam_mulai} - ${j.jam_selesai}
-                            <small class="d-block mt-1 fw-semibold text-muted">Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}</small>
+                            <small class="d-block mt-1 fw-semibold text-muted">Rp ${(parseInt(j.harga_sewa) || 0).toLocaleString('id-ID')}</small>
                         </div>
                     </div>
                 `).join('')}
