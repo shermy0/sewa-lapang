@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Midtrans\Config as MidtransConfig; // <── ini penting!
 
@@ -20,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Gunakan komponen pagination Bootstrap agar ikon panah tidak membesar (Tailwind default)
+        Paginator::useBootstrapFive();
+
         MidtransConfig::$serverKey = env('MIDTRANS_SERVER_KEY');
         MidtransConfig::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
         MidtransConfig::$isSanitized = true;

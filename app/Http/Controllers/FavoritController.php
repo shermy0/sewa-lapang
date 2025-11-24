@@ -24,10 +24,14 @@ class FavoritController extends Controller
                 ->where('pemesanan.lapangan_id', $lapangan->id)
                 ->count();
 
-            $lapangan->avgRating = DB::table('ulasan')
+            $ratingSummary = DB::table('ulasan')
                 ->join('pemesanan', 'ulasan.pemesanan_id', '=', 'pemesanan.id')
+                ->select('ulasan.penyewa_id', DB::raw('MAX(ulasan.rating) as rating'))
                 ->where('pemesanan.lapangan_id', $lapangan->id)
-                ->avg('rating');
+                ->groupBy('ulasan.penyewa_id')
+                ->get();
+
+            $lapangan->avgRating = $ratingSummary->avg('rating');
         }
 
         return view('pemilik.favorit', compact('lapanganFavorit'));

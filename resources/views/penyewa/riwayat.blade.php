@@ -9,7 +9,7 @@
         <div>
             <p class="eyebrow">Riwayat Aktivitas</p>
             <h1>Riwayat Pemesanan</h1>
-            <p class="subtitle">Lihat pesanan yang selesai, dibatalkan, atau sudah discan.</p>
+            <p class="subtitle">Lihat pesanan yang selesai, dibatalkan, atau sudah kadaluarsa.</p>
         </div>
     </div>
 

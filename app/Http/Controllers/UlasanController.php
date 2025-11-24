@@ -8,48 +8,73 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Ulasan;
 use App\Models\Pemesanan;
 use App\Models\User;
+use Carbon\Carbon;
 
 class UlasanController extends Controller
 {
     public function simpan(Request $request, $lapanganId)
     {
-        $request->validate([
+        $userId = Auth::id();
+
+        // 1. CEK: penyewa sudah pernah mengirim ulasan untuk lapangan ini?
+        $ulasanExisting = Ulasan::where('penyewa_id', $userId)
+            ->whereHas('pemesanan', function ($q) use ($lapanganId) {
+                $q->where('lapangan_id', $lapanganId);
+            })
+            ->first();
+
+        if ($ulasanExisting) {
+            // PERBAIKAN 1: Return JSON Error (bukan redirect)
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sudah pernah mengirim ulasan untuk lapangan ini.'
+            ], 422);
+        }
+
+        // 2. Validasi input
+        // Karena di JS kita sudah pakai header 'Accept: application/json',
+        // Jika validasi gagal, Laravel otomatis return JSON error, jadi ini aman.
+        $validated = $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'komentar' => 'required|string|max:1000',
         ]);
 
-        $userId = Auth::id();
-
-        // Ambil lapangan
-        $lapangan = DB::table('lapangan')->where('id', $lapanganId)->first();
-
-        // Cek apakah user sudah melakukan scan tiket untuk lapangan ini
-        $pemesanan = DB::table('pemesanan')
-            ->where('penyewa_id', $userId)
+        // 3. CEK: sudah scan tiket?
+        $pemesanan = Pemesanan::where('penyewa_id', $userId)
             ->where('lapangan_id', $lapanganId)
             ->where('status_scan', 'sudah_scan')
             ->first();
 
         if (!$pemesanan) {
-            return redirect()->back()->with('error', 'Anda belum scan tiket untuk lapangan ini.');
+            // PERBAIKAN 2: Return JSON Error (bukan redirect)
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda belum scan tiket untuk lapangan ini (atau belum ada riwayat sewa).'
+            ], 422);
         }
 
-        // Simpan ulasan
-        DB::table('ulasan')->insert([
+        // 4. Simpan ulasan baru
+        Ulasan::create([
             'pemesanan_id' => $pemesanan->id,
             'penyewa_id' => $userId,
-            'rating' => $request->rating,
-            'komentar' => $request->komentar,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'rating' => $validated['rating'],
+            'komentar' => $validated['komentar'],
         ]);
 
-        return redirect()->back()->with('success', 'Ulasan berhasil ditambahkan!');
+        // PERBAIKAN 3: Return JSON Sukses (bukan redirect)
+        return response()->json([
+            'success' => true,
+            'message' => 'Ulasan berhasil ditambahkan!'
+        ]);
     }
 
+    // Method di bawah ini TIDAK PERLU DIUBAH (karena diakses lewat load halaman biasa, bukan AJAX)
     public function edit($id)
     {
-        $ulasan = Ulasan::findOrFail($id);
+        $ulasan = Ulasan::find($id);
+        if (!$ulasan) {
+            return redirect()->back()->with('error', 'Ulasan tidak ditemukan.');
+        }
         if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
             abort(403);
         }
@@ -59,7 +84,10 @@ class UlasanController extends Controller
 
     public function destroy($id)
     {
-        $ulasan = Ulasan::findOrFail($id);
+        $ulasan = Ulasan::find($id);
+        if (!$ulasan) {
+            return redirect()->back()->with('error', 'Ulasan tidak ditemukan.');
+        }
 
         if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
             abort(403);
@@ -70,20 +98,28 @@ class UlasanController extends Controller
         return redirect()->back()->with('success', 'Ulasan berhasil dihapus.');
     }
 
-    public function update(Request $request, $id)
-    {
-        $ulasan = Ulasan::findOrFail($id);
-
-        if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
-            abort(403);
-        }
-
-        $ulasan->update([
-            'rating' => $request->rating,
-            'komentar' => $request->komentar,
-        ]);
-
-        return redirect()->route('penyewa.detail', $ulasan->pemesanan->lapangan_id)
-                        ->with('success', 'Ulasan berhasil diperbarui.');
+public function update(Request $request, $id)
+{
+    $ulasan = Ulasan::find($id);
+    if (!$ulasan) {
+        return response()->json(['success'=>false,'message'=>'Ulasan tidak ditemukan'],404);
     }
+
+    if(auth()->id() != $ulasan->pemesanan->penyewa_id) {
+        return response()->json(['success'=>false,'message'=>'Akses ditolak'],403);
+    }
+
+    $validated = $request->validate([
+        'rating' => 'nullable|integer|min:1|max:5',
+        'komentar' => 'required|string|max:1000',
+    ]);
+
+    $payload = ['komentar'=>$validated['komentar']];
+    if(isset($validated['rating'])) $payload['rating'] = $validated['rating'];
+
+    $ulasan->update($payload);
+
+    return response()->json(['success'=>true,'message'=>'Ulasan berhasil diperbarui']);
+}
+
 }
