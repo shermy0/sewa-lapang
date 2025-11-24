@@ -133,8 +133,16 @@
                 const submitBtn = document.getElementById('registerSubmit');
 
                 if (form && submitBtn) {
-                    form.addEventListener('submit', () => {
+                    form.addEventListener('submit', (e) => {
+                        // Cegah submit ganda yang bisa memicu 419/expired
+                        if (form.dataset.submitting === 'true') {
+                            e.preventDefault();
+                            return false;
+                        }
+
+                        form.dataset.submitting = 'true';
                         submitBtn.disabled = true;
+                        submitBtn.setAttribute('aria-busy', 'true');
                         submitBtn.textContent = 'Memproses...';
                     });
                 }

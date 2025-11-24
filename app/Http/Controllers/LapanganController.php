@@ -81,7 +81,9 @@ class LapanganController extends Controller
 
         $sectionsInput = $request->input('sections', []);
 
-        DB::transaction(function () use ($request, $kategoriModel, $fotoPaths, $tiketTersedia, $sectionsInput) {
+        $lapanganId = null;
+
+        DB::transaction(function () use ($request, $kategoriModel, $fotoPaths, $tiketTersedia, $sectionsInput, &$lapanganId) {
             $lapangan = Lapangan::create([
                 'pemilik_id' => auth()->id(),
                 'id_kategori' => $request->id_kategori,
@@ -96,7 +98,16 @@ class LapanganController extends Controller
             ]);
 
             $this->syncSections($lapangan, $sectionsInput, false);
+            $lapanganId = $lapangan->id;
         });
+
+        // Pastikan lapangan baru tidak mewarisi jadwal lama (misal data seed/demo)
+        if ($lapanganId) {
+            $sectionIds = SectionLapangan::where('lapangan_id', $lapanganId)->pluck('id');
+            if ($sectionIds->isNotEmpty()) {
+                JadwalLapangan::whereIn('section_id', $sectionIds)->delete();
+            }
+        }
 
         return redirect()->route('lapangan.index')->with('success', 'Lapangan berhasil ditambahkan!');
     }
@@ -194,7 +205,7 @@ class LapanganController extends Controller
         $lapangan->jadwal()->delete();
         $lapangan->delete();
 
-        if ($request->ajax()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['success' => 'Lapangan berhasil dihapus!']);
         }
 
@@ -298,20 +309,40 @@ class LapanganController extends Controller
             'tipe_jadwal' => ['nullable', Rule::in(['simple', 'custom'])],
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
             'jam_mulai' => ['required', 'date_format:H:i'],
-            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'jam_selesai' => ['nullable', 'date_format:H:i'],
             'durasi_sewa' => ['nullable', 'numeric', 'min:0.25', 'max:24'],
             'harga_sewa' => ['nullable', 'numeric', 'min:0'],
             'tersedia' => ['required', 'boolean'],
         ]);
 
-        if ($this->hasJadwalConflict($request->section_id, $request->tanggal, $request->jam_mulai, $request->jam_selesai)) {
-            return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!');
+        $jamMulai = $request->jam_mulai;
+        $jamSelesai = $request->jam_selesai;
+
+        // Pastikan jam selesai dihitung jika kosong (fallback dari durasi atau default 60 menit)
+        $durasiMenit = $this->convertDurasiJamKeMenit($request->input('durasi_sewa'));
+        try {
+            $mulaiCarbon = Carbon::createFromFormat('H:i', $jamMulai);
+            if ($jamSelesai) {
+                $selesaiCarbon = Carbon::createFromFormat('H:i', $jamSelesai);
+                $rentangMenit = $mulaiCarbon->diffInMinutes($selesaiCarbon);
+                if ($rentangMenit <= 0) {
+                    return redirect()->back()->withErrors(['jam_selesai' => 'Jam selesai harus lebih besar dari jam mulai.'])->withInput();
+                }
+                if (empty($durasiMenit) || $durasiMenit <= 0) {
+                    $durasiMenit = $rentangMenit;
+                } elseif (abs($rentangMenit - $durasiMenit) > 1) {
+                    return redirect()->back()->withErrors(['durasi_sewa' => 'Durasi harus sesuai selisih jam mulai dan selesai.'])->withInput();
+                }
+            } else {
+                $durasiMenit = $durasiMenit && $durasiMenit > 0 ? $durasiMenit : 60;
+                $jamSelesai = $mulaiCarbon->copy()->addMinutes($durasiMenit)->format('H:i');
+            }
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['jam_selesai' => 'Format jam tidak valid.'])->withInput();
         }
 
-        try {
-            $durasiMenit = $this->resolveDurasiMenit($request->jam_mulai, $request->jam_selesai, $request->input('durasi_sewa'));
-        } catch (\InvalidArgumentException $e) {
-            return redirect()->back()->withErrors(['durasi_sewa' => $e->getMessage()])->withInput();
+        if ($this->hasJadwalConflict($request->section_id, $request->tanggal, $jamMulai, $jamSelesai)) {
+            return redirect()->back()->with('error', 'Rentang waktu bertabrakan dengan jadwal lain!')->withInput();
         }
 
         $hargaPerJam = $this->resolveHargaPerJam($request->input('harga_sewa'), $request->section_id, $lapanganId);
@@ -319,8 +350,8 @@ class LapanganController extends Controller
         JadwalLapangan::create([
             'section_id' => $request->section_id,
             'tanggal' => $request->tanggal,
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
+            'jam_mulai' => $jamMulai,
+            'jam_selesai' => $jamSelesai,
             'durasi_sewa' => $durasiMenit,
             'harga_sewa' => $hargaPerJam,
             'tersedia' => $request->tersedia,

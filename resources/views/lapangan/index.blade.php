@@ -74,7 +74,7 @@
                     }
                 @endphp
 
-                <div class="col-lg-6 col-xl-4">
+                <div class="col-lg-6 col-xl-4" id="lapangan-row-{{ $item->id }}">
                     <div class="card border-0 shadow-sm h-100 overflow-hidden hover-lift">
                         {{-- Image Section with Carousel --}}
                         <div class="position-relative" style="height: 220px; overflow: hidden;">
@@ -705,59 +705,44 @@
                                             data-bs-dismiss="modal"></button>
                                     </div>
                                     <form action="{{ route('lapangan.jadwal.update', [$item->id, $jadwal->id]) }}" method="POST"
-                                        class="form-submit-jadwal">
+                                        class="form-submit-jadwal" data-edit-jadwal-form>
                                         @csrf
                                         @method('PUT')
                                         <input type="hidden" name="section_id" value="{{ $section->id }}">
                                         <div class="modal-body p-4">
                                             <div class="row g-3">
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-semibold text-dark">Tanggal</label>
-                                                    <input type="date" name="tanggal" class="form-control"
-                                                        value="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}" required>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-semibold text-dark">Jam Mulai</label>
-                                                    <input type="time" name="jam_mulai" class="form-control"
-                                                        value="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}" required data-jam-mulai-input>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-semibold text-dark">Jam Selesai</label>
-                                                    <input type="time" name="jam_selesai" class="form-control"
-                                                        value="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}" required data-jam-selesai-input>
-                                                    <div class="form-text text-muted">Disesuaikan otomatis dari durasi.</div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-semibold text-dark">Durasi (jam)</label>
-                                                    <input type="text" name="durasi_sewa" inputmode="decimal" pattern="^\d+([,.]\d{1,2})?$" class="form-control" min="0.25"
-                                                        max="24" step="0.25" placeholder="1"
-                                                        value="{{ $jadwal->durasi_sewa / 60 }}" data-durasi-jam-input>
-                                                    <div class="form-text text-muted">
-                                                        <span data-durasi-jam-preview>{{ $jadwal->durasi_sewa / 60 }}</span> jam
+                                                <div class="col-12">
+                                                    <div class="p-3 bg-light border rounded">
+                                                        <div class="small text-muted">Jadwal</div>
+                                                        <div class="fw-semibold">
+                                                            {{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }},
+                                                            {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}
+                                                            <span class="badge {{ $jadwal->tersedia ? 'bg-success ms-2' : 'bg-danger ms-2' }}">
+                                                                {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-4">
+                                                <input type="hidden" name="tanggal" value="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}">
+                                                <input type="hidden" name="jam_mulai" value="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}">
+                                                <input type="hidden" name="jam_selesai" value="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}">
+                                                <input type="hidden" name="durasi_sewa" value="{{ $jadwal->durasi_sewa / 60 }}" data-edit-durasi-input>
+                                                <input type="hidden" name="tersedia" value="{{ $jadwal->tersedia ? 1 : 0 }}">
+                                                <div class="col-12">
                                                     <label class="form-label fw-semibold text-dark">Harga per Jam</label>
                                                     <div class="input-group">
                                                         <span class="input-group-text bg-success text-white">Rp</span>
                                                         <input type="number" name="harga_sewa" class="form-control"
                                                             value="{{ $jadwal->harga_sewa }}" min="0" step="1000"
-                                                            required data-harga-per-jam-input>
+                                                            required data-harga-per-jam-input data-edit-harga-input>
                                                         <span class="input-group-text bg-light text-muted">/ jam</span>
                                                     </div>
                                                     <div class="form-text text-muted">
-                                                        Total: <span class="fw-semibold text-success" data-harga-total-display>
+                                                        Durasi: <span class="fw-semibold" data-edit-durasi-display>{{ number_format($jadwal->durasi_sewa / 60, 2, ',', '.') }}</span> jam
+                                                        &mdash; Total: <span class="fw-semibold text-success" data-harga-total-display>
                                                             Rp {{ number_format($jadwal->harga_sewa * ($jadwal->durasi_sewa / 60), 0, ',', '.') }}
                                                         </span>
-                                                        (<span data-durasi-jam-display>{{ $jadwal->durasi_sewa / 60 }}</span> jam)
                                                     </div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-semibold text-dark">Status</label>
-                                                    <select name="tersedia" class="form-select" required>
-                                                        <option value="1" {{ $jadwal->tersedia ? 'selected' : '' }}>Tersedia</option>
-                                                        <option value="0" {{ !$jadwal->tersedia ? 'selected' : '' }}>Tidak Tersedia</option>
-                                                    </select>
                                                 </div>
                                             </div>
                                         </div>
@@ -2079,6 +2064,44 @@
             });
         });
 
+        // ========== EDIT JADWAL PREVIEW ==========
+        document.querySelectorAll('[data-edit-jadwal-form]').forEach(form => {
+            const hargaInput = form.querySelector('[data-edit-harga-input]');
+            const totalDisplay = form.querySelector('[data-harga-total-display]');
+            const durasiDisplay = form.querySelector('[data-edit-durasi-display]');
+            const durasiInput = form.querySelector('[data-edit-durasi-input]');
+
+            const updatePreview = () => {
+                const harga = Number.parseFloat(hargaInput?.value);
+                const durasiRaw = Number.parseFloat(durasiInput?.value ?? '0');
+                const durasiJam = Number.isFinite(durasiRaw) && durasiRaw > 0 ? durasiRaw : 0;
+
+                if (durasiDisplay) {
+                    const formatOpts = {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: durasiJam > 0 && durasiJam < 1 ? 2 : 1,
+                    };
+                    durasiDisplay.textContent = durasiJam > 0
+                        ? new Intl.NumberFormat('id-ID', formatOpts).format(durasiJam)
+                        : '0';
+                }
+
+                if (totalDisplay) {
+                    const total = (durasiJam > 0 && Number.isFinite(harga) && harga > 0)
+                        ? Math.round(harga * durasiJam)
+                        : 0;
+                    totalDisplay.textContent = formatRupiahValue(total);
+                }
+            };
+
+            [hargaInput].forEach(input => {
+                input?.addEventListener('input', updatePreview);
+                input?.addEventListener('change', updatePreview);
+            });
+
+            updatePreview();
+        });
+
         // ========== PREVIEW MULTIPLE FOTO ==========
         document.querySelectorAll('.foto-input').forEach((fotoInput) => {
             const previewContainer = fotoInput.closest('.col-12').querySelector('.preview-container');
@@ -2276,6 +2299,8 @@
             };
 
             const handleJamChange = () => {
+                // Saat jam mulai berubah, hitung jam selesai otomatis dari durasi aktif
+                syncEndTimeFromDuration();
                 syncDurationFromTimes();
                 updateTotalHarga();
             };
@@ -2336,7 +2361,13 @@
                         if (data.success) {
                             // Hapus row dari DOM tanpa reload
                             const row = document.getElementById(`lapangan-row-${lapanganId}`);
-                            if(row) row.remove();
+                            if (row) {
+                                row.remove();
+                            } else {
+                                // fallback: sembunyikan kartu terdekat
+                                const card = button.closest('.col-lg-6');
+                                if (card) card.remove();
+                            }
 
                             Swal.fire(
                                 'Terhapus!',

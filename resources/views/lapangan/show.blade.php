@@ -594,21 +594,99 @@
             const editModalEl = document.getElementById('editJadwalModal');
             const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
             const form = document.getElementById('editJadwalForm');
+            const tanggalInput = document.getElementById('editTanggal');
+            const mulaiInput = document.getElementById('editMulai');
+            const selesaiInput = document.getElementById('editSelesai');
+            const durasiInput = document.getElementById('editDurasi');
+            const hargaInput = document.getElementById('editHarga');
+            const tersediaInput = document.getElementById('editTersedia');
+            const durasiDisplay = document.getElementById('editDurasiDisplay');
+            const totalDisplay = document.getElementById('editTotalDisplay');
+            const tanggalLabel = document.getElementById('editTanggalLabel');
+            const jamLabel = document.getElementById('editJamLabel');
+            const statusLabel = document.getElementById('editStatusLabel');
+
+            const timeToMinutes = (value) => {
+                if (!value || !value.includes(':')) {
+                    return null;
+                }
+                const [jamStr, menitStr] = value.split(':');
+                const jam = Number(jamStr);
+                const menit = Number(menitStr);
+                if (!Number.isInteger(jam) || !Number.isInteger(menit)) {
+                    return null;
+                }
+                if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
+                    return null;
+                }
+                return (jam * 60) + menit;
+            };
+
+            const updateEditPreview = () => {
+                const harga = Number.parseFloat(hargaInput?.value);
+                const durasiRaw = Number.parseFloat(durasiInput?.value ?? '0');
+                const durasiJam = Number.isFinite(durasiRaw) && durasiRaw > 0 ? durasiRaw : 0;
+
+                if (durasiDisplay) {
+                    const opts = {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: durasiJam > 0 && durasiJam < 1 ? 2 : 1,
+                    };
+                    durasiDisplay.textContent = durasiJam > 0
+                        ? new Intl.NumberFormat('id-ID', opts).format(durasiJam)
+                        : '0';
+                }
+
+                if (totalDisplay) {
+                    const total = (durasiJam > 0 && Number.isFinite(harga) && harga > 0)
+                        ? Math.round(harga * durasiJam)
+                        : 0;
+                    totalDisplay.textContent = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(total);
+                }
+            };
 
             document.querySelectorAll('.btn-edit-jadwal').forEach(btn => {
                 btn.addEventListener('click', () => {
                     if (!editModal) return;
 
-                    document.getElementById('editTanggal').value = safeFormatDate(btn.dataset.jadwalTanggal);
-                    document.getElementById('editMulai').value = safeFormatTime(btn.dataset.jadwalMulai);
-                    document.getElementById('editSelesai').value = safeFormatTime(btn.dataset.jadwalSelesai);
-                    document.getElementById('editHarga').value = btn.dataset.jadwalHarga || '';
+                    const tanggalVal = safeFormatDate(btn.dataset.jadwalTanggal);
+                    const jamMulaiVal = safeFormatTime(btn.dataset.jadwalMulai);
+                    const jamSelesaiVal = safeFormatTime(btn.dataset.jadwalSelesai);
+                    const statusVal = btn.dataset.jadwalTersedia === '0' ? 'Tidak Tersedia' : 'Tersedia';
+
+                    tanggalInput.value = tanggalVal;
+                    mulaiInput.value = jamMulaiVal;
+                    selesaiInput.value = jamSelesaiVal;
+
+                    const start = timeToMinutes(jamMulaiVal);
+                    const end = timeToMinutes(jamSelesaiVal);
+                    const durasiJam = (start !== null && end !== null && end > start) ? (end - start) / 60 : 0;
+                    durasiInput.value = durasiJam > 0 ? durasiJam : '';
+
+                    hargaInput.value = btn.dataset.jadwalHarga || '';
                     document.getElementById('editSectionId').value = btn.dataset.sectionId || '';
-                    document.getElementById('editTersedia').value = btn.dataset.jadwalTersedia || '1';
+                    tersediaInput.value = btn.dataset.jadwalTersedia || '1';
+
+                    if (tanggalLabel) {
+                        tanggalLabel.textContent = tanggalVal || '-';
+                    }
+                    if (jamLabel) {
+                        jamLabel.textContent = jamMulaiVal && jamSelesaiVal ? `${jamMulaiVal} - ${jamSelesaiVal}` : '-';
+                    }
+                    if (statusLabel) {
+                        statusLabel.textContent = statusVal;
+                        statusLabel.className = `badge ${statusVal === 'Tersedia' ? 'bg-success' : 'bg-danger'}`;
+                    }
 
                     form.action = "{{ url('/lapangan/' . $lapangan->id . '/jadwal') }}/" + btn.dataset.jadwalId;
+                    updateEditPreview();
                     editModal.show();
                 });
+            });
+
+            [hargaInput].forEach(input => {
+                input?.addEventListener('input', updateEditPreview);
+                input?.addEventListener('change', updateEditPreview);
             });
 
             if (typeof Swal !== 'undefined') {
@@ -647,25 +725,35 @@
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="section_id" id="editSectionId" required>
-                <input type="hidden" name="tersedia" id="editTersedia" value="1" required>
+                <input type="hidden" name="tanggal" id="editTanggal" required>
+                <input type="hidden" name="jam_mulai" id="editMulai" required>
+                <input type="hidden" name="jam_selesai" id="editSelesai" required>
+                <input type="hidden" name="durasi_sewa" id="editDurasi" required>
+                <input type="hidden" name="tersedia" id="editTersedia" required>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Tanggal</label>
-                        <input type="date" class="form-control" name="tanggal" id="editTanggal" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Jam Mulai</label>
-                            <input type="time" class="form-control" name="jam_mulai" id="editMulai" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Jam Selesai</label>
-                            <input type="time" class="form-control" name="jam_selesai" id="editSelesai" required>
+                        <div class="p-3 bg-light border rounded">
+                            <div class="small text-muted">Jadwal</div>
+                            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between">
+                                <div class="fw-semibold">
+                                    <span id="editTanggalLabel">-</span>
+                                    <span class="ms-1">(<span id="editJamLabel">-</span>)</span>
+                                </div>
+                                <span id="editStatusLabel" class="badge bg-success ms-sm-3">-</span>
+                            </div>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Harga / Jam</label>
-                        <input type="number" class="form-control" name="harga_sewa" id="editHarga" required min="0" step="1000">
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white">Rp</span>
+                            <input type="number" class="form-control" name="harga_sewa" id="editHarga" required min="0" step="1000">
+                            <span class="input-group-text bg-light text-muted">/ jam</span>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            Durasi: <span class="fw-semibold" id="editDurasiDisplay">0</span> jam &mdash;
+                            Total: <span class="fw-semibold text-success" id="editTotalDisplay">0</span>
+                        </small>
                     </div>
                 </div>
                 <div class="modal-footer">
