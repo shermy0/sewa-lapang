@@ -26,6 +26,52 @@ class PemesananController extends Controller
         Config::$is3ds = true;
     }
 
+    public function pindahLangsung(Request $request, $pemesananId)
+{
+    $request->validate([
+        'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
+        'section_baru_id' => 'nullable|exists:section_lapangan,id',
+    ]);
+
+    $pemesanan = Pemesanan::with('jadwal')->findOrFail($pemesananId);
+
+    // hanya pemilik pemesanan (penyewa) yang boleh
+    if ($pemesanan->penyewa_id !== Auth::id()) {
+        abort(403);
+    }
+
+    // tidak boleh pindah jika sudah discan / sudah selesai
+    if ($pemesanan->status === 'dibayar' && $pemesanan->status_scan === 'sudah_scan') {
+        return response()->json(['error' => 'Sudah discan, tidak bisa dipindah.'], 422);
+    }
+
+    $jadwalBaru = JadwalLapangan::findOrFail($request->jadwal_baru_id);
+
+    // Pastikan jadwal baru benar-benar tersedia (tersedia == true)
+    if (! $jadwalBaru->tersedia) {
+        return response()->json(['error' => 'Jadwal tidak tersedia.'], 422);
+    }
+
+    // Ubah jadwal lama jadi tersedia lagi
+    if ($pemesanan->jadwal) {
+        $pemesanan->jadwal->update(['tersedia' => true]);
+    }
+
+    // Lakukan pemindahan
+    $pemesanan->update([
+        'jadwal_id' => $jadwalBaru->id,
+    ]);
+
+    // Lock jadwal baru
+    $jadwalBaru->update(['tersedia' => false]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Berhasil memindahkan jadwal.',
+        'pemesanan' => $pemesanan->fresh()->load('jadwal.section')
+    ]);
+}
+
 public function boot(): void
 {
     Carbon::setLocale('id');

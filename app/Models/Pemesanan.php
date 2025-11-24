@@ -20,6 +20,22 @@ class Pemesanan extends Model
         'waktu_scan',
     ];
 
+    // Pemesanan.php
+protected static function boot()
+{
+    parent::boot();
+
+    static::updated(function ($p) {
+        if ($p->status === 'kadaluarsa') {
+            if ($p->jadwal && $p->jadwal->tersedia == false) {
+                $p->jadwal->update(['tersedia' => true]);
+            }
+        }
+    });
+}
+
+    protected $appends = ['booking_status'];
+
     public function casts()
     {
         return [
@@ -63,6 +79,37 @@ class Pemesanan extends Model
 public function permintaanPerubahan()
 {
     return $this->hasOne(\App\Models\PermintaanPerubahan::class, 'pemesanan_id')->latest();
+}
+public function isExpired()
+{
+    if ($this->status !== 'menunggu') return false;
+
+    $expiredAt = Carbon::parse($this->created_at)->addMinutes(15);
+
+    return now()->greaterThan($expiredAt);
+}
+
+
+public function getBookingStatusAttribute()
+{
+    if ($this->status === 'menunggu') {
+
+        // batas otomatis 15 menit
+        if ($this->created_at && now()->greaterThan($this->created_at->addMinutes(15))) {
+            return 'kadaluarsa';
+        }
+        return 'menunggu';
+    }
+
+    if ($this->status === 'dibayar') {
+        return 'dibayar';
+    }
+
+    if ($this->status === 'kadaluarsa') {
+        return 'kadaluarsa';
+    }
+
+    return $this->status;
 }
 
 

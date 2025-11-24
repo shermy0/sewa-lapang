@@ -19,12 +19,6 @@ class PermintaanPerubahan extends Model
         'jadwal_baru_id',
         'alasan',
         'status',
-        'expires_at',
-        'alasan_internal',
-    ];
-
-    protected $casts = [
-        'expires_at' => 'datetime',
     ];
 public function pemesanan()
 {
