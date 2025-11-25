@@ -141,7 +141,6 @@
                             <p class="mb-1"><strong>Status:</strong>
                                 <span class="badge bg-success">Dibayar</span>
                             </p>
-                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">Dibayar</span></p>
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
                             <p class="mt-2 mb-0">
                                 @if($p->status_scan === 'sudah_scan')
