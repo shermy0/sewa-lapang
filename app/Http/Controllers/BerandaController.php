@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Lapangan;
 use App\Models\Kategori;
 use App\Models\Ulasan;
@@ -15,22 +16,29 @@ class BerandaController extends Controller
 {
     public function index(Request $request)
     {
-        $keyword = $request->input('search');
+        $keyword  = $request->input('search');
         $kategori = $request->input('kategori');
-        $banners = Banner::where('status', 'aktif')
-        ->orderBy('id', 'desc')
-        ->take(3)
-        ->get();
+        $banners  = Banner::where('status', 'aktif')->get();
 
-        // Ambil semua kategori
-        $kategoris = Kategori::all();
-        $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])->get();
+        // Ambil kategori unik
+        $kategoris = Kategori::select('nama_kategori')
+            ->groupBy('nama_kategori')
+            ->get();
 
-        // Ambil semua lapangan + relasi kategori, sections, dan jadwal
+        $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
+
+        // Query lapangan
         $lapangan = Lapangan::with(['kategori', 'sections.jadwal'])
+            ->when($hasSuspensionColumn, fn ($query) => 
+                $query->where('is_suspended', false)
+            )
+            // FILTER KATEGORI PAKAI NAMA_KATEGORI
             ->when($kategori && $kategori !== 'all', function ($query) use ($kategori) {
-                $query->where('id_kategori', $kategori);
+                $query->whereHas('kategori', function ($q) use ($kategori) {
+                    $q->where('nama_kategori', $kategori);
+                });
             })
+            // SEARCH KEYWORD
             ->when($keyword, function ($query) use ($keyword) {
                 $query->where('nama_lapangan', 'like', "%$keyword%");
             })
@@ -38,7 +46,13 @@ class BerandaController extends Controller
             ->limit(12)
             ->get();
 
-        return view('penyewa.beranda', compact('lapangan', 'keyword', 'kategori', 'kategoris', 'banners'));
+        return view('penyewa.beranda', compact(
+            'lapangan',
+            'keyword',
+            'kategori',
+            'kategoris',
+            'banners'
+        ));
     }
 
     public function detail($id)
@@ -47,6 +61,12 @@ class BerandaController extends Controller
         $lapangan = Lapangan::with(['sections.jadwal', 'kategori'])
             ->where('id', $id)
             ->firstOrFail();
+
+        $hasSuspensionColumn = Schema::hasColumn('lapangan', 'is_suspended');
+
+        if ($hasSuspensionColumn && $lapangan->is_suspended) {
+            abort(404);
+        }
 
         // Ambil ulasan dan data lain yang sudah ada
         $ulasans = Ulasan::with(['pemesanan.penyewa'])
@@ -60,11 +80,31 @@ class BerandaController extends Controller
 
         // 🔹 Tambahkan bagian ini
         $lapanganLainnya = Lapangan::where('id', '!=', $id)
+            ->when($hasSuspensionColumn, fn ($query) => $query->where('is_suspended', false))
             ->orderBy('id', 'desc')
             ->limit(6)
             ->get();
 
+        $isFavorit = false;
+        if (
+            auth()->check() &&
+            auth()->user()->role === 'penyewa' &&
+            Schema::hasTable('favorit_lapangan')
+        ) {
+            $isFavorit = auth()->user()
+                ->favoritLapangan()
+                ->where('lapangan_id', $lapangan->id)
+                ->exists();
+        }
+
         // Kirim semua variabel ke view
-        return view('penyewa.detail', compact('lapangan', 'ulasans', 'avgRating', 'totalUlasan', 'lapanganLainnya'));
+        return view('penyewa.detail', compact(
+            'lapangan',
+            'ulasans',
+            'avgRating',
+            'totalUlasan',
+            'lapanganLainnya',
+            'isFavorit'
+        ));
     }
 }

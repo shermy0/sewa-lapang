@@ -219,6 +219,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::get('banners', [BannerController::class, 'index'])->name('banners.index');
         Route::get('banners/create', [BannerController::class, 'create'])->name('banners.create');
         Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
+        Route::delete('admin/banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');
         Route::get('banners/{banner}/edit', [BannerController::class, 'edit'])->name('banners.edit');
         Route::put('banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
         Route::patch('banners/{banner}/toggle', [BannerController::class, 'toggle'])->name('banners.toggle');

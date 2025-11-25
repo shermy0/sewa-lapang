@@ -14,6 +14,7 @@ class Kategori extends Model
     protected $fillable = [
         'nama_kategori',
         'deskripsi',
+        'pemilik_id',
     ];
 
     // Relasi ke tabel lapangan (satu kategori punya banyak lapangan)

@@ -355,9 +355,9 @@
                                                                 <th>Tanggal</th>
                                                                 <th>Jam Mulai</th>
                                                                 <th>Jam Selesai</th>
-                                                                <th>Durasi</th>
                                                                 <th>Total Harga</th>
                                                                 <th>Status</th>
+                                                                <th class="text-center">Aksi</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody data-section-table="{{ $section->id }}">
@@ -370,17 +370,64 @@
                                                                     <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
-                                                                    <td>{{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam</td>
                                                                     <td>
                                                                         <div class="fw-bold text-success">
                                                                             Rp {{ number_format($hargaTotal, 0, ',', '.') }}
                                                                         </div>
                                                                         <small class="text-muted">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
                                                                     </td>
+                                                                    @php
+                                                                        $pemesananAktif = $jadwal->pemesanan; // sudah difilter menunggu/dibayar
+                                                                        if ($pemesananAktif && $pemesananAktif->status === 'menunggu') {
+                                                                            $statusLabel = 'Menunggu Pembayaran';
+                                                                            $statusClass = 'bg-warning text-dark';
+                                                                        } elseif ($pemesananAktif && $pemesananAktif->status === 'dibayar') {
+                                                                            $statusLabel = 'Terisi';
+                                                                            $statusClass = 'bg-danger';
+                                                                        } elseif (! $jadwal->tersedia) {
+                                                                            $statusLabel = 'Terisi';
+                                                                            $statusClass = 'bg-danger';
+                                                                        } else {
+                                                                            $statusLabel = 'Tersedia';
+                                                                            $statusClass = 'bg-success';
+                                                                        }
+                                                                    @endphp
                                                                     <td>
-                                                                        <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
-                                                                            {{ $jadwal->tersedia ? 'Tersedia' : 'Terisi' }}
+                                                                        <span class="badge {{ $statusClass }}">
+                                                                            {{ $statusLabel }}
                                                                         </span>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        @if($statusLabel === 'Tersedia')
+                                                                            <button type="button"
+                                                                                class="btn btn-sm btn-outline-primary mb-1 btn-edit-jadwal"
+                                                                                data-jadwal-id="{{ $jadwal->id }}"
+                                                                                data-jadwal-tanggal="{{ $jadwal->tanggal }}"
+                                                                                data-jadwal-mulai="{{ $jadwal->jam_mulai }}"
+                                                                                data-jadwal-selesai="{{ $jadwal->jam_selesai }}"
+                                                                                data-jadwal-harga="{{ $jadwal->harga_sewa }}"
+                                                                                data-section-id="{{ $section->id }}"
+                                                                                data-jadwal-tersedia="{{ $jadwal->tersedia ? 1 : 0 }}">
+                                                                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                                                                            </button>
+                                                                            <form
+                                                                                action="{{ route('lapangan.jadwal.destroy', ['lapanganId' => $lapangan->id, 'jadwalId' => $jadwal->id]) }}"
+                                                                                method="POST"
+                                                                                class="d-inline"
+                                                                                data-confirm="Hapus jadwal ini?"
+                                                                                data-confirm-title="Hapus Jadwal"
+                                                                                data-confirm-button="Ya, hapus"
+                                                                                data-cancel-button="Batal"
+                                                                            >
+                                                                                @csrf
+                                                                                @method('DELETE')
+                                                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                                    <i class="fa-solid fa-trash"></i> Hapus
+                                                                                </button>
+                                                                            </form>
+                                                                        @else
+                                                                            <span class="text-muted small">Tidak bisa diubah</span>
+                                                                        @endif
                                                                     </td>
                                                                 </tr>
                                                             @endforeach
@@ -544,7 +591,193 @@
         document.addEventListener('DOMContentLoaded', () => {
             initSectionTables();
             attachEvents();
+
+            const safeFormatDate = (raw) => {
+                if (!raw) return '';
+                return String(raw).split(' ')[0];
+            };
+
+            const safeFormatTime = (raw) => {
+                if (!raw) return '';
+                const parts = String(raw).split(':');
+                const hours = parts[0] ?? '';
+                const minutes = parts[1] ?? '';
+                if (!hours || !minutes) return '';
+                return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+            };
+
+            // Modal edit jadwal
+            const editModalEl = document.getElementById('editJadwalModal');
+            const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+            const form = document.getElementById('editJadwalForm');
+            const tanggalInput = document.getElementById('editTanggal');
+            const mulaiInput = document.getElementById('editMulai');
+            const selesaiInput = document.getElementById('editSelesai');
+            const durasiInput = document.getElementById('editDurasi');
+            const hargaInput = document.getElementById('editHarga');
+            const tersediaInput = document.getElementById('editTersedia');
+            const durasiDisplay = document.getElementById('editDurasiDisplay');
+            const totalDisplay = document.getElementById('editTotalDisplay');
+            const tanggalLabel = document.getElementById('editTanggalLabel');
+            const jamLabel = document.getElementById('editJamLabel');
+            const statusLabel = document.getElementById('editStatusLabel');
+
+            const timeToMinutes = (value) => {
+                if (!value || !value.includes(':')) {
+                    return null;
+                }
+                const [jamStr, menitStr] = value.split(':');
+                const jam = Number(jamStr);
+                const menit = Number(menitStr);
+                if (!Number.isInteger(jam) || !Number.isInteger(menit)) {
+                    return null;
+                }
+                if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
+                    return null;
+                }
+                return (jam * 60) + menit;
+            };
+
+            const updateEditPreview = () => {
+                const harga = Number.parseFloat(hargaInput?.value);
+                const durasiRaw = Number.parseFloat(durasiInput?.value ?? '0');
+                const durasiJam = Number.isFinite(durasiRaw) && durasiRaw > 0 ? durasiRaw : 0;
+
+                if (durasiDisplay) {
+                    const opts = {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: durasiJam > 0 && durasiJam < 1 ? 2 : 1,
+                    };
+                    durasiDisplay.textContent = durasiJam > 0
+                        ? new Intl.NumberFormat('id-ID', opts).format(durasiJam)
+                        : '0';
+                }
+
+                if (totalDisplay) {
+                    const total = (durasiJam > 0 && Number.isFinite(harga) && harga > 0)
+                        ? Math.round(harga * durasiJam)
+                        : 0;
+                    totalDisplay.textContent = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(total);
+                }
+            };
+
+            document.querySelectorAll('.btn-edit-jadwal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!editModal) return;
+
+                    const tanggalVal = safeFormatDate(btn.dataset.jadwalTanggal);
+                    const jamMulaiVal = safeFormatTime(btn.dataset.jadwalMulai);
+                    const jamSelesaiVal = safeFormatTime(btn.dataset.jadwalSelesai);
+                    const statusVal = btn.dataset.jadwalTersedia === '0' ? 'Tidak Tersedia' : 'Tersedia';
+
+                    tanggalInput.value = tanggalVal;
+                    mulaiInput.value = jamMulaiVal;
+                    selesaiInput.value = jamSelesaiVal;
+
+                    const start = timeToMinutes(jamMulaiVal);
+                    const end = timeToMinutes(jamSelesaiVal);
+                    const durasiJam = (start !== null && end !== null && end > start) ? (end - start) / 60 : 0;
+                    durasiInput.value = durasiJam > 0 ? durasiJam : '';
+
+                    hargaInput.value = btn.dataset.jadwalHarga || '';
+                    document.getElementById('editSectionId').value = btn.dataset.sectionId || '';
+                    tersediaInput.value = btn.dataset.jadwalTersedia || '1';
+
+                    if (tanggalLabel) {
+                        tanggalLabel.textContent = tanggalVal || '-';
+                    }
+                    if (jamLabel) {
+                        jamLabel.textContent = jamMulaiVal && jamSelesaiVal ? `${jamMulaiVal} - ${jamSelesaiVal}` : '-';
+                    }
+                    if (statusLabel) {
+                        statusLabel.textContent = statusVal;
+                        statusLabel.className = `badge ${statusVal === 'Tersedia' ? 'bg-success' : 'bg-danger'}`;
+                    }
+
+                    form.action = "{{ url('/lapangan/' . $lapangan->id . '/jadwal') }}/" + btn.dataset.jadwalId;
+                    updateEditPreview();
+                    editModal.show();
+                });
+            });
+
+            [hargaInput].forEach(input => {
+                input?.addEventListener('input', updateEditPreview);
+                input?.addEventListener('change', updateEditPreview);
+            });
+
+            if (typeof Swal !== 'undefined') {
+                @if (session('success'))
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: @json(session('success')),
+                        confirmButtonColor: '#0d6efd',
+                    });
+                @endif
+
+                @if (session('error'))
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: @json(session('error')),
+                        confirmButtonColor: '#dc3545',
+                    });
+                @endif
+            }
         });
     })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Modal Edit Jadwal -->
+<div class="modal fade" id="editJadwalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Jadwal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editJadwalForm" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="section_id" id="editSectionId" required>
+                <input type="hidden" name="tanggal" id="editTanggal" required>
+                <input type="hidden" name="jam_mulai" id="editMulai" required>
+                <input type="hidden" name="jam_selesai" id="editSelesai" required>
+                <input type="hidden" name="durasi_sewa" id="editDurasi" required>
+                <input type="hidden" name="tersedia" id="editTersedia" required>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="p-3 bg-light border rounded">
+                            <div class="small text-muted">Jadwal</div>
+                            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between">
+                                <div class="fw-semibold">
+                                    <span id="editTanggalLabel">-</span>
+                                    <span class="ms-1">(<span id="editJamLabel">-</span>)</span>
+                                </div>
+                                <span id="editStatusLabel" class="badge bg-success ms-sm-3">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Harga / Jam</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white">Rp</span>
+                            <input type="number" class="form-control" name="harga_sewa" id="editHarga" required min="0" step="1000">
+                            <span class="input-group-text bg-light text-muted">/ jam</span>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            Durasi: <span class="fw-semibold" id="editDurasiDisplay">0</span> jam &mdash;
+                            Total: <span class="fw-semibold text-success" id="editTotalDisplay">0</span>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

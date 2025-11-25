@@ -22,6 +22,20 @@
     <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode"></i> Scan Tiket QR</h2>
 
     <div class="scan-wrapper">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <div class="small text-muted mb-1">Pilih mode scan</div>
+                <div class="btn-group" role="group" id="checkpointToggle">
+                    <button type="button" class="btn btn-outline-success active" data-checkpoint="gor">
+                        Masuk GOR
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-checkpoint="lapang">
+                        Masuk Lapang
+                    </button>
+                </div>
+            </div>
+            <div class="small text-muted">Scan di pintu GOR dulu, lalu pintu lapang.</div>
+        </div>
 
         <!-- Scanner -->
         <div id="qr-reader"></div>
@@ -49,10 +63,21 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const resultBox = document.getElementById('result');
     const scannerStatus = document.querySelector('.scanner-status');
+    const checkpointButtons = document.querySelectorAll('[data-checkpoint]');
+    let currentCheckpoint = 'gor';
 
     let isProcessing = false;
     let lastScan = "";
     let lastTime = 0;
+
+    checkpointButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            checkpointButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCheckpoint = btn.dataset.checkpoint || 'gor';
+            updateStatus(`Siap memindai (${currentCheckpoint === 'gor' ? 'Masuk GOR' : 'Masuk Lapang'})`, "fa-circle-notch fa-spin");
+        });
+    });
 
     function updateStatus(text, icon="fa-circle-notch fa-spin") {
         scannerStatus.innerHTML = `<i class="fas ${icon} me-2"></i>${text}`;
@@ -66,24 +91,42 @@ document.addEventListener("DOMContentLoaded", async function () {
         `;
     }
 
-    function renderSuccess(data) {
-        const payload = data.data;
-        const scanStatus = payload.status_scan === 'sudah_scan' ?
-            '<span class="badge bg-success">Sudah Scan</span>' :
-            '<span class="badge bg-warning text-dark">Belum Scan</span>';
+    function renderResult(payload, statusFlag, message, isSuccess) {
+        const statusLabel = {
+            valid: { text: 'Valid', cls: 'bg-success' },
+            valid_lobby: { text: 'Scan GOR', cls: 'bg-info text-dark' },
+            valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
+            expired: { text: 'Expired', cls: 'bg-danger' },
+            double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
+            double_scan_lobby: { text: 'Sudah Scan GOR', cls: 'bg-warning text-dark' },
+            double_scan_lapang: { text: 'Sudah Scan Lapang', cls: 'bg-warning text-dark' },
+            too_early: { text: 'Belum Waktunya', cls: 'bg-secondary' },
+            unpaid: { text: 'Belum Dibayar', cls: 'bg-secondary' },
+            not_found: { text: 'Tidak Ditemukan', cls: 'bg-secondary' },
+            invalid: { text: 'Tidak Valid', cls: 'bg-secondary' },
+        }[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
+
+        const scanStatus = payload.status_scan === 'sudah_scan'
+            ? '<span class="badge bg-success">Sudah Scan Lapang</span>'
+            : payload.status_scan === 'scan_lobby'
+                ? '<span class="badge bg-info text-dark">Sudah Scan GOR</span>'
+                : '<span class="badge bg-warning text-dark">Belum Scan</span>';
 
         resultBox.innerHTML = `
-            <div class="success-result">
-                <h6><i class="fas fa-check-circle me-2"></i> Tiket Valid</h6>
-                <div><strong>Nama Penyewa:</strong> ${payload.nama_penyewa}</div>
-                <div><strong>Kode Tiket:</strong> ${payload.kode_tiket}</div>
-                <div><strong>Lapangan:</strong> ${payload.lapangan}</div>
-                <div><strong>Jam Main:</strong> ${payload.jam_main}</div>
-                <div><strong>Durasi:</strong> ${payload.durasi}</div>
+            <div class="${isSuccess ? 'success-result' : 'error-result'}">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge ${statusLabel.cls}">${statusLabel.text}</span>
+                    <strong>${message || (isSuccess ? 'Tiket valid' : 'Tiket tidak valid')}</strong>
+                </div>
+                <div><strong>Nama Penyewa:</strong> ${payload.nama_penyewa ?? '-'}</div>
+                <div><strong>Kode Tiket:</strong> ${payload.kode_tiket ?? '-'}</div>
+                <div><strong>Lapangan:</strong> ${payload.lapangan ?? '-'}</div>
+                <div><strong>Jam Main:</strong> ${payload.jam_main ?? '-'}</div>
+                <div><strong>Durasi:</strong> ${payload.durasi ?? '-'}</div>
                 <div><strong>Status Scan:</strong> ${scanStatus}</div>
-                <div><strong>Tanggal Main:</strong> ${payload.tanggal_main}</div>
-                <div><strong>Pembayaran:</strong> ${payload.status_pembayaran}</div>
-                <div><strong>Waktu Scan:</strong> ${payload.waktu_scan}</div>
+                <div><strong>Tanggal Main:</strong> ${payload.tanggal_main ?? '-'}</div>
+                <div><strong>Pembayaran:</strong> ${payload.status_pembayaran ?? '-'}</div>
+                <div><strong>Waktu Scan:</strong> ${payload.waktu_scan ?? '-'}</div>
             </div>
         `;
     }
@@ -102,19 +145,35 @@ document.addEventListener("DOMContentLoaded", async function () {
         `;
 
         try {
-            const res = await fetch(`{{ url('/verify-tiket') }}/${kode}`);
-            const json = await res.json();
+            const res = await fetch(`{{ url('/verify-tiket') }}/${kode}?checkpoint=${currentCheckpoint}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            let json;
+            try {
+                json = await res.json();
+            } catch (e) {
+                throw new Error('INVALID_JSON');
+            }
+
+            if (!res.ok && !json) {
+                throw new Error('BAD_RESPONSE');
+            }
+
+            const flag = json.status_flag || (json.status === "success" ? "valid" : "invalid");
+            const payload = json.data || {};
+            const message = json.message || (json.status === "success" ? "Tiket valid" : "QR tidak valid");
 
             if (json.status === "success") {
                 updateStatus("Scan Berhasil!", "fa-check-circle");
-                renderSuccess(json);
+                renderResult(payload, flag, message, true);
             } else {
                 updateStatus("Tiket Tidak Valid", "fa-times-circle");
-                showError(json.message || "QR tidak valid");
+                renderResult(payload, flag, message, false);
             }
         } catch (e) {
             updateStatus("Error Koneksi", "fa-exclamation-triangle");
-            showError("Tidak dapat terhubung ke server.");
+            showError("Tidak dapat terhubung ke server atau format respons tidak valid. Pastikan sesi login masih aktif.");
         }
 
         setTimeout(() => {

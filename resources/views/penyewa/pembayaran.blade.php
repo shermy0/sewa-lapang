@@ -371,6 +371,7 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
         });
     });
 });
+
 function ajukanPerubahan(pemesananId, lapanganId) {
     window.selectedSection = null;
     window.selectedJadwal = null;
@@ -543,10 +544,11 @@ function loadJam(sectionId, tanggal) {
                         isUser = false;
                     } else {
                         isUser = true;
-                        status = 
-                            pay === "menunggu" ? "menunggu" :
-                            pay === "berhasil" ? "dibayar" :
-                            "available";
+                       status =
+    pay === "menunggu" || pay === "pending" ? "menunggu" :
+    pay === "berhasil" ? "dibayar" :
+    "available";
+
                     }
                 }
 
@@ -590,11 +592,12 @@ function loadJam(sectionId, tanggal) {
                 if (isUser) {
                     const pay = window.userOrders[j.id];
 
-                    if (pay === "menunggu") {
-                        statusText = `<b style="color:#41A67E">Jadwalmu (Belum Dibayar)</b>`;
-                    }
+                    if (pay === "menunggu" || pay === "pending") {
+    statusText = `<b style="color:#41A67E">Jadwalmu Saat Ini (Belum Dibayar)</b>`;
+}
+
                     else if (pay === "berhasil") {
-                        statusText = `<b style="color:#41A67E">Jadwalmu (Sudah Dibayar)</b>`;
+                        statusText = `<b style="color:#41A67E">Jadwalmu Saat Ini(Sudah Dibayar)</b>`;
                     }
                     else {
                         statusText = "Tersedia"; // kadaluarsa

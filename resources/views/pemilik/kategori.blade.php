@@ -28,7 +28,6 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 10px var(--shadow);
   padding: 25px 30px;
-  transition: all 0.3s ease;
 }
 
 h2 {
@@ -47,7 +46,6 @@ h2 {
   border-radius: 8px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: 0.3s;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -172,7 +170,6 @@ th {
   border-radius: 8px;
   padding: 9px 14px;
   cursor: pointer;
-  transition: 0.3s;
   width: 100%;
   font-weight: 500;
 }
@@ -202,7 +199,7 @@ th {
   <table>
     <thead>
       <tr>
-        <th>ID</th>
+        <th>No</th>
         <th>Nama Kategori</th>
         <th>Deskripsi</th>
         <th style="width: 120px; text-align:center;">Aksi</th>
@@ -211,16 +208,23 @@ th {
     <tbody>
       @foreach ($kategori as $k)
       <tr>
-        <td>{{ $k->id }}</td>
+        <td>{{ $loop->iteration }}</td>
         <td>{{ $k->nama_kategori }}</td>
         <td>{{ $k->deskripsi }}</td>
         <td class="action-btn">
-          <button class="icon-btn edit" onclick="editKategori({{ $k->id }}, '{{ $k->nama_kategori }}', '{{ $k->deskripsi }}')">
+          <button class="icon-btn edit" 
+                  data-id="{{ $k->id }}" 
+                  data-nama="{{ $k->nama_kategori }}" 
+                  data-deskripsi="{{ $k->deskripsi }}" 
+                  onclick="editKategoriFromData(this)">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
-          <button type="button" class="icon-btn delete" onclick="hapusKategori({{ $k->id }})">
+
+          <button type="button" class="icon-btn delete" 
+                  onclick="hapusKategori({{ $k->id }}, {{ $k->lapangan_count }})">
             <i class="fa-solid fa-trash"></i>
           </button>
+
           <form id="delete-form-{{ $k->id }}" action="{{ route('kategori.destroy', $k->id) }}" method="POST" style="display:none;">
             @csrf
             @method('DELETE')
@@ -242,17 +246,16 @@ th {
       <input type="hidden" name="_method" id="formMethod" value="POST">
 
       <label>Nama Kategori</label>
-      <input type="text" name="nama_kategori" id="nama_kategori" required>
+      <input type="text" name="nama_kategori" id="nama_kategori" value="{{ old('nama_kategori') }}" required>
 
       <label>Deskripsi</label>
-      <textarea name="deskripsi" id="deskripsi" rows="3"></textarea>
+      <textarea name="deskripsi" id="deskripsi" rows="3">{{ old('deskripsi') }}</textarea>
 
       <button type="submit"><i class="fa-solid fa-save"></i> Simpan</button>
     </form>
   </div>
 </div>
 
-{{-- SweetAlert2 --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 const modal = document.getElementById('kategoriModal');
@@ -267,7 +270,11 @@ function openModal() {
   modal.classList.add('show');
 }
 
-function editKategori(id, nama, deskripsi) {
+function editKategoriFromData(btn) {
+  const id = btn.dataset.id;
+  const nama = btn.dataset.nama.replace(/'/g, "’").replace(/"/g, '”');
+  const deskripsi = btn.dataset.deskripsi.replace(/'/g, "’").replace(/"/g, '”');
+
   document.getElementById('modalTitle').innerText = 'Edit Kategori';
   document.getElementById('kategoriForm').action = '/kategori/' + id;
   document.getElementById('formMethod').value = 'PUT';
@@ -281,59 +288,55 @@ function closeModal() {
   modal.classList.remove('show');
 }
 
-// Tutup modal jika klik di luar konten
 window.addEventListener('click', function(e) {
   if (e.target === modal) closeModal();
 });
 
-// SweetAlert untuk hapus
-function hapusKategori(id) {
-  Swal.fire({
-    title: 'Yakin hapus kategori ini?',
-    text: "Data yang dihapus tidak bisa dikembalikan!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#41A67E',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Ya, hapus!',
-    cancelButtonText: 'Batal'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      document.getElementById('delete-form-' + id).submit();
+// hapus kategori dengan cek lapangan_count
+function hapusKategori(id, lapanganCount) {
+    if(lapanganCount > 0){
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: 'Kategori ini masih digunakan oleh lapangan dan tidak bisa dihapus.',
+            confirmButtonColor: '#41A67E'
+        });
+        return;
     }
-  });
+
+    Swal.fire({
+        title: 'Yakin hapus kategori ini?',
+        text: "Data yang dihapus tidak bisa dikembalikan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#41A67E',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('delete-form-' + id).submit();
+        }
+    });
 }
 
+// Flash messages
 document.addEventListener('DOMContentLoaded', () => {
-  const flashSuccess = @json(session('success'));
-  const flashError = @json(session('error'));
-  const validationErrors = @json($errors->all());
+  const flashMessages = {
+    success: @json(session('success')),
+    error: @json(session('error')),
+    validation: @json($errors->all())
+  };
 
-  if (flashSuccess) {
-    Swal.fire({
-      icon: 'success',
-      title: 'Berhasil',
-      text: flashSuccess,
-      confirmButtonColor: '#41A67E'
-    });
-  }
-
-  if (flashError) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Terjadi Kesalahan',
-      text: flashError,
-      confirmButtonColor: '#41A67E'
-    });
-  }
-
-  if (validationErrors.length) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Validasi Gagal',
-      html: `<ul style="text-align:left;margin:0;padding-left:18px;">${validationErrors.map((msg) => `<li>${msg}</li>`).join('')}</ul>`,
-      confirmButtonColor: '#41A67E'
-    });
+  for (const [type, msg] of Object.entries(flashMessages)) {
+    if (msg && (Array.isArray(msg) ? msg.length : true)) {
+      Swal.fire({
+        icon: type === 'success' ? 'success' : 'error',
+        title: type === 'success' ? 'Berhasil' : 'Terjadi Kesalahan',
+        html: Array.isArray(msg) ? `<ul style="text-align:left;margin:0;padding-left:18px;">${msg.map(m=>`<li>${m}</li>`).join('')}</ul>` : msg,
+        confirmButtonColor: '#41A67E'
+      });
+    }
   }
 });
 </script>
