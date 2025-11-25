@@ -28,12 +28,9 @@ use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PersetujuanController;
-use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return redirect()->route('login');
