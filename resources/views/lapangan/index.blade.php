@@ -2350,14 +2350,22 @@
                 if (result.isConfirmed) {
                     fetch(`/lapangan/${lapanganId}`, {
                         method: 'DELETE',
+                        credentials: 'same-origin',
                         headers: {
                             'X-CSRF-TOKEN': token,
+                            'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'
                         }
                     })
-                    .then(res => res.json())
-                    .then(data => {
+                    .then(async res => {
+                        let data = {};
+                        try {
+                            data = await res.json();
+                        } catch (_) {
+                            // ignore parse errors; will fallback below
+                        }
+
                         if (data.success) {
                             // Hapus row dari DOM tanpa reload
                             const row = document.getElementById(`lapangan-row-${lapanganId}`);
@@ -2378,6 +2386,16 @@
                             Swal.fire(
                                 'Gagal!',
                                 data.error,
+                                'error'
+                            );
+                        } else if (res.ok) {
+                            // Jika server tidak mengembalikan JSON tapi respon OK
+                            Swal.fire('Terhapus!', 'Lapangan berhasil dihapus.', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire(
+                                'Gagal!',
+                                'Terjadi kesalahan saat menghapus lapangan.',
                                 'error'
                             );
                         }

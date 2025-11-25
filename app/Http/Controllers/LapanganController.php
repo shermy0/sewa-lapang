@@ -198,17 +198,42 @@ class LapanganController extends Controller
 
     public function destroy($id, Request $request)
     {
-        $lapangan = Lapangan::findOrFail($id);
+        $lapangan = Lapangan::with(['sections.jadwal'])->findOrFail($id);
 
-        $fotoPaths = $lapangan->foto ?? [];
-        if (is_array($fotoPaths)) {
-            foreach ($fotoPaths as $foto) {
-                Storage::disk('public')->delete($foto);
-            }
+        // Jangan izinkan hapus jika ada pemesanan aktif/riwayat agar data tidak hilang
+        if ($lapangan->pemesanan()->exists()) {
+            $message = 'Lapangan tidak dapat dihapus karena masih memiliki pemesanan.';
+            return $request->expectsJson() || $request->ajax()
+                ? response()->json(['error' => $message], 422)
+                : redirect()->route('lapangan.index')->withErrors($message);
         }
 
-        $lapangan->jadwal()->delete();
-        $lapangan->delete();
+        DB::transaction(function () use ($lapangan) {
+            // Hapus foto
+            $fotoPaths = $lapangan->foto ?? [];
+            if (is_array($fotoPaths)) {
+                foreach ($fotoPaths as $foto) {
+                    Storage::disk('public')->delete($foto);
+                }
+            }
+
+            // Hapus jadwal per section, lalu section-nya
+            foreach ($lapangan->sections as $section) {
+                $section->jadwal()->delete();
+                $section->delete();
+            }
+
+            // Lepas favorit dan laporan agar FK tidak menghalangi
+            if (method_exists($lapangan, 'favoritedBy')) {
+                $lapangan->favoritedBy()->detach();
+            }
+            if (method_exists($lapangan, 'laporanPenyalahgunaan')) {
+                $lapangan->laporanPenyalahgunaan()->delete();
+            }
+
+            // Hapus lapangan
+            $lapangan->delete();
+        });
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['success' => 'Lapangan berhasil dihapus!']);
