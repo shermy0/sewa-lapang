@@ -137,17 +137,22 @@
 
                     <div class="ticket-right p-4 bg-white flex-grow-1 position-relative">
                         <div class="ticket-info">
+                            @php
+                                $scanLabel = match ($p->status_scan) {
+                                    'scan_lobby' => ['Sudah Scan Lobby', 'lobby', 'fa-door-open'],
+                                    'sudah_scan' => ['Sudah Scan Lapang', 'sudah', 'fa-check-circle'],
+                                    default      => ['Belum Discan', 'belum', 'fa-hourglass-half'],
+                                };
+                            @endphp
                             <p class="mb-1"><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
                             <p class="mb-1"><strong>Status:</strong>
                                 <span class="badge bg-success">Dibayar</span>
                             </p>
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
                             <p class="mt-2 mb-0">
-                                @if($p->status_scan === 'sudah_scan')
-                                    <span class="ticket-status-scan sudah"><i class="fa-solid fa-check-circle me-1"></i>Sudah Discan</span>
-                                @else
-                                    <span class="ticket-status-scan belum"><i class="fa-solid fa-hourglass-half me-1"></i>Belum Discan</span>
-                                @endif
+                                <span class="ticket-status-scan {{ $scanLabel[1] }}">
+                                    <i class="fa-solid {{ $scanLabel[2] }} me-1"></i>{{ $scanLabel[0] }}
+                                </span>
                             </p>
                         </div>
 
@@ -234,8 +239,12 @@ document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
         this.classList.add('active');
         const filter = this.dataset.filter;
         document.querySelectorAll('.ticket-card').forEach(card => {
-            if (filter === 'all' || card.dataset.status === filter) card.style.display = 'block';
-            else card.style.display = 'none';
+            const status = card.dataset.status;
+            const isScanned = status === 'sudah_scan' || status === 'scan_lobby';
+            const show = filter === 'all'
+                || (filter === 'sudah_scan' && isScanned)
+                || status === filter;
+            card.style.display = show ? 'block' : 'none';
         });
     });
 });

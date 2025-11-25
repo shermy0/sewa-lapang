@@ -29,6 +29,7 @@
 .card-select.active{border-color:#41A67E;background:#f6fffa}
 .modal-label{font-weight:700;margin-bottom:6px;color:#333}
 .ticket-status-scan.sudah{background:#E6F5EF;color:#41A67E}
+.ticket-status-scan.lobby{background:#EAF3FF;color:#1D4ED8}
 .ticket-status-scan.belum{background:#FFF5D6;color:#C78C00}
 .jadwal-item.pending { background:#fffbe6; cursor:pointer; }
 .jadwal-item.paid { background:#f2f2f2; cursor:not-allowed; opacity:0.7; }
