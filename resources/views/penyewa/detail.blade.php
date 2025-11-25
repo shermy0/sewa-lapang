@@ -545,151 +545,185 @@
     @endif
 
     {{-- MODAL JADWAL LAPANGAN --}}
-<div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
+    <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
 
-            {{-- HEADER --}}
-            <div class="modal-header border-0 d-flex align-items-center justify-content-between">
-                <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
-                    Jadwal Lapangan {{ $lapangan->nama_lapangan }}
-                </h5>
-                <div class="d-flex align-items-center gap-2">
-                    @php
-                        $totalTersedia = $lapangan->sections
-                            ->flatMap->jadwal
-                            ->where('tersedia', true)
-                            ->count();
-                    @endphp
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-                        Total jadwal: {{ $totalTersedia }}
-                    </span>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-            </div>
-
-            {{-- BODY --}}
-            <div class="modal-body">
-
-            {{-- FILTER --}}
-                <div class="row g-3 mb-3 align-items-end">
-                    {{-- Filter Tanggal / Bulan --}}
-                    <div class="col">
-                        <label for="filterTanggalBulan" class="form-label fw-semibold mb-1">Tanggal / Bulan</label>
-                        <input type="month" id="filterTanggalBulan" class="form-control" placeholder="2025-03" />
-                    </div>
-
-                    {{-- Filter Section --}}
-                    <div class="col">
-                        <label for="filterSection" class="form-label fw-semibold mb-1">Section</label>
-                        <select id="filterSection" class="form-select">
-                            <option value="">Semua Section</option>
-                            @foreach($lapangan->sections as $section)
-                                <option value="{{ $section->nama_section }}">{{ $section->nama_section }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Filter Jam Mulai --}}
-                    <div class="col">
-                        <label for="filterJamMulai" class="form-label fw-semibold mb-1">Jam Mulai</label>
-                        <input type="time" id="filterJamMulai" class="form-control" />
-                    </div>
-
-                    {{-- Filter Jam Selesai --}}
-                    <div class="col">
-                        <label for="filterJamSelesai" class="form-label fw-semibold mb-1">Jam Selesai</label>
-                        <input type="time" id="filterJamSelesai" class="form-control" />
-                    </div>
-
-                    {{-- Reset --}}
-                    <div class="col-auto d-flex align-items-end">
-                        <button class="btn btn-success w-100" id="resetFilters">
-                            <i class="fa fa-rotate-left me-1"></i> Reset Filter
-                        </button>
-                    </div>
-                </div>
-
-                {{-- TABEL JADWAL --}}
-                <div class="card shadow-sm border-0">
-                    <div class="card-body p-0">
+                {{-- HEADER --}}
+                <div class="modal-header border-0 d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
+                        Jadwal Lapangan {{ $lapangan->nama_lapangan }}
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
                         @php
-                            use Carbon\Carbon;
+                            // Ambil tanggal hari ini
+                            $today = \Carbon\Carbon::today();
+
+                            // Ambil semua jadwal tersedia mulai hari ini ke depan
                             $jadwalTersedia = $lapangan->sections
                                 ->flatMap->jadwal
                                 ->where('tersedia', true)
-                                ->sortBy(['tanggal', 'jam_mulai']);
+                                ->filter(function ($j) use ($today) {
+                                    return \Carbon\Carbon::parse($j->tanggal)->greaterThanOrEqualTo($today);
+                                })
+                                ->sortBy([
+                                    ['tanggal', 'asc'],
+                                    ['jam_mulai', 'asc'],
+                                ]);
+
+                            // Hitung total
+                            $totalTersedia = $jadwalTersedia->count();
                         @endphp
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                            Total jadwal: {{ $totalTersedia }}
+                        </span>
 
-                        @if($jadwalTersedia->count() > 0)
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 table-bordered text-center">
-                                    <thead class="text-white fw-semibold" style="background-color: #198754;">
-                                        <tr>
-                                            <th>No</th>
-                                            <th>Tanggal</th>
-                                            <th>Section</th>
-                                            <th>Rentang Waktu</th>
-                                            <th>Harga Total</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($jadwalTersedia as $i => $jadwal)
-                                            @php
-                                                $mulai = Carbon::parse($jadwal->jam_mulai);
-                                                $selesai = Carbon::parse($jadwal->jam_selesai);
-                                                $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
-                                                $durasiJam = $durasiMenit / 60;
-                                            @endphp
-                                            <tr
-                                                data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
-                                                data-section="{{ $jadwal->section->nama_section ?? '' }}"
-                                                data-jam-mulai="{{ $mulai->format('H:i') }}"
-                                            >
-                                                <td class="fw-semibold">{{ $i + 1 }}</td>
-                                                <td>{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
-                                                <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
-                                                <td>
-                                                    <div class="d-flex flex-column small fw-semibold">
-                                                        <span>{{ $mulai->format('H:i') }} WIB</span>
-                                                        <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-success">Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}</div>
-                                                    <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
-                                                </td>
-                                                <td>
-                                                    <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">
-                                                        <i class="fa-solid fa-cart-plus me-1"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {{-- SUMMARY + PAGINATION --}}
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <div id="pagination-summary" class="small text-muted"></div>
-                                <ul class="pagination mb-0" id="pagination"></ul>
-                            </div>
-                        @else
-                            <div class="p-5 text-center text-muted">
-                                <i class="fa-solid fa-calendar-xmark fa-2x mb-3"></i>
-                                <p class="mb-0">Belum ada jadwal yang ditambahkan untuk lapangan ini.</p>
-                            </div>
-                        @endif
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
 
-            </div>
+                {{-- BODY --}}
+                <div class="modal-body">
 
+                    {{-- FILTER --}}
+                    <div class="row g-3 mb-3 align-items-end">
+
+                        {{-- Filter Tanggal / Bulan --}}
+                        <div class="col">
+                            <label for="filterTanggalBulan" class="form-label fw-semibold mb-1">Tanggal / Bulan</label>
+                            <input type="month" id="filterTanggalBulan" class="form-control" placeholder="2025-03" />
+                        </div>
+
+                        {{-- Filter Section --}}
+                        <div class="col">
+                            <label for="filterSection" class="form-label fw-semibold mb-1">Section</label>
+                            <select id="filterSection" class="form-select">
+                                <option value="">Semua Section</option>
+                                @foreach($lapangan->sections as $section)
+                                    <option value="{{ $section->nama_section }}">{{ $section->nama_section }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Filter Jam Mulai --}}
+                        <div class="col">
+                            <label for="filterJamMulai" class="form-label fw-semibold mb-1">Jam Mulai</label>
+                            <input type="time" id="filterJamMulai" class="form-control" />
+                        </div>
+
+                        {{-- Filter Jam Selesai --}}
+                        <div class="col">
+                            <label for="filterJamSelesai" class="form-label fw-semibold mb-1">Jam Selesai</label>
+                            <input type="time" id="filterJamSelesai" class="form-control" />
+                        </div>
+
+                        {{-- Reset --}}
+                        <div class="col-auto d-flex align-items-end">
+                            <button class="btn btn-success w-100" id="resetFilters">
+                                <i class="fa fa-rotate-left me-1"></i> Reset Filter
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- TABEL JADWAL --}}
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-0">
+
+                            @php
+                                use Carbon\Carbon;
+
+                                // FILTER SAMA DENGAN YANG DI HEADER
+                                $jadwalTersedia = $lapangan->sections
+                                    ->flatMap->jadwal
+                                    ->where('tersedia', true)
+                                    ->filter(function ($j) use ($today) {
+                                        return Carbon::parse($j->tanggal)->greaterThanOrEqualTo($today);
+                                    })
+                                    ->sortBy([
+                                        ['tanggal', 'asc'],
+                                        ['jam_mulai', 'asc']
+                                    ]);
+                            @endphp
+
+                            @if($jadwalTersedia->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0 table-bordered text-center">
+                                        <thead class="text-white fw-semibold" style="background-color: #198754;">
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Tanggal</th>
+                                                <th>Section</th>
+                                                <th>Rentang Waktu</th>
+                                                <th>Harga Total</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+
+                                            @foreach($jadwalTersedia as $i => $jadwal)
+                                                @php
+                                                    $mulai = Carbon::parse($jadwal->jam_mulai);
+                                                    $selesai = Carbon::parse($jadwal->jam_selesai);
+                                                    $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
+                                                    $durasiJam = $durasiMenit / 60;
+                                                @endphp
+
+                                                <tr
+                                                    data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
+                                                    data-section="{{ $jadwal->section->nama_section ?? '' }}"
+                                                    data-jam-mulai="{{ $mulai->format('H:i') }}"
+                                                >
+                                                    <td class="fw-semibold">{{ $i + 1 }}</td>
+                                                    <td>{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
+                                                    <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
+                                                    <td>
+                                                        <div class="d-flex flex-column small fw-semibold">
+                                                            <span>{{ $mulai->format('H:i') }} WIB</span>
+                                                            <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold text-success">
+                                                            Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}
+                                                        </div>
+                                                        <small class="text-muted d-block">
+                                                            Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">
+                                                            <i class="fa-solid fa-cart-plus me-1"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+
+                                            @endforeach
+
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {{-- SUMMARY + PAGINATION --}}
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div id="pagination-summary" class="small text-muted"></div>
+                                    <ul class="pagination mb-0" id="pagination"></ul>
+                                </div>
+
+                            @else
+                                <div class="p-5 text-center text-muted">
+                                    <i class="fa-solid fa-calendar-xmark fa-2x mb-3"></i>
+                                    <p class="mb-0">Belum ada jadwal yang ditambahkan untuk lapangan ini.</p>
+                                </div>
+                            @endif
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
     </div>
-</div>
 
 {{-- SCRIPT PAGINATION + FILTER --}}
 <script>

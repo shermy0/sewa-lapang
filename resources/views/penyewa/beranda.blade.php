@@ -71,43 +71,45 @@
     @endphp
 
    {{-- GRID LAPANGAN --}}
-<div class="row g-4">
-    @forelse ($lapangan as $item)
-        @php
-            // --- Normalisasi foto ---
-            $fotoArray = is_array($item->foto) ? $item->foto : (@json_decode($item->foto, true) ?: [$item->foto]);
-            $fotoArray = array_filter($fotoArray);
+    <div class="row g-4">
+        @forelse ($lapangan as $item)
+            @php
+                $today = \Carbon\Carbon::today();
 
-            // --- Hitung harga per jam seperti di detail ---
-            $hargaPerJam = $item->harga_per_jam ?? $item->harga_sewa ?? 0;
+                // --- Normalisasi foto ---
+                $fotoArray = is_array($item->foto) ? $item->foto : (@json_decode($item->foto, true) ?: [$item->foto]);
+                $fotoArray = array_filter($fotoArray);
 
-            if (!is_numeric($hargaPerJam) || $hargaPerJam <= 0) {
-                $sections = $item->sections ?? collect();
-                $totalHarga = 0;
-                $jumlahJadwal = 0;
+                // --- Hitung harga per jam seperti di detail ---
+                $hargaPerJam = $item->harga_per_jam ?? $item->harga_sewa ?? 0;
 
-                foreach ($sections as $section) {
-                    foreach ($section->jadwal as $jadwal) {
-                        if (is_numeric($jadwal->harga_sewa) && $jadwal->harga_sewa > 0) {
-                            $totalHarga += $jadwal->harga_sewa;
-                            $jumlahJadwal++;
+                if (!is_numeric($hargaPerJam) || $hargaPerJam <= 0) {
+                    $sections = $item->sections ?? collect();
+                    $totalHarga = 0;
+                    $jumlahJadwal = 0;
+
+                    foreach ($sections as $section) {
+                        foreach ($section->jadwal as $jadwal) {
+                            if (is_numeric($jadwal->harga_sewa) && $jadwal->harga_sewa > 0) {
+                                $totalHarga += $jadwal->harga_sewa;
+                                $jumlahJadwal++;
+                            }
                         }
+                    }
+
+                    if ($jumlahJadwal > 0) {
+                        $hargaPerJam = $totalHarga / $jumlahJadwal;
                     }
                 }
 
-                if ($jumlahJadwal > 0) {
-                    $hargaPerJam = $totalHarga / $jumlahJadwal;
+                // --- Hitung total section dan jadwal ---
+                $sections = $item->sections ?? collect();
+                $totalSections = $sections->count();
+                $totalJadwal = 0;
+                foreach ($sections as $section) {
+                    $totalJadwal += $section->jadwal->count();
                 }
-            }
-
-            // --- Hitung total section dan jadwal untuk badge ---
-            $sections = $item->sections ?? collect();
-            $totalSections = $sections->count();
-            $totalJadwal = 0;
-            foreach ($sections as $section) {
-                $totalJadwal += $section->jadwal->count();
-            }
-        @endphp
+            @endphp
 
         <div class="col-lg-6 col-xl-4">
             <div class="card border-0 shadow-sm h-100 overflow-hidden hover-lift">
