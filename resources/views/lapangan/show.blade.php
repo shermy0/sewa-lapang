@@ -376,13 +376,29 @@
                                                                         </div>
                                                                         <small class="text-muted">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
                                                                     </td>
+                                                                    @php
+                                                                        $pemesananAktif = $jadwal->pemesanan; // sudah difilter menunggu/dibayar
+                                                                        if ($pemesananAktif && $pemesananAktif->status === 'menunggu') {
+                                                                            $statusLabel = 'Menunggu Pembayaran';
+                                                                            $statusClass = 'bg-warning text-dark';
+                                                                        } elseif ($pemesananAktif && $pemesananAktif->status === 'dibayar') {
+                                                                            $statusLabel = 'Terisi';
+                                                                            $statusClass = 'bg-danger';
+                                                                        } elseif (! $jadwal->tersedia) {
+                                                                            $statusLabel = 'Terisi';
+                                                                            $statusClass = 'bg-danger';
+                                                                        } else {
+                                                                            $statusLabel = 'Tersedia';
+                                                                            $statusClass = 'bg-success';
+                                                                        }
+                                                                    @endphp
                                                                     <td>
-                                                                        <span class="badge {{ $jadwal->tersedia ? 'bg-success' : 'bg-danger' }}">
-                                                                            {{ $jadwal->tersedia ? 'Tersedia' : 'Terisi' }}
+                                                                        <span class="badge {{ $statusClass }}">
+                                                                            {{ $statusLabel }}
                                                                         </span>
                                                                     </td>
                                                                     <td class="text-center">
-                                                                        @if($jadwal->tersedia)
+                                                                        @if($statusLabel === 'Tersedia')
                                                                             <button type="button"
                                                                                 class="btn btn-sm btn-outline-primary mb-1 btn-edit-jadwal"
                                                                                 data-jadwal-id="{{ $jadwal->id }}"
@@ -410,7 +426,7 @@
                                                                                 </button>
                                                                             </form>
                                                                         @else
-                                                                            <span class="text-muted small">-</span>
+                                                                            <span class="text-muted small">Tidak bisa diubah</span>
                                                                         @endif
                                                                     </td>
                                                                 </tr>

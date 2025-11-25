@@ -119,7 +119,12 @@ class LapanganController extends Controller
                 'sections' => function ($query) {
                     $query->with([
                         'jadwal' => function ($jadwalQuery) {
-                            $jadwalQuery->orderBy('tanggal')->orderBy('jam_mulai');
+                            $jadwalQuery
+                                ->with(['pemesanan' => function ($pemesananQuery) {
+                                    $pemesananQuery->whereIn('status', ['menunggu', 'dibayar']);
+                                }])
+                                ->orderBy('tanggal')
+                                ->orderBy('jam_mulai');
                         },
                     ]);
                 },
