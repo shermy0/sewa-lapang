@@ -770,4 +770,24 @@ public function updateSuccess(Request $request, $id)
         return 0;
     }
 
+    /**
+     * Tandai permintaan perubahan sebagai kadaluarsa jika sudah melewati expires_at.
+     */
+    private function autoExpirePermintaan($permintaan): void
+    {
+        if (! $permintaan || $permintaan->status !== 'menunggu') {
+            return;
+        }
+
+        $now = Carbon::now('Asia/Jakarta');
+        if ($permintaan->expires_at && $permintaan->expires_at->lt($now)) {
+            // Pastikan slot baru dibuka kembali kalau sempat dikunci.
+            if ($permintaan->jadwalBaru && $permintaan->jadwalBaru->tersedia === false) {
+                $permintaan->jadwalBaru->update(['tersedia' => true]);
+            }
+
+            $permintaan->update(['status' => 'kadaluarsa']);
+        }
+    }
+
 }
