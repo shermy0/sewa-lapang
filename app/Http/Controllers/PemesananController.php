@@ -16,6 +16,51 @@ use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 class PemesananController extends Controller
 {
+    public function pindahLangsung(Request $request, $pemesananId)
+{
+    $request->validate([
+        'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
+        'section_baru_id' => 'nullable|exists:section_lapangan,id',
+    ]);
+
+    $pemesanan = Pemesanan::with('jadwal')->findOrFail($pemesananId);
+
+    // hanya pemilik pemesanan (penyewa) yang boleh
+    if ($pemesanan->penyewa_id !== Auth::id()) {
+        abort(403);
+    }
+
+    // tidak boleh pindah jika sudah discan / sudah selesai
+    if ($pemesanan->status === 'dibayar' && $pemesanan->status_scan === 'sudah_scan') {
+        return response()->json(['error' => 'Sudah discan, tidak bisa dipindah.'], 422);
+    }
+
+    $jadwalBaru = JadwalLapangan::findOrFail($request->jadwal_baru_id);
+
+    // Pastikan jadwal baru benar-benar tersedia (tersedia == true)
+    if (! $jadwalBaru->tersedia) {
+        return response()->json(['error' => 'Jadwal tidak tersedia.'], 422);
+    }
+
+    // Ubah jadwal lama jadi tersedia lagi
+    if ($pemesanan->jadwal) {
+        $pemesanan->jadwal->update(['tersedia' => true]);
+    }
+
+    // Lakukan pemindahan
+    $pemesanan->update([
+        'jadwal_id' => $jadwalBaru->id,
+    ]);
+
+    // Lock jadwal baru
+    $jadwalBaru->update(['tersedia' => false]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Berhasil memindahkan jadwal.',
+        'pemesanan' => $pemesanan->fresh()->load('jadwal.section')
+    ]);
+}
 
         public function __construct()
     {
@@ -35,75 +80,100 @@ public function boot(): void
 
 public function setujuiPermintaan($id)
 {
-    $permintaan = \App\Models\PermintaanPerubahan::with(['pemesanan', 'jadwalLama', 'jadwalBaru'])->findOrFail($id);
+    $permintaan = \App\Models\PermintaanPerubahan::with([
+        'pemesanan',
+        'jadwalLama',
+        'jadwalBaru',
+        'pemesanan.pembayaran'
+    ])->findOrFail($id);
 
-    // Cegah yang bukan pemilik lapangan
+    // Validasi pemilik lapangan
     if ($permintaan->pemesanan->lapangan->pemilik_id != Auth::id()) {
         abort(403, 'Tidak punya akses.');
     }
 
-    $this->autoExpirePermintaan($permintaan);
-    if ($permintaan->status !== 'menunggu') {
+    // Expired otomatis
+    if ($permintaan->status === 'menunggu' && $permintaan->expires_at < now()) {
+        $permintaan->update(['status' => 'kadaluarsa']);
+        return response()->json(['error' => 'Waktu persetujuan sudah habis.'], 410);
+    }
+
+    \DB::beginTransaction();
+    try {
+
+        // 1. Update status permintaan
+        $permintaan->update(['status' => 'disetujui']);
+
+        $pemesananUtama = $permintaan->pemesanan;
+
+        // 2. Buka jadwal lama
+        if ($permintaan->jadwalLama) {
+            $permintaan->jadwalLama->update(['tersedia' => true]);
+        }
+
+        // 3. Kunci jadwal baru
+        if ($permintaan->jadwalBaru) {
+            $permintaan->jadwalBaru->update(['tersedia' => false]);
+        }
+
+        // 4. Cari pemesanan lain yang menunggu di jadwal baru
+        $pemesananLain = \App\Models\Pemesanan::where('jadwal_id', $permintaan->jadwal_baru_id)
+            ->where('id', '!=', $pemesananUtama->id)
+            ->whereIn('status', ['menunggu', 'dibayar'])
+            ->get();
+
+        foreach ($pemesananLain as $p) {
+
+            // 🔥 4.1 Set pemesanan mereka menjadi BATAL
+            $p->update(['status' => 'batal']);
+
+            // 🔥 4.2 Jadwal mereka dibuka kembali
+            if ($p->jadwal) {
+                $p->jadwal->update(['tersedia' => true]);
+            }
+
+            // 🔥 4.3 Set pembayaran mereka menjadi batal
+            \App\Models\Pembayaran::where('pemesanan_id', $p->id)
+                ->whereNotIn('status', ['berhasil', 'gagal'])
+                ->update(['status' => 'batal']);
+        }
+
+        // 5. Update jadwal pemesanan utama
+        $pemesananUtama->update([
+            'jadwal_id' => $permintaan->jadwal_baru_id,
+        ]);
+
+        \DB::commit();
+
+        $pemesananUtama->load('jadwal.section');
+
         return response()->json([
-            'success' => false,
-            'message' => 'Permintaan sudah tidak aktif.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            'success' => true,
+            'message' => 'Permintaan perubahan jadwal disetujui.',
+            'pemesanan' => $pemesananUtama
+        ]);
+
+    } catch (\Exception $e) {
+        \DB::rollBack();
+
+        return response()->json([
+            'error' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
     }
-
-    // Update status permintaan
-    $permintaan->update(['status' => 'disetujui']);
-
-    // Ubah jadwal lama jadi tersedia lagi
-    if ($permintaan->jadwalLama) {
-        $permintaan->jadwalLama->update(['tersedia' => true]);
-    }
-
-    // Tandai jadwal baru jadi tidak tersedia
-    if ($permintaan->jadwalBaru) {
-        $permintaan->jadwalBaru->update(['tersedia' => false]);
-    }
-
-    // Update data pemesanan ke jadwal baru
-    $pemesanan = $permintaan->pemesanan;
-    $pemesanan->update([
-        'jadwal_id' => $permintaan->jadwal_baru_id,
-    ]);
-
-    // ✅ refresh relasi agar ambil jadwal & section baru
-    $pemesanan->load('jadwal.section');
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Permintaan perubahan telah disetujui.',
-        'pemesanan' => $pemesanan, // kirim data baru kalau perlu di-ajax
-    ]);
 }
 
-    private function autoExpirePermintaan(?\App\Models\PermintaanPerubahan $permintaan): void
-    {
-        if (! $permintaan || $permintaan->status !== 'menunggu') {
-            return;
-        }
-
-        if ($permintaan->expires_at && now()->greaterThan($permintaan->expires_at)) {
-            $permintaan->update([
-                'status' => 'ditolak',
-                'alasan_internal' => 'Permintaan kadaluarsa otomatis.',
-            ]);
-        }
-    }
-
-    public function getDetailPermintaan($id)
+public function getDetailPermintaan($id)
 {
     $permintaan = \App\Models\PermintaanPerubahan::with(['sectionBaru', 'jadwalBaru', 'pemesanan.lapangan'])
         ->findOrFail($id);
 
-    // Cegah akses data orang lain
     if ($permintaan->pemesanan->penyewa_id != Auth::id()) {
         abort(403);
     }
 
-    $this->autoExpirePermintaan($permintaan);
+    $countdown = $permintaan->expires_at
+        ? now()->diffInMinutes($permintaan->expires_at, false)
+        : null;
 
     return response()->json([
         'id' => $permintaan->id,
@@ -115,6 +185,7 @@ public function setujuiPermintaan($id)
         'lapangan_id' => $permintaan->pemesanan->lapangan_id,
         'section_baru' => $permintaan->sectionBaru,
         'jadwal_baru' => $permintaan->jadwalBaru,
+        'countdown' => $countdown,  // ⏳ berapa menit tersisa
     ]);
 }
 
@@ -130,7 +201,7 @@ public function setujuiPermintaan($id)
     return response()->json(['success' => true]);
 }
 
-    public function ajukanPerubahan(Request $request, $pemesananId)
+public function ajukanPerubahan(Request $request, $pemesananId)
 {
     $request->validate([
         'section_baru_id' => 'required|exists:section_lapangan,id',
@@ -139,84 +210,59 @@ public function setujuiPermintaan($id)
     ]);
 
     $pemesanan = Pemesanan::findOrFail($pemesananId);
+
+    // Pastikan penyewa benar
     if ($pemesanan->penyewa_id != Auth::id()) {
         abort(403);
     }
 
-    // Tidak boleh ajukan setelah check-in
+    // Tidak boleh ubah bila sudah scan
     if ($pemesanan->status_scan === 'sudah_scan') {
         return response()->json([
-            'error' => 'Tidak bisa mengajukan perubahan setelah check-in.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            'error' => 'Tiket sudah discan dan tidak bisa diubah.',
+        ], 403);
     }
 
-    $this->autoExpirePermintaan($pemesanan->permintaanPerubahan);
-    if ($pemesanan->permintaanPerubahan && $pemesanan->permintaanPerubahan->status === 'menunggu') {
-        return response()->json([
-            'error' => 'Masih ada permintaan perubahan yang menunggu. Selesaikan dahulu.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-    }
+    // ============================================================
+    // 🔥 1. Update semua permintaan yang sudah EXPIRED → jadikan kadaluarsa
+    // ============================================================
+    \App\Models\PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
+        ->where('status', 'menunggu')
+        ->where('expires_at', '<', now())
+        ->update(['status' => 'kadaluarsa']);
 
-    $jadwalBaru = JadwalLapangan::with('pemesanan')->findOrFail($request->jadwal_baru_id);
-    $jadwalLama = $pemesanan->jadwal;
+    // ============================================================
+    // 🔥 2. Hapus hanya permintaan LAMA yang masih "menunggu"
+    //    (agar hanya ada 1 request pending)
+    // ============================================================
+    \App\Models\PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
+        ->where('status', 'menunggu')
+        ->delete();
 
-    if ($jadwalLama && $jadwalLama->id === $jadwalBaru->id) {
-        return response()->json([
-            'error' => 'Kamu sudah berada di jadwal ini.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-    }
+    // NOTE:
+    // - Status "disetujui", "ditolak", "kadaluarsa" TIDAK DIHAPUS
+    //   (tetap jadi riwayat, aman)
 
-    $now = Carbon::now('Asia/Jakarta');
-    $mulaiLama = $jadwalLama ? Carbon::parse($jadwalLama->tanggal . ' ' . $jadwalLama->jam_mulai, 'Asia/Jakarta') : null;
-    $mulaiBaru = $jadwalBaru ? Carbon::parse($jadwalBaru->tanggal . ' ' . $jadwalBaru->jam_mulai, 'Asia/Jakarta') : null;
-
-    // Hanya izinkan ajukan sebelum jadwal lama dimulai
-    if ($mulaiLama && $now->greaterThanOrEqualTo($mulaiLama)) {
-        return response()->json([
-            'error' => 'Jadwal sudah dimulai, tidak bisa diajukan.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-    }
-
-    // Pastikan jadwal baru masih di masa depan
-    if ($mulaiBaru && $mulaiBaru->lessThanOrEqualTo($now)) {
-        return response()->json([
-            'error' => 'Tidak bisa pindah ke jadwal yang sudah lewat.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-    }
-
-    // Izinkan ajukan di slot unavailable hanya jika bookingnya status menunggu (belum bayar)
-    $bookingStatus = optional($jadwalBaru->pemesanan)->status;
-    $slotPending = $bookingStatus === 'menunggu';
-    $slotPaid = $bookingStatus === 'dibayar';
-
-    if (! $jadwalBaru->tersedia && ! $slotPending) {
-        return response()->json([
-            'error' => 'Jadwal ini sudah tidak tersedia.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-    }
-
-    if ($slotPaid) {
-        return response()->json([
-            'error' => 'Jadwal ini sudah dibayar dan tidak bisa diajukan.',
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-    }
-
-    $permintaan = \App\Models\PermintaanPerubahan::create([
-        'pemesanan_id' => $pemesanan->id,
-        'section_lama_id' => $pemesanan->jadwal->section_id,
-        'section_baru_id' => $request->section_baru_id,
-        'jadwal_lama_id' => $pemesanan->jadwal_id,
-        'jadwal_baru_id' => $request->jadwal_baru_id,
-        'alasan' => $request->alasan,
-        'status' => 'menunggu',
-        'expires_at' => now()->addMinutes(60),
-        'alasan_internal' => $slotPending
-            ? 'Slot target sedang menunggu pembayaran; permintaan takeover.'
-            : null,
+    // ============================================================
+    // 🔥 3. Buat permintaan baru (UNLIMITED)
+    // ============================================================
+    \App\Models\PermintaanPerubahan::create([
+        'pemesanan_id'       => $pemesanan->id,
+        'section_lama_id'    => $pemesanan->jadwal->section_id,
+        'section_baru_id'    => $request->section_baru_id,
+        'jadwal_lama_id'     => $pemesanan->jadwal_id,
+        'jadwal_baru_id'     => $request->jadwal_baru_id,
+        'alasan'             => $request->alasan,
+        'status'             => 'menunggu',
+        'expires_at'         => now()->addMinutes(15),
     ]);
 
-    return response()->json(['success' => true, 'expires_at' => optional($permintaan->expires_at)->toIso8601String()]);
+    return response()->json([
+        'success' => true,
+        'message' => 'Permintaan perubahan berhasil diajukan.',
+    ]);
 }
+
 
 public function getSectionsByLapangan($lapangan_id)
 {
@@ -275,41 +321,39 @@ public function getJadwalBySection($section_id)
         })
         ->orderBy('tanggal')
         ->orderBy('jam_mulai')
-        ->get();
+        ->get()
+        ->map(function($j) {
 
-    $jadwal = $jadwal->map(function ($item) {
-        $booking = $item->pemesanan;
-        $bookingStatus = optional($booking)->status;
+            // cari pemesanan aktif utk jadwal ini
+$p = Pemesanan::where('jadwal_id', $j->id)
+    ->whereIn('status', ['menunggu', 'dibayar'])
+    ->whereHas('pembayaran', function($q) {
+        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+    })
+    ->first();
 
-        // Lepas blokir jika pesanan menunggu sudah melewati batas waktu (20 menit)
-        if ($booking && $bookingStatus === 'menunggu') {
-            $expiresAt = Carbon::parse($booking->created_at)->addMinutes(20);
-            if (now('Asia/Jakarta')->greaterThan($expiresAt)) {
-                // Tandai kadaluarsa dan buka slot
-                $booking->update(['status' => 'kadaluarsa']);
-                if ($booking->pembayaran) {
-                    $booking->pembayaran->update(['status' => 'kadaluarsa']);
-                }
-                $item->tersedia = true;
-                $bookingStatus = null;
+
+            if ($p) {
+                $j->booking_status = $p->status; // menunggu / dibayar
+            } else {
+                $j->booking_status = null; // available
             }
-        }
 
-        return [
-            'id' => $item->id,
-            'section_id' => $item->section_id,
-            'tanggal' => $item->tanggal,
-            'jam_mulai' => $item->jam_mulai,
-            'jam_selesai' => $item->jam_selesai,
-            'tersedia' => (bool) $item->tersedia,
-            'harga_sewa' => $item->harga_sewa,
-            'durasi_sewa' => $item->durasi_sewa,
-            'booking_status' => $bookingStatus,
-        ];
-    });
+            // lock pending
+            if ($j->booking_status === 'menunggu') {
+                $j->tersedia = false;
+            }
+
+            $j->tanggal = Carbon::parse($j->tanggal)->toDateString();
+
+            return $j;
+        });
 
     return response()->json($jadwal);
 }
+
+
+
 
 
     // ========================== HALAMAN TIKET ==========================
@@ -317,6 +361,17 @@ public function riwayatTiket()
 {
     $userId = Auth::id();
     $now = Carbon::now('Asia/Jakarta');
+$semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
+    ->where('penyewa_id', auth()->id())
+    ->get();
+
+// kirim ke blade: status pembayaran yang benar
+$userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
+    return [
+        $p->jadwal_id => optional($p->pembayaran)->status // pending / berhasil / gagal / ...
+    ];
+});
+
 
     // Ambil semua tiket yang sudah dibayar
     $sudahDibayar = Pemesanan::with([
@@ -364,9 +419,18 @@ public function riwayatTiket()
         }
         return $p;
     });
+    \App\Models\PermintaanPerubahan::where('status', 'menunggu')
+        ->where('expires_at', '<', now())
+        ->update(['status' => 'kadaluarsa']);
+return view('penyewa.tiket', [
+    'sudahDibayar' => $sudahDibayar,
+    'semuaPemesananUser' => $semuaPemesananUser,
+            'userOrders' => $userOrders
 
-    return view('penyewa.tiket', compact('sudahDibayar'));
+]);
 }
+
+
 
 
 
@@ -375,6 +439,16 @@ public function riwayatBelum()
 {
     $userId = Auth::id();
     $now = Carbon::now('Asia/Jakarta');
+    $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
+    ->where('penyewa_id', auth()->id())
+    ->get();
+
+// kirim ke blade: status pembayaran yang benar
+$userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
+    return [
+        $p->jadwal_id => optional($p->pembayaran)->status // pending / berhasil / gagal / ...
+    ];
+});
 
     // Ambil semua pesanan menunggu
     $belumDibayar = Pemesanan::with(['jadwal', 'permintaanPerubahan'])
@@ -408,8 +482,12 @@ public function riwayatBelum()
         ->where('status', 'menunggu')
         ->get();
 
-    return view('penyewa.pembayaran', compact('belumDibayar'));
-}
+return view('penyewa.pembayaran', [
+    'belumDibayar' => $belumDibayar,
+    'semuaPemesananUser' => $semuaPemesananUser,
+            'userOrders' => $userOrders
+
+]);}
 
 
 

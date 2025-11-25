@@ -23,7 +23,7 @@ class JadwalLapangan extends Model
     ];
 
     protected $casts = [
-        'tanggal' => 'date',
+        'tanggal' => 'date:Y-m-d',
         'tersedia' => 'boolean',
         'harga_sewa' => 'decimal:2',
         'durasi_sewa' => 'integer',
@@ -80,4 +80,6 @@ class JadwalLapangan extends Model
               });
         });
     }
+
+    
 }

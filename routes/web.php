@@ -16,24 +16,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UlasanController;
 use App\Http\Controllers\Penyewa\FavoritController as PenyewaFavoritController;
 use App\Http\Controllers\Penyewa\LaporanPenyalahgunaanController as PenyewaLaporanPenyalahgunaanController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\KelolaRekeningController;
 use App\Http\Controllers\PemilikDashboardController;
 use App\Http\Controllers\PemilikPemesananController;
 use App\Http\Controllers\ScanTiketController;
-use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\FavoritController;
 use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PersetujuanController;
+use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
-
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -62,8 +62,8 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
-Route::middleware('auth')->group(function () {
 
+Route::middleware('auth')->group(function () {
     Route::get('/verify-email', function (Request $request) {
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->route('verification.success');
@@ -105,16 +105,22 @@ Route::post('/pemesanan/{id}/ajukan-perubahan', [PemesananController::class, 'aj
 Route::get('/lapangan/{id}/sections', [PemesananController::class, 'getSectionsByLapangan']);
 Route::get('/jadwal/{id}', [PemesananController::class, 'getJadwalBySection']);
 
-Route::post('/permintaan-perubahan/{pemesananId}', [PemesananController::class, 'ajukanPerubahan'])
-    ->name('permintaan-perubahan.store');
+    Route::post('/permintaan-perubahan/{pemesananId}', [PemesananController::class, 'ajukanPerubahan'])
+        ->name('permintaan-perubahan.store');
 
 Route::delete('/permintaan-perubahan/{id}', [PemesananController::class, 'batalkanPermintaan'])
     ->name('permintaan-perubahan.delete');
+// Ajukan perubahan
+Route::post('/permintaan-perubahan/{pemesanan}', [PemesananController::class, 'ajukanPerubahan'])->name('permintaan.ajukan');
+
+// Endpoint baru: pindah langsung (untuk slot available)
+Route::patch('/pemesanan/{pemesanan}/pindah', [PemesananController::class, 'pindahLangsung'])->name('pemesanan.pindah');
+
+
 
     Route::get('/pemesanan/create/{lapangan}', [PemesananController::class, 'create'])->name('pemesanan.create');
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
-    // Route::get('/penyewa/riwayat', [PemesananController::class, 'riwayat'])->name('penyewa.riwayat');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 Route::get('/jadwal/section/{section_id}', [App\Http\Controllers\PemesananController::class, 'getJadwalBySection'])
     ->name('jadwal.bySection');
@@ -123,17 +129,17 @@ Route::get('/jadwal/section/{section_id}', [App\Http\Controllers\PemesananContro
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
 
     Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
-Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
+    Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
 
     Route::get('penyewa/tiket', [PemesananController::class, 'riwayatTiket'])->name('penyewa.tiket');
-Route::get('penyewa/pembayaran', [PemesananController::class, 'riwayatBelum'])->name('penyewa.pembayaran');
-Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->name('penyewa.riwayat');
+    Route::get('penyewa/pembayaran', [PemesananController::class, 'riwayatBelum'])->name('penyewa.pembayaran');
+    Route::get('penyewa/riwayat', [PemesananController::class, 'riwayatBatal'])->name('penyewa.riwayat');
 
     // BERANDA PENYEWA
     Route::get('/beranda-penyewa', [BerandaController::class, 'index'])->name('penyewa.beranda');
     Route::get('/penyewa/detail/{id}', [BerandaController::class, 'detail'])->name('penyewa.detail');
 
-  // ULASAN PENYEWA
+    // ULASAN PENYEWA
     Route::prefix('ulasan')->group(function () {
         Route::post('/{lapangan}', [UlasanController::class, 'simpan'])->name('ulasan.simpan');
         Route::get('/{id}/edit', [UlasanController::class, 'edit'])->name('ulasan.edit');
@@ -217,7 +223,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/hapus-foto', [ProfileController::class, 'hapusFoto'])->name('profile.hapusFoto');
     Route::post('/profile/update-password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
-
 });
 
 
@@ -250,7 +255,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::patch('users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('users.update-status');
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
-                // Laporan penyalahgunaan
+        // Laporan penyalahgunaan
         Route::get('/laporan-penyalahgunaan', [AdminLaporanPenyalahgunaanController::class, 'index'])->name('laporan.penyalahgunaan.index');
         Route::get('/laporan-penyalahgunaan/{laporanPenyalahgunaan}', [AdminLaporanPenyalahgunaanController::class, 'show'])->name('laporan.penyalahgunaan.show');
         Route::patch(
@@ -264,7 +269,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::get('/banding/{bandingPemilik}', [AdminBandingPemilikController::class, 'show'])->name('banding.show');
         Route::put('/banding/{bandingPemilik}', [AdminBandingPemilikController::class, 'update'])->name('banding.update');
         Route::get('/banding/{bandingPemilik}/lampiran', [AdminBandingPemilikController::class, 'lampiran'])->name('banding.lampiran');
-
 
         // Banner routes
         Route::get('banners', [BannerController::class, 'index'])->name('banners.index');
@@ -283,7 +287,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
 
         Route::get('akun', [AdminAccountController::class, 'edit'])->name('account.edit');
         Route::put('akun', [AdminAccountController::class, 'update'])->name('account.update');
-
     });
     });
 
