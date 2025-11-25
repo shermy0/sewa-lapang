@@ -191,33 +191,40 @@
 </script>
 
 <script>
-// Countdown pembayaran
-// Countdown pembayaran
+// Countdown pembayaran (mengikuti batas 20 menit di backend)
 document.querySelectorAll('[data-countdown]').forEach(target => {
     const createdAt = new Date(target.dataset.createdAt);
-    const deadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
-    const tick = () => {
-        const now = new Date();
-        const diff = deadline - now;
-
-if (diff <= 0) {
-    target.textContent = '⛔ Waktu pembayaran sudah habis.';
-    target.classList.add('text-muted');
-
-    // 🔥 HAPUS seluruh tombol di dalam ticket ini
-    const card = target.closest('.ticket-card');
-    if (card) {
-        card.querySelectorAll('button').forEach(btn => btn.remove());
+    if (Number.isNaN(createdAt.getTime())) {
+        target.textContent = '';
+        return;
     }
 
-    return;
-}
+    const LIMIT_MINUTES = 20;
+    const deadline = createdAt.getTime() + LIMIT_MINUTES * 60 * 1000;
 
-        const m = Math.floor(diff / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        target.textContent = `Sisa waktu pembayaran: ${h}j ${m}m ${s}d`;
+    const tick = () => {
+        const now = Date.now();
+        const diffMs = deadline - now;
+
+        if (diffMs <= 0) {
+            target.textContent = '⛔ Waktu pembayaran sudah habis.';
+            target.classList.add('text-muted');
+
+            const card = target.closest('.ticket-card');
+            if (card) {
+                card.querySelectorAll('button').forEach(btn => btn.remove());
+            }
+            return;
+        }
+
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        target.textContent = `Sisa waktu pembayaran: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         setTimeout(tick, 1000);
     };
+
     tick();
 });
 
