@@ -13,40 +13,41 @@ use Illuminate\Support\Facades\Auth;
 class PetugasController extends Controller
 {
     // Halaman kasir/petugas
-    public function kasir()
+    public function index()
     {
         $petugas = auth()->user();
 
-        // Ambil pemilik yang mempekerjakan petugas
-        $pemilikId = $petugas->pemilik_id; // pastikan field pemilik_id ada di users
+        // Ambil semua kategori milik pemilik yang petugas ini kerja
+        $kategori = Kategori::where('pemilik_id', $petugas->pemilik_id)->get();
 
-        // Ambil kategori milik pemilik itu
-        $kategori = Kategori::where('pemilik_id', $pemilikId)->get();
+        if ($kategori->isEmpty()) {
+            return "Belum ada kategori yang dimiliki pemilik ini!";
+        }
+
+        // Ambil semua id kategori tsb
         $kategoriIds = $kategori->pluck('id');
 
-        // Ambil lapangan sesuai kategori milik pemilik
+        // Ambil semua lapangan dari kategori tsb
         $lapangan = Lapangan::whereIn('id_kategori', $kategoriIds)
-            ->with('kategoriData') // relasi kategori
             ->get()
             ->map(function ($l) {
-                // Pastikan foto disimpan sebagai array JSON di DB
-                $fotoArray = $l->foto_lapangan ? json_decode($l->foto_lapangan, true) : [];
-                
+                $fotoArray = is_array($l->foto) ? $l->foto : (json_decode($l->foto, true) ?? []);
+
                 return [
                     'id' => $l->id,
                     'nama' => $l->nama_lapangan,
-                    'harga' => $l->harga_sewa,
-                    'status' => $l->is_suspended ? 'booked' : 'available',
-                    'id_kategori' => $l->id_kategori,
-                    'kategori_nama' => $l->kategoriData->nama_kategori ?? 'Kategori Tidak Diketahui',
-                    'fotoArray' => $fotoArray, // array foto untuk carousel
-                ];
+                    'foto' => count($fotoArray) ? $fotoArray[0] : null,
+                    'fotoArray' => $fotoArray,
+                    'harga' => $l->harga_sewa ?? 0,
+                    'pemilik_id' => $l->kategoriData->pemilik_id ?? null,
+                    'id_kategori' => $l->id_kategori                ];
             });
 
         return view('petugas.index', [
             'lapangan' => $lapangan,
             'kategori' => $kategori,
             'petugasName' => $petugas->name,
+            'pemilikId' => $petugas->pemilik_id, // ambil langsung dari petugas
         ]);
     }
 
@@ -71,10 +72,9 @@ class PetugasController extends Controller
             'penyewa_id' => $request->penyewa_id,
             'lapangan_id' => $request->lapangan_id,
             'jadwal_id' => $request->jadwal_id,
-            'status' => 'pending',
-            'created_by' => Auth::id(),
+            'created_by' => Auth::id(), // petugas yang input
         ]);
 
-        return redirect()->route('petugas.kasir')->with('sukses', 'Pemesanan berhasil ditambahkan!');
+        return redirect()->route('petugas.index')->with('sukses', 'Pemesanan berhasil ditambahkan!');
     }
 }

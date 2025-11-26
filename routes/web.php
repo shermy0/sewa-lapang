@@ -32,6 +32,26 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
+    $user = auth()->user();
+
+    if ($user) {
+        if ($user->role === 'penyewa') {
+            return redirect()->route('penyewa.beranda');
+        }
+
+        if ($user->role === 'pemilik') {
+            return redirect()->route('dashboard.pemilik');
+        }
+
+        if ($user->role === 'admin') {
+            return redirect()->route('dashboard.admin');
+        }
+
+        if ($user->role === 'petugas') {
+            return redirect()->route('petugas.index');
+        }
+    }
+
     return redirect()->route('login');
 });
 
@@ -140,7 +160,6 @@ Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadw
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
-
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
@@ -153,27 +172,32 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
+// PETUGAS KASIR
 Route::middleware(['auth', 'verified', 'role:petugas'])
     ->prefix('petugas')->name('petugas.')
     ->group(function () {
-        Route::get('/kasir', [PetugasController::class, 'kasir'])->name('kasir');
-});
+        Route::get('/', [PetugasController::class, 'index'])->name('index');
+        Route::post('/petugas', [PetugasController::class, 'store'])->name('petugas.store');
+        Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
+        Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
+    });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
+
+    Route::get('/kelolapetugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
+    Route::post('/kelolapetugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
+
+      // PERSETUJUAN PEMILIK
+    Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
+    Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
+
         // PERSETUJUAN PEMILIK
 Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
 Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
-    Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
-    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
 
-    Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
-        Route::get('/petugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
-        Route::post('/petugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
-    });    
-    
     // CRUD Kategori
     Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
     Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
