@@ -31,6 +31,26 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
+    $user = auth()->user();
+
+    if ($user) {
+        if ($user->role === 'penyewa') {
+            return redirect()->route('penyewa.beranda');
+        }
+
+        if ($user->role === 'pemilik') {
+            return redirect()->route('dashboard.pemilik');
+        }
+
+        if ($user->role === 'admin') {
+            return redirect()->route('dashboard.admin');
+        }
+
+        if ($user->role === 'petugas') {
+            return redirect()->route('petugas.dashboard');
+        }
+    }
+
     return redirect()->route('login');
 });
 
@@ -158,6 +178,8 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         Route::get('/', [PetugasController::class, 'index'])->name('dashboard');
         Route::get('/transaksi', [PetugasController::class, 'transaksi'])->name('transaksi.index');
         Route::get('/pembayaran', [PetugasController::class, 'pembayaran'])->name('pembayaran.index');
+        Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
+        Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
     });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
@@ -166,8 +188,6 @@ Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('perse
 Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
-    Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
-    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
 
     // CRUD Kategori

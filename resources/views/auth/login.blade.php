@@ -18,7 +18,7 @@
                         {{ session('status') }}
                     </div>
                 @endif
-                <form method="POST" action="{{ url('/login') }}" class="space-y-4">
+                <form method="POST" action="{{ route('login') }}" class="space-y-4">
                     @csrf
 
                     <div>
