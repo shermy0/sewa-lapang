@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
 use App\Http\Controllers\PetugasController;
+use App\Http\Controllers\PemilikPetugasController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -139,6 +140,7 @@ Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadw
 Route::middleware('auth')->get('/test-sidebar', function () {
     return view('dashboard');
 })->name('test.sidebar');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
@@ -151,14 +153,11 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-// PETUGAS KASIR
 Route::middleware(['auth', 'verified', 'role:petugas'])
     ->prefix('petugas')->name('petugas.')
     ->group(function () {
-        Route::get('/', [PetugasController::class, 'index'])->name('dashboard');
-        Route::get('/transaksi', [PetugasController::class, 'transaksi'])->name('transaksi.index');
-        Route::get('/pembayaran', [PetugasController::class, 'pembayaran'])->name('pembayaran.index');
-    });
+        Route::get('/kasir', [PetugasController::class, 'kasir'])->name('kasir');
+});
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
         // PERSETUJUAN PEMILIK
@@ -170,6 +169,11 @@ Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
 
+    Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
+        Route::get('/petugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
+        Route::post('/petugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
+    });    
+    
     // CRUD Kategori
     Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
     Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');

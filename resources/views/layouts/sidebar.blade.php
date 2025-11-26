@@ -110,11 +110,18 @@
                 'icon' => 'fa-solid fa-bag-shopping',
                 'route' => 'pemilik.pemesanan.index',
                 'active_routes' => ['pemilik.pemesanan.index'],
-            ],            [
+            ],            
+            [
                 'label' => 'Scan',
                 'icon' => 'fa-solid fa-qrcode',
                 'route' => 'pemilik.scan',
                 'active_routes' => ['pemilik.scan'],
+            ],
+            [
+              'label' => 'Petugas',
+              'icon' => 'fa-solid fa-users', 
+              'route' => 'pemilik.petugas',   
+              'active_routes' => ['pemilik.petugas'], 
             ],
             [
                 'label' => 'Pengaturan Akun',

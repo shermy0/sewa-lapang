@@ -31,7 +31,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'no_hp',
         'foto_profil',
-    ];
+        'pemilik_id',
+    ];    
 
     /**
      * The attributes that should be hidden for serialization.
