@@ -15,7 +15,7 @@
             <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                 <button class="btn btn-success btn-lg px-4 shadow" data-bs-toggle="modal"
                     data-bs-target="#tambahLapanganModal">
-                    <i class="fa-solid fa-plus-circle me-2"></i> Tambah Lapangan Baru
+                    <i class="fa-solid fa-plus-circle me-2"></i> Tambah Arena Baru
                 </button>
             </div>
         </div>
@@ -157,7 +157,7 @@
                             {{-- Informasi Sections --}}
                             <div class="mb-3">
                                 <small class="text-muted d-block mb-2">
-                                    <i class="fa-solid fa-layer-group text-primary me-1"></i> Daftar Section:
+                                    <i class="fa-solid fa-layer-group text-primary me-1"></i> Daftar Lapangan:
                                 </small>
                                 <div class="d-flex flex-wrap gap-1">
                                     @foreach($item->sections->take(3) as $section)
@@ -166,7 +166,7 @@
                                             <small class="text-muted">({{ $section->jadwal->count() }} jadwal)</small>
                                         </span>
                                     @endforeach
-                                    @if($item->sections->count() > 3)
+                                    @if($item->section->count() > 3)
                                         <span class="badge bg-light text-muted border">
                                             +{{ $item->sections->count() - 3 }} lainnya
                                         </span>
