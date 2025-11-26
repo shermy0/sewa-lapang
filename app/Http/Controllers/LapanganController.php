@@ -161,16 +161,12 @@ class LapanganController extends Controller
                 $existingFotoPaths = [];
             }
 
-            // Jika ada urutan baru, atur ulang array foto yang ada
-            if (!empty($newFotoOrder)) {
-                $orderedPaths = explode(',', $newFotoOrder);
-                $finalExistingPaths = [];
-                foreach ($orderedPaths as $path) {
-                    if (in_array($path, $existingFotoPaths)) {
-                        $finalExistingPaths[] = $path;
-                    }
-                }
-                $existingFotoPaths = $finalExistingPaths;
+            // Jika ada urutan baru (termasuk kosong karena semua dihapus), atur ulang array foto yang ada
+            if ($request->has('foto_order')) {
+                $orderedPaths = array_filter(explode(',', (string) $newFotoOrder), fn($path) => $path !== '');
+                $existingFotoPaths = array_values(array_filter($orderedPaths, function ($path) use ($existingFotoPaths) {
+                    return in_array($path, $existingFotoPaths);
+                }));
             }
 
             // Handle new photo uploads

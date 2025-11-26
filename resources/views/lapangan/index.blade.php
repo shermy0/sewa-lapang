@@ -1,28 +1,3 @@
-
-
-Tentu, saya akan membantu Anda menambahkan fungsi drag-and-drop untuk mengatur ulang foto pada halaman edit lapangan. Ini akan meningkatkan pengalaman pengguna dengan memungkinkan mereka mengatur urutan foto dengan mudah.
-
-Berikut adalah langkah-langkah yang akan kita implementasikan:
-
-1.  **Frontend (Blade Template)**:
-    *   Menambahkan library JavaScript `Sortable.js` untuk fungsionalitas drag-and-drop.
-    *   Memodifikasi bagian pratinjau foto di modal edit agar foto-foto yang ada dapat diseret (draggable).
-    *   Menambahkan input tersembunyi untuk menyimpan urutan foto baru setelah di-drag.
-    *   Menulis JavaScript untuk menginisialisasi `Sortable.js` dan memperbarui input tersembunyi setiap kali urutan foto berubah.
-
-2.  **Backend (Controller)**:
-    *   Memodifikasi metode `update` di `LapanganController` untuk memproses urutan foto baru.
-    *   Logika akan memisahkan foto yang sudah ada (yang diurutkan ulang) dengan foto yang baru diunggah.
-    *   Menghapus foto dari penyimpanan (storage) jika dihapus oleh pengguna dari pratinjau.
-    *   Menyimpan urutan foto final ke database.
-
-Berikut adalah kode yang telah diperbarui:
-
-### 1. File: `resources/views/lapangan/index.blade.php`
-
-Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto di modal edit, dan menambahkan JavaScript yang diperlukan. Perubahan utama ada di dalam modal edit (`editLapanganModal`).
-
-```php
 @extends('layouts.sidebar')
 
 @section('title', 'Data Lapangan')
@@ -147,7 +122,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                             <div class="position-absolute top-0 start-0 m-3" style="z-index: 10;">
                                 <span class="badge bg-primary px-3 py-2 shadow">
                                     <i class="fa-solid fa-layer-group me-1"></i>
-                                    {{ $totalSections }} Section
+                                    {{ $totalSections }} Lapangan
                                 </span>
                             </div>
 
@@ -292,12 +267,12 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                             <textarea name="deskripsi" class="form-control" rows="4">{{ $item->deskripsi }}</textarea>
                                         </div>
 
-                                        {{-- Section Management --}}
+                                        {{-- Lapangan Management --}}
                                         <div class="col-12">
                                             <div class="card border-0 bg-light">
                                                 <div class="card-header bg-transparent border-bottom">
                                                     <h6 class="mb-0 fw-bold text-dark">
-                                                        <i class="fa-solid fa-layer-group me-2 text-primary"></i> Kelola Section
+                                                        <i class="fa-solid fa-layer-group me-2 text-primary"></i> Kelola Lapangan
                                                     </h6>
                                                 </div>
                                                 <div class="card-body">
@@ -305,7 +280,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                                         @foreach($item->sections as $index => $section)
                                                             <div class="row g-3 mb-3 section-item">
                                                                 <div class="col-md-5">
-                                                                    <label class="form-label">Nama Section</label>
+                                                                    <label class="form-label">Nama Lapangan</label>
                                                                     <input type="text" name="sections[{{ $section->id }}][nama_section]"
                                                                         class="form-control" value="{{ $section->nama_section }}" required>
                                                                 </div>
@@ -327,7 +302,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                                     </div>
                                                     <button type="button" class="btn btn-outline-primary btn-sm mt-2"
                                                         onclick="tambahSection({{ $item->id }})">
-                                                        <i class="fa-solid fa-plus me-1"></i> Tambah Section
+                                                        <i class="fa-solid fa-plus me-1"></i> Tambah Lapangan
                                                     </button>
                                                 </div>
                                             </div>
@@ -392,11 +367,11 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                     data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body p-4">
-                                {{-- Pilih Section --}}
+                                {{-- Pilih Lapangan --}}
                                 <div class="card border-0 bg-light mb-4">
                                     <div class="card-header bg-transparent border-0">
                                         <h6 class="mb-0 fw-bold text-dark">
-                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Pilih Section
+                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Pilih Lapangan
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -405,7 +380,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                                 <select class="form-select" id="section-selector-{{ $item->id }}"
                                                     data-default-harga="{{ $item->harga_sewa ?? 0 }}"
                                                     onchange="tampilkanJadwalSection({{ $item->id }})">
-                                                    <option value="">-- Pilih Section --</option>
+                                                    <option value="">-- Pilih Lapangan --</option>
                                                     @foreach($item->sections as $section)
                                                         <option value="{{ $section->id }}" data-harga="{{ $section->harga_per_jam ?? '' }}" data-label="{{ $section->nama_section }}">
                                                             {{ $section->nama_section }}
@@ -421,7 +396,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                             </div>
                                             <div class="col-md-6">
                                                 <div id="section-info-{{ $item->id }}" class="text-muted">
-                                                    Pilih section untuk melihat dan mengelola jadwal
+                                                    Pilih lapangan untuk melihat dan mengelola jadwal
                                                 </div>
                                             </div>
                                         </div>
@@ -717,7 +692,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                 <div id="jadwal-container-{{ $item->id }}">
                                     <div class="text-center text-muted py-4">
                                         <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                                        <br>Pilih section untuk melihat jadwal
+                                        <br>Pilih lapangan untuk melihat jadwal
                                     </div>
                                 </div>
                             </div>
@@ -921,20 +896,20 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                 <textarea name="deskripsi" class="form-control" rows="4" placeholder="Jelaskan fasilitas lapangan...">{{ old('deskripsi') }}</textarea>
                             </div>
 
-                            {{-- Section Management --}}
+                            {{-- Lapangan Management --}}
                             <div class="col-12">
                                 <div class="card border-0 shadow-sm">
                                     <div class="card-header bg-white border-0 pb-0">
                                         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
                                             <h6 class="mb-0 fw-bold text-dark">
-                                                <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Section Lapangan
+                                                <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Daftar Lapangan
                                             </h6>
                                             <span class="badge rounded-pill bg-light text-primary border border-primary fw-semibold px-3 py-2">
                                                 Kelola Area
                                             </span>
                                         </div>
                                         <p class="text-muted small mt-2 mb-0">
-                                            Kelompokkan lapangan menjadi beberapa section (contoh: Lapangan A, Court 1, VIP) agar penyewa lebih mudah memilih.
+                                            Kelompokkan lapangan menjadi beberapa area (contoh: Lapangan A, Court 1, VIP) agar penyewa lebih mudah memilih.
                                         </p>
                                     </div>
                                     <div class="card-body bg-light">
@@ -942,16 +917,16 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                             <div class="d-flex align-items-start gap-2 mb-3">
                                                 <i class="fa-solid fa-circle-info text-primary mt-1"></i>
                                                 <div class="small text-muted">
-                                                    Isi minimal satu section sebagai area utama. Tambahkan section baru jika lapangan memiliki lebih dari satu area.
+                                                    Isi minimal satu lapangan sebagai area utama. Tambahkan lapangan baru jika tempat olahraga memiliki lebih dari satu area.
                                                 </div>
                                             </div>
                                             <div id="section-container" class="section-wrapper">
-                                                {{-- Section Pertama --}}
+                                                {{-- Lapangan Pertama --}}
                                                 <div class="section-item rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4 mb-3 shadow-sm">
                                                     <div class="row g-3 align-items-end">
                                                         <div class="col-md-4">
                                                             <label class="form-label fw-semibold">
-                                                                Nama Section <span class="text-danger">*</span>
+                                                                Nama Lapangan <span class="text-danger">*</span>
                                                             </label>
                                                             <input type="text" name="sections[0][nama_section]"
                                                                 class="form-control"
@@ -964,21 +939,21 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                                                             <label class="form-label fw-semibold">Deskripsi</label>
                                                             <input type="text" name="sections[0][deskripsi]"
                                                                 class="form-control"
-                                                                placeholder="Deskripsi singkat section..."
+                                                                placeholder="Deskripsi singkat lapangan..."
                                                                 value="{{ old('sections.0.deskripsi') }}">
                                                             <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
                                                         </div>
                                                         <div class="col-md-1 d-flex align-items-end justify-content-md-end">
-                                                            <span class="text-muted small">Section utama</span>
+                                                            <span class="text-muted small">Lapangan utama</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3">
                                                 <button type="button" class="btn btn-outline-primary btn-sm px-3" id="tambah-section">
-                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Section Lain
+                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Lapangan Lain
                                                 </button>
-                                                <span class="small text-muted">Section tambahan cocok untuk area indoor/outdoor, court berbeda, atau sesi eksklusif.</span>
+                                                <span class="small text-muted">Lapangan tambahan cocok untuk area indoor/outdoor, court berbeda, atau sesi eksklusif.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1045,6 +1020,18 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const updateFotoOrder = (lapanganId) => {
+                const container = document.getElementById(`sortable-container-${lapanganId}`);
+                const orderInput = document.getElementById(`foto-order-${lapanganId}`);
+                if (!container || !orderInput) return;
+
+                const order = Array.from(container.querySelectorAll('.sortable-item'))
+                    .map(item => item.dataset.fotoPath)
+                    .filter(Boolean);
+
+                orderInput.value = order.join(',');
+            };
+
             // Initialize Sortable for each edit modal
             @foreach ($lapangan as $item)
                 const el{{ $item->id }} = document.getElementById('sortable-container-{{ $item->id }}');
@@ -1052,22 +1039,20 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                     new Sortable(el{{ $item->id }}, {
                         animation: 150,
                         ghostClass: 'sortable-ghost',
-                        onEnd: function(evt) {
-                            const orderInput = document.getElementById('foto-order-{{ $item->id }}');
-                            const items = el{{ $item->id }}.querySelectorAll('.sortable-item');
-                            const order = Array.from(items).map(item => item.dataset.fotoPath);
-                            orderInput.value = order.join(',');
+                        onEnd: function() {
+                            updateFotoOrder({{ $item->id }});
                         }
                     });
+
+                    // Set initial order on load
+                    updateFotoOrder({{ $item->id }});
                 }
 
                 // Handle delete button for existing photos
                 document.querySelectorAll('#sortable-container-{{ $item->id }} .btn-danger').forEach(button => {
                     button.addEventListener('click', function() {
                         this.closest('.sortable-item').remove();
-                        // Trigger the onEnd event manually to update the order
-                        const event = new Event('end');
-                        el{{ $item->id }}.dispatchEvent(event);
+                        updateFotoOrder({{ $item->id }});
                     });
                 });
             @endforeach
@@ -1075,7 +1060,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
     </script>
 
     <script>
-        // ========== SECTION MANAGEMENT ==========
+        // ========== LAPANGAN MANAGEMENT ==========
         let sectionCount = 1;
         const rupiahFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 });
         const formatRupiahValue = (value) => {
@@ -1123,7 +1108,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
 
             if (formContainer) formContainer.style.display = 'none';
             if (infoEl) {
-                infoEl.innerHTML = 'Pilih section untuk melihat jadwal';
+                infoEl.innerHTML = 'Pilih lapangan untuk melihat jadwal';
             }
             if (nameEl) {
                 nameEl.textContent = '';
@@ -1132,7 +1117,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                 jadwalContainer.innerHTML = `
                     <div class="text-center text-muted py-4">
                         <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                        <br>Pilih section untuk melihat jadwal
+                        <br>Pilih lapangan untuk melihat jadwal
                     </div>
                 `;
             }
@@ -1483,7 +1468,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             });
         });
 
-        // Tambah section baru di form tambah lapangan
+        // Tambah lapangan baru di form tambah lapangan
         document.getElementById('tambah-section')?.addEventListener('click', function() {
             const container = document.getElementById('section-container');
             const newSection = document.createElement('div');
@@ -1502,7 +1487,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">Nama Lapangan <span class="text-danger">*</span></label>
                         <input type="text" name="sections[${sectionCount}][nama_section]"
                             class="form-control"
                             placeholder="Contoh: Lapangan B, Court 2" required>
@@ -1512,7 +1497,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[${sectionCount}][deskripsi]"
                             class="form-control"
-                            placeholder="Deskripsi singkat section...">
+                            placeholder="Deskripsi singkat lapangan...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
 
@@ -1531,7 +1516,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             sectionCount++;
         });
 
-        // Hapus section
+        // Hapus lapangan
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('remove-section') ||
                 e.target.closest('.remove-section')) {
@@ -1540,7 +1525,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             }
         });
 
-        // Tambah section di form edit
+        // Tambah lapangan di form edit
         function tambahSection(lapanganId) {
             const container = document.getElementById(`section-container-${lapanganId}`);
             const newSection = document.createElement('div');
@@ -1559,7 +1544,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">Nama Lapangan <span class="text-danger">*</span></label>
                         <input type="text" name="sections[new_${sectionCount}][nama_section]"
                             class="form-control"
                             placeholder="Contoh: Lapangan B, Court 2" required>
@@ -1569,12 +1554,12 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[new_${sectionCount}][deskripsi]"
                             class="form-control"
-                            placeholder="Deskripsi singkat section...">
+                            placeholder="Deskripsi singkat lapangan...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
 
                     <div class="col-md-1 d-flex align-items-end justify-content-md-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                                                <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
                             <i class="fa-solid fa-trash me-1"></i>
                         </button>
                     </div>
@@ -1584,7 +1569,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             sectionCount++;
         }
 
-        // ========== TAMPILKAN JADWAL PER SECTION ==========
+        // ========== TAMPILKAN JADWAL PER LAPANGAN ==========
         function tampilkanJadwalSection(lapanganId) {
             const selector = document.getElementById(`section-selector-${lapanganId}`);
             if (!selector) return;
@@ -1598,7 +1583,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
             }
 
             const selectedOption = selector.options[selector.selectedIndex];
-            const sectionName = selectedOption?.dataset.label || selectedOption?.text || 'Section';
+            const sectionName = selectedOption?.dataset.label || selectedOption?.text || 'Lapangan';
             const sectionHarga = Number(selectedOption?.dataset.harga || 0);
             const hargaTerpilih = sectionHarga > 0 ? sectionHarga : defaultHargaLapangan;
 
@@ -1966,7 +1951,7 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
                     ${controlsHtml}
                     <div class="alert alert-light border text-center mb-0">
                         <i class="fa-solid fa-circle-info me-1 text-muted"></i>
-                        Belum ada jadwal untuk section ini.
+                        Belum ada jadwal untuk lapangan ini.
                     </div>
                 `;
                 return;
@@ -2515,7 +2500,6 @@ Saya akan menambahkan CDN `Sortable.js`, memodifikasi struktur HTML untuk foto d
         .sortable-item {
             transition: transform 0.2s ease;
         }
-
         .sortable-ghost {
             opacity: 0.5;
             background: #c8ebfb;
