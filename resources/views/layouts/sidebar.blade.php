@@ -106,6 +106,11 @@
                 'active_routes' => ['persetujuan.index'],
             ],
             [
+                'label' => 'Pemesanan',
+                'icon' => 'fa-solid fa-bag-shopping',
+                'route' => 'pemilik.pemesanan.index',
+                'active_routes' => ['pemilik.pemesanan.index'],
+            ],            [
                 'label' => 'Scan',
                 'icon' => 'fa-solid fa-qrcode',
                 'route' => 'pemilik.scan',
