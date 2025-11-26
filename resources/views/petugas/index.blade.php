@@ -7,20 +7,31 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    :root{--accent:#41A67E;--accent-dark:#41A67E}
-    body{background:#f5f7fb;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
-    .topbar{background: #41A67E ;color:#fff;padding:14px 18px}
+    :root{
+      --accent:#2f9f6f;
+      --accent-dark:#27855d;
+      --muted:#9aa5b1;
+      --bg:#f5f7fb;
+    }
+    body{background:var(--bg);font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+    .topbar{background: linear-gradient(120deg,#2f9f6f,#33b883);color:#fff;padding:14px 18px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
     .brand{font-weight:700;letter-spacing:.4px}
-    .searchbar{max-width:560px}
-    .lapangan-card{cursor:pointer;transition:.08s}
-    .lapangan-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
-    .lapangan-img{height:130px;object-fit:cover;border-radius:6px 6px 0 0}
+    .searchbar{max-width:520px}
+    .toolbar-card{background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 8px 28px rgba(0,0,0,.06);border:1px solid #ecf0f5}
+    .lapangan-card{cursor:pointer;transition:.14s;border-radius:14px;overflow:hidden;border:1px solid #ecf0f5;box-shadow:0 6px 18px rgba(0,0,0,.05);background:#fff}
+    .lapangan-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.08)}
+    .lapangan-img{height:150px;object-fit:cover;width:100%}
     .badge-available{background:#28a745;color:#fff}
     .badge-booked{background:#ffc107;color:#212529}
-    .cart{position:sticky;top:20px;height:calc(100vh - 40px);overflow:auto}
+    .chip{border:1px solid #dce3ed;background:#f5f7fb;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;transition:.12s}
+    .chip:hover{border-color:var(--accent);color:var(--accent)}
+    .cart{position:sticky;top:20px;height:calc(100vh - 40px);overflow:auto;box-shadow:-8px 0 20px rgba(0,0,0,.03)}
+    .cart .card{border-radius:14px;border:1px solid #ecf0f5;box-shadow:0 10px 30px rgba(0,0,0,.05)}
     .order-item{display:flex;align-items:center;gap:10px}
-    .qty-btn{width:28px;height:28px;text-align:center;line-height:28px;border-radius:6px;background:#efefef;cursor:pointer}
+    .qty-btn{width:26px;height:26px;text-align:center;line-height:26px;border-radius:8px;background:#eef2f7;cursor:pointer;font-weight:700}
     .btn-pay{background:var(--accent);color:#fff;border:none}
+    .tag-status{font-size:12px;padding:4px 8px;border-radius:8px;font-weight:600}
+    .empty-state{border:1px dashed #cfd6e2;border-radius:14px;background:#fff;padding:32px;text-align:center;color:var(--muted)}
     @media(max-width:991px){.cart{position:relative;height:auto;margin-top:18px}}
   </style>
 </head>
@@ -56,26 +67,33 @@
     <!-- LEFT GRID -->
     <div class="col-lg-8">
 
-      <div class="d-flex justify-content-between mb-3">
-        <div>
-          <h5 class="mb-0">Pilih Lapangan</h5>
+      <div class="toolbar-card mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-semibold text-muted small text-uppercase">Pilih Lapangan</span>
+            <span class="badge bg-success bg-opacity-10 text-success">Realtime</span>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+              <select id="filterStatus" class="form-select form-select-sm">
+                  <option value="all">Semua Status</option>
+                  <option value="available">Tersedia</option>
+                  <option value="booked">Dipesan</option>
+              </select>
+
+              <select name="id_kategori" class="form-select form-select-sm" required>
+                  <option value="" disabled selected>Pilih Kategori</option>
+                  @foreach ($kategori as $kat)
+                      <option value="{{ $kat->id }}">
+                          {{ $kat->nama_kategori }}
+                      </option>
+                  @endforeach
+              </select>
+          </div>
         </div>
-        <div class="d-flex gap-2">
-            <select id="filterStatus" class="form-select form-select-sm">
-                <option value="all">Semua Status</option>
-                <option value="available">Tersedia</option>
-                <option value="booked">Dipesan</option>
-            </select>
-
-            <select name="id_kategori" class="form-select form-select-lg" required>
-                <option value="" disabled selected>Pilih Kategori</option>
-
-                @foreach ($kategori as $kat)
-                    <option value="{{ $kat->id }}">
-                        {{ $kat->nama_kategori }}
-                    </option>
-                @endforeach
-            </select>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <div class="chip" onclick="document.getElementById('filterStatus').value='available';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Tersedia</div>
+          <div class="chip" onclick="document.getElementById('filterStatus').value='booked';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Sedang dipesan</div>
+          <div class="chip" onclick="document.getElementById('filterStatus').value='all';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Reset filter</div>
         </div>
       </div>
 
@@ -177,6 +195,20 @@
     const totalPages = Math.ceil(items.length / perPage) || 1;
     page = Math.min(page, totalPages);
 
+    if(items.length === 0){
+      grid.innerHTML = `
+        <div class="col-12">
+          <div class="empty-state">
+            <i class="fa-regular fa-face-smile-beam fa-2x mb-2"></i>
+            <div class="fw-semibold">Belum ada lapangan yang sesuai</div>
+            <small class="d-block mt-1">Coba ubah filter atau cari nama lain.</small>
+          </div>
+        </div>
+      `;
+      document.getElementById("pagination").innerHTML = "";
+      return;
+    }
+
     const start = (page - 1) * perPage;
     const pageItems = items.slice(start, start + perPage);
 
@@ -185,15 +217,24 @@
       col.className = "col-md-4";
       col.innerHTML = `
         <div class="card lapangan-card" data-id="${l.id}">
-          <img class="lapangan-img" 
-               src="${l.foto ?? 'https://via.placeholder.com/600x400?text=Lapangan'}">
+          <div class="position-relative">
+            <img class="lapangan-img" 
+                 src="${l.foto ?? 'https://via.placeholder.com/640x400/2f9f6f/ffffff?text=Lapangan'}">
+            <span class="position-absolute top-0 start-0 m-2 px-3 py-1 rounded-pill bg-light text-dark small fw-semibold">
+              ${l.kategori ?? 'Lapangan'}
+            </span>
+            <span class="position-absolute bottom-0 end-0 m-2 tag-status ${l.status === 'available' ? 'bg-success text-white' : 'bg-warning text-dark'}">
+              ${l.status === 'available' ? 'Tersedia' : 'Dipesan'}
+            </span>
+          </div>
           <div class="card-body">
             <h6 class="card-title mb-1">${l.nama}</h6>
-            <div class="d-flex justify-content-between">
+            <div class="d-flex justify-content-between align-items-center mb-1">
               <div class="text-muted">Rp ${formatNum(l.harga)}</div>
-              <span class="badge ${l.status === 'available' ? 'badge-available' : 'badge-booked'}">
-                ${l.status === 'available' ? 'Tersedia' : 'Dipesan'}
-              </span>
+              <small class="text-muted">${l.durasi ?? 'Per jam'}</small>
+            </div>
+            <div class="small text-muted">
+              ${l.lokasi ?? 'Lokasi tidak tersedia'}
             </div>
           </div>
         </div>

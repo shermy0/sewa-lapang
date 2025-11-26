@@ -16,7 +16,8 @@ class ScanTiketController extends Controller
             return view('petugas.scan');
         }
 
-        return view('pemilik.scan');
+        // Tidak ada lagi halaman scan untuk pemilik/admin
+        abort(404);
     }
 
     public function verifyTiket($kode)
