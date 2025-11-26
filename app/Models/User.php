@@ -108,4 +108,9 @@ public function banding()
     return $this->hasMany(BandingPemilik::class, 'pemilik_id');
 }
 
+public function kategori()
+{
+    return $this->hasMany(Kategori::class, 'pemilik_id');
+}
+
 }

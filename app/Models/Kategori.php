@@ -22,4 +22,9 @@ class Kategori extends Model
     {
         return $this->hasMany(Lapangan::class, 'id_kategori');
     }
+
+    public function pemilik()
+    {
+        return $this->belongsTo(User::class, 'pemilik_id');
+    }
 }

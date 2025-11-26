@@ -26,6 +26,7 @@ use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
+use App\Http\Controllers\PetugasController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -149,6 +150,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+// PETUGAS KASIR
+Route::middleware(['auth', 'verified', 'role:petugas'])
+    ->prefix('petugas')->name('petugas.')
+    ->group(function () {
+        Route::get('/', [PetugasController::class, 'index'])->name('dashboard');
+        Route::get('/transaksi', [PetugasController::class, 'transaksi'])->name('transaksi.index');
+        Route::get('/pembayaran', [PetugasController::class, 'pembayaran'])->name('pembayaran.index');
+    });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
         // PERSETUJUAN PEMILIK
