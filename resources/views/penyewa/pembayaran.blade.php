@@ -166,10 +166,11 @@
                                 <p class="mb-1"><strong>Harga:</strong>
                                     Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }}
                                 </p>
-                                <p class="mb-1 countdown-label text-danger"
-                                   data-countdown
-                                   data-created-at="{{ $p->created_at->format('c') }}">
-                                </p>
+<p class="mb-1 countdown-label text-danger"
+   data-countdown
+   data-expires-at="{{ $p->expires_at }}">
+</p>
+
                             </div>
 
                             <div class="text-end mt-3 d-flex flex-column gap-2">
@@ -251,36 +252,35 @@ window.userOrders = @json($userOrders);
 // Countdown pembayaran
 // Countdown pembayaran
 document.querySelectorAll('[data-countdown]').forEach(target => {
-    const createdAt = new Date(target.dataset.createdAt);
-
-    // ⏳ WAKTU BAYAR = 15 MENIT
-    const deadline = new Date(createdAt.getTime() + 15 * 60 * 1000);
+    const expiresAt = new Date(target.dataset.expiresAt).getTime();
 
     const tick = () => {
-        const now = new Date();
-        const diff = deadline - now;
+        const now = Date.now();
+        const diff = expiresAt - now;
 
-if (diff <= 0) {
-    target.textContent = '⛔ Waktu pembayaran sudah habis.';
-    target.classList.add('text-muted');
+        if (diff <= 0) {
+            target.textContent = '⛔ Waktu pembayaran sudah habis.';
+            target.classList.add('text-muted');
 
-    // 🔥 HAPUS seluruh tombol di dalam ticket ini
-    const card = target.closest('.ticket-card');
-    if (card) {
-        card.querySelectorAll('button').forEach(btn => btn.remove());
-    }
+            const card = target.closest('.ticket-card');
+            if (card) {
+                card.querySelectorAll('button').forEach(btn => btn.remove());
+            }
 
-    return;
-}
+            return;
+        }
 
-        const m = Math.floor(diff / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        const m = Math.floor(diff / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
 
         target.textContent = `Sisa waktu pembayaran: ${m}m ${s}d`;
+
         setTimeout(tick, 1000);
     };
+
     tick();
 });
+
 
 
 // 💳 Midtrans - Bayar Sekarang + Loading

@@ -388,56 +388,40 @@ return view('penyewa.tiket', [
 public function riwayatBelum()
 {
     $userId = Auth::id();
-    $now = Carbon::now('Asia/Jakarta');
+
+    // Ambil semua pesanan user (untuk status pembayaran)
     $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
-    ->where('penyewa_id', auth()->id())
-    ->get();
+        ->where('penyewa_id', $userId)
+        ->get();
 
-// kirim ke blade: status pembayaran yang benar
-$userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
-    return [
-        $p->jadwal_id => optional($p->pembayaran)->status // pending / berhasil / gagal / ...
-    ];
-});
+    $userOrders = $semuaPemesananUser->mapWithKeys(function ($p) {
+        return [
+            $p->jadwal_id => optional($p->pembayaran)->status
+        ];
+    });
 
-    // Ambil semua pesanan menunggu
-    $belumDibayar = Pemesanan::with(['jadwal'])
+    // Ambil pesanan yang masih menunggu, lalu jalankan checkExpired otomatis
+    $belumDibayar = Pemesanan::with(['jadwal', 'pembayaran'])
+        ->where('penyewa_id', $userId)
+        ->where('status', 'menunggu')
+        ->latest()
+        ->get()
+        ->each
+        ->checkExpired();
+
+    // Setelah status expired diperbarui, ambil ulang yang masih menunggu
+    $belumDibayar = Pemesanan::with(['jadwal', 'pembayaran'])
         ->where('penyewa_id', $userId)
         ->where('status', 'menunggu')
         ->latest()
         ->get();
 
-foreach ($belumDibayar as $p) {
-    $batasWaktu = Carbon::parse($p->created_at)->addMinutes(15);
-
-    if ($now->greaterThan($batasWaktu)) {
-        $p->update(['status' => 'kadaluarsa']);
-
-        if ($p->jadwal) {
-            $p->jadwal->update(['tersedia' => true]);
-        }
-
-        if ($p->pembayaran) {
-            $p->pembayaran->update(['status' => 'kadaluarsa']);
-        }
-    }
+    return view('penyewa.pembayaran', [
+        'belumDibayar' => $belumDibayar,
+        'semuaPemesananUser' => $semuaPemesananUser,
+        'userOrders' => $userOrders
+    ]);
 }
-
-
-    // Setelah update, ambil ulang hanya yang benar-benar masih menunggu
-    $belumDibayar = Pemesanan::with(['jadwal'])
-        ->where('penyewa_id', $userId)
-        ->where('status', 'menunggu')
-        ->latest()
-        ->get();
-
-return view('penyewa.pembayaran', [
-    'belumDibayar' => $belumDibayar,
-    'semuaPemesananUser' => $semuaPemesananUser,
-            'userOrders' => $userOrders
-
-]);}
-
 
 
 
@@ -501,6 +485,7 @@ if ($existing) {
             'lapangan_id' => $lapangan->id,
             'jadwal_id' => $jadwal->id,
             'status' => 'menunggu',
+             'expires_at' => now()->addMinutes(15),
         ]);
 
         $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
@@ -655,6 +640,7 @@ public function getSnapTokenAgain(Pemesanan $pemesanan)
             'lapangan_id' => $lapangan->id,
             'jadwal_id' => $jadwal->id,
             'status' => 'menunggu',
+             'expires_at' => now()->addMinutes(15),
         ]);
 
         // 🔹 Simpan pembayaran pending

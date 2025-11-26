@@ -18,6 +18,7 @@ class Pemesanan extends Model
         'kode_tiket', // jangan lupa tambahkan
         'status_scan',
         'waktu_scan',
+        'expires_at'
     ];
 
     // Pemesanan.php
@@ -111,6 +112,20 @@ public function getBookingStatusAttribute()
     }
 
     return $this->status;
+}
+public function checkExpired()
+{
+    if ($this->status === 'menunggu' && $this->expires_at && $this->expires_at < now()) {
+        $this->update(['status' => 'kadaluarsa']);
+
+        if ($this->jadwal) {
+            $this->jadwal->update(['tersedia' => true]);
+        }
+
+        if ($this->pembayaran) {
+            $this->pembayaran->update(['status' => 'kadaluarsa']);
+        }
+    }
 }
 
 
