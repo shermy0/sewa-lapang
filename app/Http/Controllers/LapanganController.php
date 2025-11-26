@@ -16,7 +16,7 @@ class LapanganController extends Controller
 {
     private const MAX_SIMPLE_RANGE_DAYS = 90;
     private const MAX_GENERATED_SLOTS = 500;
-    
+
     public function index(Request $request)
     {
         $userId = auth()->id();
@@ -62,7 +62,6 @@ class LapanganController extends Controller
             'sections' => ['nullable', 'array'],
             'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
             'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
-            'sections.*.harga_per_jam' => ['nullable', 'numeric', 'min:0'],
             'sections.*.harga_per_jam' => ['nullable', 'numeric', 'min:0'],
             'foto.*' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
@@ -133,7 +132,7 @@ class LapanganController extends Controller
 
         return view('lapangan.show', compact('lapangan'));
     }
-    
+
     public function update(Request $request, $id)
     {
         $lapangan = Lapangan::findOrFail($id);
@@ -148,46 +147,59 @@ class LapanganController extends Controller
             'sections.*.nama_section' => ['nullable', 'string', 'max:255'],
             'sections.*.deskripsi' => ['nullable', 'string', 'max:255'],
             'foto.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'foto_order' => ['nullable', 'string'], // Untuk urutan foto yang sudah ada
         ]);
 
-        // Get existing photos (already decoded by Laravel)
-        $fotoPaths = $lapangan->foto ?? [];
-
-        // Ensure it's an array
-        if (!is_array($fotoPaths)) {
-            $fotoPaths = [];
-        }
-
-        // Handle new photo uploads
-        if ($request->hasFile('foto')) {
-            // Delete old photos
-            foreach ($fotoPaths as $oldFoto) {
-                Storage::disk('public')->delete($oldFoto);
-            }
-
-            // Upload new photos
-            $fotoPaths = [];
-            foreach ($request->file('foto') as $foto) {
-                $fotoPaths[] = $foto->store('lapangan', 'public');
-            }
-        }
-
         $kategoriModel = Kategori::find($request->id_kategori);
-        $tiketTersedia = $request->filled('tiket_tersedia')
-            ? max(0, (int) $request->input('tiket_tersedia'))
-            : ($lapangan->tiket_tersedia ?? 0);
         $sectionsInput = $request->input('sections', []);
+        $newFotoOrder = $request->input('foto_order', '');
 
-        DB::transaction(function () use ($lapangan, $request, $kategoriModel, $fotoPaths, $sectionsInput) {
+        DB::transaction(function () use ($request, $lapangan, $kategoriModel, $sectionsInput, $newFotoOrder) {
+            // Proses foto yang sudah ada
+            $existingFotoPaths = $lapangan->foto ?? [];
+            if (!is_array($existingFotoPaths)) {
+                $existingFotoPaths = [];
+            }
+
+            // Jika ada urutan baru, atur ulang array foto yang ada
+            if (!empty($newFotoOrder)) {
+                $orderedPaths = explode(',', $newFotoOrder);
+                $finalExistingPaths = [];
+                foreach ($orderedPaths as $path) {
+                    if (in_array($path, $existingFotoPaths)) {
+                        $finalExistingPaths[] = $path;
+                    }
+                }
+                $existingFotoPaths = $finalExistingPaths;
+            }
+
+            // Handle new photo uploads
+            $newFotoPaths = [];
+            if ($request->hasFile('foto')) {
+                foreach ($request->file('foto') as $foto) {
+                    $newFotoPaths[] = $foto->store('lapangan', 'public');
+                }
+            }
+
+            // Gabungkan foto lama (yang sudah diurutkan) dengan foto baru
+            $finalFotoPaths = array_merge($existingFotoPaths, $newFotoPaths);
+
+            // Hapus foto lama dari storage jika tidak ada lagi di finalFotoPaths
+            // Ini terjadi jika foto dihapus dari UI dengan menekan tombol 'x'
+            foreach ($lapangan->foto ?? [] as $oldFoto) {
+                if (!in_array($oldFoto, $finalFotoPaths)) {
+                    Storage::disk('public')->delete($oldFoto);
+                }
+            }
+
             $lapangan->update([
                 'nama_lapangan' => $request->nama_lapangan,
                 'id_kategori' => $request->id_kategori,
                 'kategori' => $kategoriModel?->nama_kategori,
                 'lokasi' => $request->lokasi,
                 'deskripsi' => $request->deskripsi,
-                // 'tiket_tersedia' => $tiketTersedia,
                 'status' => $request->input('status', $lapangan->status),
-                'foto' => $fotoPaths, // Laravel akan otomatis convert ke JSON
+                'foto' => $finalFotoPaths, // Simpan array foto final
             ]);
 
             $this->syncSections($lapangan, $sectionsInput, true);
@@ -672,7 +684,8 @@ class LapanganController extends Controller
             }
 
              if (is_null($sectionData['harga_per_jam'])) {
-                $sectionData['harga_per_jam'] = $lapangan->harga_sewa;
+                // Fallback ke harga lapangan jika ada, jika tidak 0
+                $sectionData['harga_per_jam'] = $lapangan->harga_sewa ?? 0;
             }
 
             if ($replaceExisting && ctype_digit((string) $key)) {
@@ -692,7 +705,7 @@ class LapanganController extends Controller
             $default = $lapangan->sections()->create([
                 'nama_section' => 'Lapangan Utama',
                 'deskripsi' => null,
-                'harga_per_jam' => $lapangan->harga_sewa,
+                'harga_per_jam' => $lapangan->harga_sewa ?? 0,
             ]);
             $processedIds[] = $default->id;
         }
