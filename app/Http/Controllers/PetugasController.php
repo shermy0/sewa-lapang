@@ -74,7 +74,7 @@ class PetugasController extends Controller
         // Data antrean per section
         $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
 
-        return view('petugas.index', [
+        return view('petugas.queue', [
             'kategori' => $kategori,
             'lapangan' => $lapanganData,
             'petugasName' => $petugasName,
