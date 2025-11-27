@@ -15,9 +15,10 @@ class PetugasController extends Controller
     {
         $petugas = Auth::user();
         $petugasName = $petugas->name;
+        $pemilikId = $petugas->pemilik_id;
 
         // Ambil semua lapangan milik pemilik petugas
-        $lapangan = Lapangan::where('pemilik_id', $petugas->pemilik_id)
+        $lapangan = Lapangan::where('pemilik_id', $pemilikId)
             ->with('kategori')
             ->get();
 
@@ -46,23 +47,36 @@ class PetugasController extends Controller
                 ->whereIn('section_id', $sectionIds)
                 ->avg('harga_sewa');
 
-            $hargaFormatted = $harga ? number_format($harga, 0, ',', '.') : '-';
+            $primaryPhoto = '';
+            if (! empty($fotoArray)) {
+                $primaryPhoto = $fotoArray[0];
+            } elseif (is_string($l->foto)) {
+                $primaryPhoto = $l->foto;
+            }
 
             return [
                 'id' => $l->id,
                 'nama' => $l->nama_lapangan,
-                'deskripsi' => $l->deskripsi ?? '',
-                'id_kategori' => $l->id_kategori,
-                'kategori_nama' => $l->kategori->nama_kategori ?? '',
-                'foto' => $fotoArray,
-                'hargaRataRata' => $hargaFormatted,
-            ];                
+                'pemilik_id' => $l->pemilik_id,
+                'kategori_id' => $l->id_kategori,
+                'kategori' => $l->kategori->nama_kategori ?? '',
+                'foto' => $primaryPhoto,
+                'harga' => $harga ? (int) $harga : 0,
+                'durasi' => 'Per jam',
+                'lokasi' => $l->lokasi ?? '',
+                'status' => $l->status ?? 'available',
+            ];
         });
+
+        // Data antrean per section; default kosong agar Blade tidak error
+        $sectionQueues = collect();
 
         return view('petugas.index', [
             'kategori' => $kategori,
             'lapangan' => $lapanganData,
             'petugasName' => $petugasName,
+            'sectionQueues' => $sectionQueues,
+            'pemilikId' => $pemilikId,
         ]);
     }
 

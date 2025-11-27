@@ -78,7 +78,7 @@ class AuthenticatedSessionController extends Controller
     }
 
     if ($user->role === 'petugas') {
-        return redirect()->route('petugas.dashboard')->with('status', 'Login berhasil sebagai Petugas.');
+        return redirect()->route('petugas.index')->with('status', 'Login berhasil sebagai Petugas.');
     }
 
     // Default kalau role-nya tidak dikenali

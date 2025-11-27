@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'penyewa' => route('penyewa.beranda'),
                 'pemilik' => route('dashboard.pemilik'),
                 'admin' => route('dashboard.admin'),
-                'petugas' => route('petugas.dashboard'),
+                'petugas' => route('petugas.index'),
                 default => '/',
             };
         });

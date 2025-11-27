@@ -262,12 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderCart();
 });
 
-document.getElementById("filterKategori").addEventListener("change", e => {
-  filterKategori = e.target.value;
-  page = 1;
-  renderGrid();
-});
-
   document.getElementById("searchInput").addEventListener("input", () => {
     page = 1;
     renderGrid();
