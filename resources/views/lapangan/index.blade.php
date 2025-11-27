@@ -8,7 +8,7 @@
         <div class="row align-items-center mb-4">
             <div class="col-lg-8">
                 <h2 class="fw-bold text-dark mb-2">
-                    <i class="fa-solid fa-layer-group me-2 text-success"></i> Kelola Lapangan
+                    <i class="fa-solid fa-layer-group me-2 text-success"></i> Kelola Arena
                 </h2>
                 <p class="text-muted mb-0">Kelola portofolio tempat olahraga Anda dengan mudah</p>
             </div>

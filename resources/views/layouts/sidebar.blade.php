@@ -88,7 +88,7 @@
                 'active_routes' => ['dashboard.pemilik'],
             ],
             [
-                'label' => 'Data Lapangan',
+                'label' => 'Data Arena',
                 'icon' => 'fa-solid fa-futbol',
                 'route' => 'lapangan.index',
                 'active_routes' => ['lapangan.index'],
