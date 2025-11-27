@@ -52,7 +52,6 @@
   </style>
 </head>
 <body>
-
 <header class="topbar d-flex align-items-center justify-content-between">
   <div class="d-flex align-items-center gap-3">
     <div class="brand">SEWALAP</div>
