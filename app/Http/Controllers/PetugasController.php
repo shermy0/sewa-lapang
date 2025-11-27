@@ -72,36 +72,39 @@ class PetugasController extends Controller
         return view('petugas.create', compact('kategori'));
     }
 
-
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_lapangan' => 'required',
-            'id_kategori'   => 'required',
-            'lokasi'        => 'required',
-            'deskripsi'     => 'nullable',
-            'foto.*'        => 'image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+        try {
+            $transaksi = Transaksi::create([
+                'kasir' => $request->kasir,
+                'metode' => $request->metode,
+                'total' => $request->total,
+            ]);
 
-        $fotoArray = [];
+            foreach($request->items as $item){
+                // Simpan item transaksi
+                TransaksiItem::create([
+                    'transaksi_id' => $transaksi->id,
+                    'lapangan_id' => $item['id'],
+                    'nama_lapangan' => $item['nama'],
+                    'harga' => $item['harga'],
+                    'jam_mulai' => $item['jam_mulai'],
+                    'tanggal' => $item['tanggal'],
+                    'durasi' => $item['durasi'],
+                ]);
 
-        if ($request->hasFile('foto')) {
-            foreach ($request->file('foto') as $foto) {
-                $path = $foto->store('lapangan', 'public');
-                $fotoArray[] = $path;
+                // Update jadwal supaya slot hilang
+                DB::table('jadwal')
+                    ->where('lapangan_id', $item['id'])
+                    ->where('tanggal', $item['tanggal'])
+                    ->where('jam_mulai', $item['jam_mulai'])
+                    ->update(['booking_status'=>'dibayar']);
             }
+
+            return response()->json(['success'=>true]);
+        } catch (\Exception $e) {
+            return response()->json(['success'=>false,'error'=>$e->getMessage()]);
         }
-
-        Lapangan::create([
-            'pemilik_id'   => Auth::id(),   // sesuai DB
-            'id_kategori'  => $request->id_kategori,
-            'nama_lapangan'=> $request->nama_lapangan,
-            'lokasi'       => $request->lokasi,
-            'deskripsi'    => $request->deskripsi,
-            'foto'         => json_encode($fotoArray),
-        ]);
-
-        return redirect()->route('petugas.index')->with('success', 'Lapangan berhasil ditambahkan');
     }
 
     public function getJadwalLapangan($lapanganId)

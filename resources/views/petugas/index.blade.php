@@ -43,10 +43,6 @@
       box-shadow:0 2px 5px rgba(0,0,0,.08);
       padding:15px;overflow:auto
     }
-    .qty-btn{
-      width:28px;height:28px;background:#eee;border-radius:6px;
-      text-align:center;line-height:28px;cursor:pointer;
-    }
     .btn-pay{background:var(--accent);color:#fff}
     @media(max-width:991px){
       .cart{position:relative;height:auto;margin-top:15px}
@@ -84,7 +80,6 @@
 
 <main class="container-fluid mt-3">
   <div class="row gx-4">
-
     <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
       <div class="d-flex justify-content-between mb-3">
@@ -97,9 +92,7 @@
         </select>
       </div>
       <div id="grid" class="row g-3"></div>
-      <div class="d-flex justify-content-center mt-3">
-        <ul id="pagination" class="pagination pagination-sm"></ul>
-      </div>
+      <ul id="gridPagination" class="pagination justify-content-center mt-3"></ul>
     </div>
 
     <!-- KERANJANG -->
@@ -121,12 +114,10 @@
             <small class="text-muted">Total</small>
             <div class="fs-5 fw-bold" id="totalPrice">Rp 0</div>
           </div>
-          <button id="saveBtn" class="btn btn-outline-secondary w-100 mt-3">Simpan</button>
           <button id="payBtn" class="btn btn-pay w-100 mt-2">Bayar</button>
         </div>
       </div>
     </div>
-
   </div>
 </main>
 
@@ -138,11 +129,63 @@
         <h5 class="modal-title" id="jadwalModalLabel">Jadwal Tersedia</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body" id="jadwalContent">
-        <p class="text-center text-muted">Memuat jadwal...</p>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <label for="filterTanggal" class="form-label fw-semibold mb-1">Tanggal</label>
+            <input type="date" id="filterTanggal" class="form-control">
+          </div>
+          <div class="col">
+            <label for="filterJamMulai" class="form-label fw-semibold mb-1">Jam Mulai</label>
+            <input type="time" id="filterJamMulai" class="form-control">
+          </div>
+          <div class="col-auto d-flex align-items-end">
+            <button class="btn btn-success w-100" id="resetFilters">
+              <i class="fa fa-rotate-left me-1"></i> Reset Filter
+            </button>
+          </div>
+        </div>
+
+        <div id="jadwalContent">
+          <p class="text-center text-muted">Memuat jadwal...</p>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <div id="paginationSummary"></div>
+          <ul id="jadwalPagination" class="pagination pagination-sm mb-0"></ul>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-success" id="pesanBtn">Pesan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PEMBAYARAN -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="paymentModalLabel">Pilih Metode Pembayaran</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group">
+          <li class="list-group-item">
+            <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
+            <label for="payCash">Cash</label>
+          </li>
+          <li class="list-group-item">
+            <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
+            <label for="payMidtrans">Midtrans</label>
+          </li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-success" id="confirmPaymentBtn">Bayar</button>
       </div>
     </div>
   </div>
@@ -150,215 +193,340 @@
 
 <script>
 const lapanganData = @json($lapangan);
-const petugasName  = "{{ $petugasName }}";
-
 let cart = [];
 let perPage = 9;
 let page = 1;
 let filterKategori = "all";
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderGrid();
-  renderCart();
-});
 
-document.getElementById("filterKategori").addEventListener("change", e => {
-  filterKategori = e.target.value;
-  page = 1;
-  renderGrid();
-});
+  // ======== RENDER GRID LAPANGAN ========
+  function renderGrid(){
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    const q = document.getElementById("searchInput").value.toLowerCase();
 
-document.getElementById("searchInput").addEventListener("input", () => {
-  page = 1;
-  renderGrid();
-});
+    let items = lapanganData.map(l => ({ ...l, foto: l.foto || [], hargaRataRata: l.hargaRataRata, kategori_nama: l.kategori_nama || 'Tidak ada'}));
+    if(filterKategori!=="all") items = items.filter(l=>l.id_kategori==filterKategori);
+    if(q) items = items.filter(l=>l.nama.toLowerCase().includes(q));
 
-function renderGrid(){
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
+    const totalPages = Math.ceil(items.length/perPage) || 1;
+    page = Math.min(page,totalPages);
+    const start = (page-1)*perPage;
+    const pageItems = items.slice(start,start+perPage);
 
-  const q = document.getElementById("searchInput").value.toLowerCase();
-
-  let items = lapanganData.map(l => ({
-    ...l,
-    foto: l.foto || [],
-    hargaRataRata: l.hargaRataRata,
-    kategori_nama: l.kategori_nama || 'Tidak ada'
-  }));
-
-  if(filterKategori !== "all") items = items.filter(l => l.id_kategori == filterKategori);
-  if(q) items = items.filter(l => l.nama.toLowerCase().includes(q));
-
-  const totalPages = Math.ceil(items.length / perPage) || 1;
-  page = Math.min(page, totalPages);
-  const start = (page - 1) * perPage;
-  const pageItems = items.slice(start, start + perPage);
-
-  pageItems.forEach(l => {
-    const col = document.createElement("div");
-    col.className = "col-md-4";
-
-    let fotoHTML = "";
-    if (l.foto.length > 1) {
-      fotoHTML = `
+    pageItems.forEach(l=>{
+      const col = document.createElement("div");
+      col.className = "col-md-4";
+      let fotoHTML = l.foto.length>1?`
         <div id="carousel${l.id}" class="carousel slide">
           <div class="carousel-inner">
-            ${l.foto.map((f, idx) => `
-              <div class="carousel-item ${idx===0?'active':''}">
-                <img src="/storage/${f}" class="lapangan-img">
-              </div>`).join('')}
+            ${l.foto.map((f,idx)=>`<div class="carousel-item ${idx===0?'active':''}"><img src="/storage/${f}" class="lapangan-img"></div>`).join('')}
           </div>
-        </div>`;
-    } else if(l.foto.length===1){
-      fotoHTML = `<img src="/storage/${l.foto[0]}" class="lapangan-img">`;
-    } else {
-      fotoHTML = `<img src="/no-image.jpg" class="lapangan-img">`;
+        </div>` : l.foto.length===1?`<img src="/storage/${l.foto[0]}" class="lapangan-img">`:`<img src="/no-image.jpg" class="lapangan-img">`;
+
+      col.innerHTML = `<div class="card lapangan-card" data-id="${l.id}">${fotoHTML}
+        <div class="card-body py-2 px-2">
+          <h6 class="card-title mb-1">${l.nama}</h6>
+          ${l.deskripsi?`<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>`:''}
+          <div class="mt-1 d-flex justify-content-between">
+            <small>Harga Rata-rata:</small>
+            <small style="color:#41A67E;font-weight:600;">${l.hargaRataRata?`Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam`:'-'}</small>
+          </div>
+        </div>
+      </div>`;
+
+      col.querySelector(".lapangan-card").addEventListener("click",()=>openJadwalModal(l));
+      grid.appendChild(col);
+    });
+
+    renderGridPagination(totalPages);
+  }
+
+  function renderGridPagination(totalPages){
+    const pg = document.getElementById("gridPagination");
+    pg.innerHTML="";
+    const createPageItem = (num, active=false, disabled=false) => {
+      const li = document.createElement("li");
+      li.className="page-item "+(active?"active":"")+(disabled?" disabled":"");
+      li.innerHTML=`<a href="#" class="page-link">${num}</a>`;
+      if(!disabled && !active){
+        li.querySelector('a').addEventListener("click",e=>{
+          e.preventDefault(); page=num; renderGrid();
+        });
+      }
+      return li;
     }
 
-    col.innerHTML = `
-    <div class="card lapangan-card" data-id="${l.id}">
-      ${fotoHTML}
-      <div class="card-body py-2 px-2">
-        <h6 class="card-title mb-1">${l.nama}</h6>
-        ${l.deskripsi ? `<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>` : ''}
-        <div class="mt-1 d-flex justify-content-between">
-          <small>Harga Rata-rata:</small>
-          <small style="color:#41A67E;font-weight:600;">
-            ${l.hargaRataRata ? `Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam` : '-'}
-          </small>
-        </div>
-      </div>
-    </div>`;
+    pg.appendChild(createPageItem("«", false, page===1).querySelector('a')?.parentElement||createPageItem("«", false, page===1));
+    for(let i=1;i<=totalPages;i++){
+      pg.appendChild(createPageItem(i,i===page));
+    }
+    pg.appendChild(createPageItem("»", false, page===totalPages).querySelector('a')?.parentElement||createPageItem("»", false, page===totalPages));
+  }
 
-    document.querySelectorAll(".lapangan-card").forEach(card=>{
-    card.addEventListener("click", async ()=>{
-      const lapanganId = card.dataset.id;
-      const modal = new bootstrap.Modal(document.getElementById('jadwalModal'));
-      const content = document.getElementById('jadwalContent');
-      document.getElementById('jadwalModalLabel').innerText = card.querySelector(".card-title").innerText;
-      content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
-      modal.show();
+  // ======== CART ========
+  function addToCart(item){
+    const exist = cart.find(c=>c.id===item.id && c.jam_mulai===item.jam_mulai && c.tanggal===item.tanggal);
+    if(exist) exist.durasi+=item.durasi;
+    else cart.push({...item});
+    renderCart();
+  }
 
-      try {
-        const res = await fetch(`/petugas/api/jadwal/${lapanganId}`);
-        const data = await res.json();
-        if(!data.length){
-          content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
-          return;
-        }
+  function renderCart(){
+    const list = document.getElementById("orderList");
+    list.innerHTML = "";
 
-        // GRID JADWAL
-        const grid = document.createElement("div");
-        grid.className = "row g-3";
+    if(cart.length === 0){
+      list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
+    } else {
+      cart.forEach(it => {
+        const li = document.createElement("li");
+        li.className = "list-group-item py-2";
 
-        data.forEach(j => {
-          const col = document.createElement("div");
-          col.className = "col-md-4";
+        li.innerHTML = `
+          <div class="fw-bold">${it.nama}</div>
+          <div class="small text-muted">${it.jam_mulai} • ${it.tanggal}</div>
+          <div class="fw-bold">Rp ${Number(it.harga).toLocaleString('id-ID')}</div>
+        `;
+        list.appendChild(li);
+      });
+    }
 
-          // STATUS WARNA
+    document.getElementById("cartCount").innerText = cart.length + " item";
+    updateTotals();
+  }
+
+  function updateTotals(){
+    const subtotal = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+    document.getElementById("subtotal").innerText = "Rp " + subtotal.toLocaleString('id-ID');
+    document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
+  }
+
+  // ======== MODAL JADWAL ========
+  function openJadwalModal(lapangan){
+    const modalEl = document.getElementById('jadwalModal');
+    const modal = new bootstrap.Modal(modalEl);
+    const content = document.getElementById('jadwalContent');
+    const filterTanggal = document.getElementById('filterTanggal');
+    const filterJamMulai = document.getElementById('filterJamMulai');
+    const resetBtn = document.getElementById('resetFilters');
+    const summaryEl = document.getElementById('paginationSummary');
+    const paginationEl = document.getElementById('jadwalPagination');
+    const pesanBtn = document.getElementById('pesanBtn');
+
+    document.getElementById('jadwalModalLabel').innerText = lapangan.nama;
+    content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
+    filterTanggal.value = ''; filterJamMulai.value = '';
+
+    modal.show();
+
+    let jadwalData=[];
+    let currentPage=1;
+    const rowsPerPage=6;
+
+    fetch(`/petugas/api/jadwal/${lapangan.id}`)
+      .then(res=>res.json())
+      .then(data=>{ jadwalData=data; renderPage(1); })
+      .catch(err=>{ content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>'; console.error(err); });
+
+    function getFilteredData(){
+      return jadwalData.filter(j=>{
+        let ok=true;
+        if(filterTanggal.value) ok=ok && j.tanggal===filterTanggal.value;
+        if(filterJamMulai.value) ok=ok && j.jam_mulai>=filterJamMulai.value;
+        return ok;
+      });
+    }
+
+    function renderPage(page){
+      const filtered = getFilteredData();
+      const totalPages = Math.ceil(filtered.length/rowsPerPage) || 1;
+      currentPage = Math.min(Math.max(1,page),totalPages);
+      const start = (currentPage-1)*rowsPerPage;
+      const pageData = filtered.slice(start,start+rowsPerPage);
+
+      content.innerHTML = '';
+      if(pageData.length === 0){
+        content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
+      } else {
+        const grid = document.createElement('div');
+        grid.className = 'row g-3';
+
+        pageData.forEach(j => {
+          const col = document.createElement('div');
+          col.className = 'col-md-4';
+
           let statusClass="", statusText="";
-          if(j.booking_status==="dibayar"){
-            statusClass="bg-success text-white";
-            statusText="Sudah Dibayar";
-          } else if(j.booking_status==="menunggu"){
-            statusClass="bg-warning text-dark";
-            statusText="Sedang Dibooking";
+          if(j.booking_status==="dibayar"){ 
+            statusClass="bg-success text-white"; 
+            statusText="Sudah Dibayar"; 
+          } else if(j.booking_status==="menunggu"){ 
+            statusClass="bg-warning text-dark"; 
+            statusText="Sedang Dibooking"; 
           } else {
             statusClass="bg-light text-dark";
+            const tanggalObj = new Date(j.tanggal);
+            statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
           }
 
-          col.innerHTML = `
-            <div class="card p-2 text-center ${statusClass}" style="cursor:pointer;border-radius:8px;">
-              <div><strong>${j.tanggal}</strong></div>
+          const card = document.createElement('div');
+          card.className = `card p-2 text-center ${statusClass}`;
+          card.style.cursor = (j.booking_status==="tersedia" || j.booking_status===undefined) ? 'pointer' : 'default';
+          card.style.borderRadius = '8px';
+
+          if(j.booking_status!=="dibayar" && j.booking_status!=="menunggu"){
+            card.innerHTML = `
               <div>${j.jam_mulai} - ${j.jam_selesai}</div>
-              <div class="mt-1 fw-bold">Rp ${j.harga_sewa.toLocaleString('id-ID')}</div>
+              <div class="mt-1 fw-bold">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+              <div class="form-check mt-1">
+                <input class="form-check-input slot-checkbox" type="checkbox" value="">
+                <label class="form-check-label small">${statusText}</label>
+              </div>
+            `;
+          } else {
+            card.innerHTML = `
+              <div>${j.jam_mulai} - ${j.jam_selesai}</div>
+              <div class="mt-1 fw-bold">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
               <div class="small">${statusText}</div>
-            </div>
-          `;
+            `;
+          }
+
+          col.appendChild(card);
           grid.appendChild(col);
         });
 
-        content.innerHTML = "";
         content.appendChild(grid);
-
-      } catch(e){
-        content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>';
-        console.error(e);
       }
+
+      summaryEl.textContent = filtered.length===0 ? 'Jadwal tidak tersedia' :
+        `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, filtered.length)} dari ${filtered.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
+
+      renderJadwalPagination(totalPages);
+    }
+
+    function renderJadwalPagination(totalPages){
+      paginationEl.innerHTML='';
+      const createPageItem=(num,active=false,disabled=false)=>{
+        const li=document.createElement('li');
+        li.className='page-item '+(active?'active':'')+(disabled?' disabled':'');
+        li.innerHTML=`<a href="#" class="page-link">${num}</a>`;
+        if(!disabled && !active){
+          li.querySelector('a').addEventListener('click',e=>{
+            e.preventDefault(); currentPage=num; renderPage(currentPage);
+          });
+        }
+        return li;
+      }
+
+      paginationEl.appendChild(createPageItem('«',false,currentPage===1));
+      for(let i=1;i<=totalPages;i++) paginationEl.appendChild(createPageItem(i,i===currentPage));
+      paginationEl.appendChild(createPageItem('»',false,currentPage===totalPages));
+    }
+
+    filterTanggal.addEventListener('change',()=>renderPage(1));
+    filterJamMulai.addEventListener('change',()=>renderPage(1));
+    resetBtn.addEventListener('click',()=>{
+      filterTanggal.value=''; filterJamMulai.value='';
+      renderPage(1);
     });
-  });
 
-    grid.appendChild(col);
-  });
+    pesanBtn.addEventListener('click', ()=>{
+      const grid = content.querySelector('.row');
+      if(!grid) return;
 
-  renderPagination(totalPages);
-}
+      const checkedSlots = grid.querySelectorAll('.slot-checkbox:checked');
+      checkedSlots.forEach(chk=>{
+        const card = chk.closest('.card');
+        const jam = card.querySelector('div').textContent.split(' - ')[0];
+        const hargaText = card.querySelector('.fw-bold').textContent.replace(/Rp\s|[.]/g,'');
+        const tanggal = card.querySelector('label').textContent;
 
-function renderPagination(totalPages){
-  const pg = document.getElementById("pagination");
-  pg.innerHTML="";
-  for(let i=1;i<=totalPages;i++){
-    const li=document.createElement("li");
-    li.className="page-item "+(i===page?"active":"");
-    li.innerHTML=`<a href="#" class="page-link">${i}</a>`;
-    li.addEventListener("click",e=>{
-      e.preventDefault();
-      page=i;
-      renderGrid();
+        addToCart({
+          id: lapangan.id,
+          nama: lapangan.nama,
+          harga: parseInt(hargaText),
+          jam_mulai: jam,
+          tanggal: tanggal,
+          durasi: 1
+        });
+      });
+
+      modal.hide();
+      renderCart();
     });
-    pg.appendChild(li);
   }
-}
 
-function addToCart(item){
-  const exist = cart.find(c => c.id===item.id && c.jam_mulai===item.jam_mulai);
-  if(exist) exist.durasi+=item.durasi;
-  else cart.push({...item});
+  // ======== EVENT FILTER & SEARCH ========
+  document.getElementById("filterKategori").addEventListener("change", e => {
+    filterKategori = e.target.value;
+    page = 1;
+    renderGrid();
+  });
+
+  document.getElementById("searchInput").addEventListener("input", () => {
+    page = 1;
+    renderGrid();
+  });
+
+  // ======== PEMBAYARAN ========
+  const payBtn = document.getElementById("payBtn");
+  const paymentModalEl = document.getElementById('paymentModal');
+  const paymentModal = new bootstrap.Modal(paymentModalEl);
+  const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+
+  payBtn.addEventListener('click', ()=>{
+      if(cart.length===0){
+          alert("Keranjang kosong!");
+          return;
+      }
+      paymentModal.show();
+  });
+
+  confirmPaymentBtn.addEventListener('click', ()=>{
+      const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+      if(cart.length===0){
+          alert("Keranjang kosong!");
+          return;
+      }
+      paymentModal.hide();
+
+      const transaksiData = {
+          kasir: "{{ $petugasName }}",
+          metode: method,
+          total: cart.reduce((s,i)=>s+i.harga*i.durasi,0),
+          items: cart
+      };fetch('{{ route("petugas.payment.store") }}', {
+          
+          method:'POST',
+          headers:{
+              'Content-Type':'application/json',
+              'X-CSRF-TOKEN':'{{ csrf_token() }}'
+          },
+          body: JSON.stringify(transaksiData)
+      })
+      .then(res => res.json())
+      .then(data => {
+          if(data.success){
+              alert(`Pembayaran berhasil! Total: Rp ${transaksiData.total.toLocaleString('id-ID')}`);
+              cart = [];
+              renderCart();
+              if(typeof refreshJadwal === 'function') refreshJadwal();
+          } else {
+              alert('Gagal menyimpan transaksi!');
+          }
+      })
+      .catch(err => {
+          console.error(err);
+          alert('Terjadi kesalahan server!');
+      });
+  });
+
+  // ======== INIT ========
+  renderGrid();
   renderCart();
-}
 
-function changeQty(i,d){ cart[i].durasi = Math.max(1, cart[i].durasi+d); renderCart(); }
-function removeItem(i){ cart.splice(i,1); renderCart(); }
-
-function renderCart(){
-  const list=document.getElementById("orderList");
-  list.innerHTML="";
-  if(cart.length===0){
-    list.innerHTML='<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-  } else {
-    cart.forEach((it,idx)=>{
-      const li=document.createElement("li");
-      li.className="list-group-item py-2";
-      li.innerHTML=`
-        <div class="d-flex justify-content-between">
-          <div>
-            <div class="fw-bold">${it.nama}</div>
-            <small class="text-muted">${it.jam_mulai} • ${it.durasi} jam</small>
-          </div>
-          <div class="text-end">
-            <div>Rp ${formatNum(it.harga*it.durasi)}</div>
-            <div class="d-flex justify-content-end mt-1">
-              <div class="qty-btn" onclick="changeQty(${idx},-1)">-</div>
-              <div class="px-2">${it.durasi}</div>
-              <div class="qty-btn" onclick="changeQty(${idx},1)">+</div>
-              <div class="ms-2 text-danger" style="cursor:pointer" onclick="removeItem(${idx})">✕</div>
-            </div>
-          </div>
-        </div>`;
-      list.appendChild(li);
-    });
-  }
-  document.getElementById("cartCount").innerText = cart.length + " item";
-  updateTotals();
-}
-
-function updateTotals(){
-  const subtotal = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
-  document.getElementById("subtotal").innerText="Rp "+formatNum(subtotal);
-  document.getElementById("totalPrice").innerText="Rp "+formatNum(subtotal);
-}
-
-function formatNum(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,"."); }
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
