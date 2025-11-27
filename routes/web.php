@@ -196,7 +196,7 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
     ->group(function () {
         Route::get('/', [PetugasController::class, 'index'])->name('index');
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
-        Route::post('/payment/store', [PetugasController::class, 'store'])->name('payment.store');
+        Route::post('/payment/store', [PetugasController::class, 'store'])->name('store');
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
     });

@@ -1,3 +1,8 @@
+@extends('layouts.master')
+
+@section('title', 'Petugas Kasir')
+
+@section('content')
 <!doctype html>
 <html lang="id">
 <head>
@@ -15,38 +20,111 @@
       --muted:#9aa5b1;
       --bg:#f5f7fb;
     }
-    body{
+
+    body {
       background: var(--bg);
-      font-family: Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      margin: 0;
+      padding: 0;
     }
-    .topbar{
+
+    .topbar {
       background: var(--accent);
-      color:#fff;
-      padding:12px 20px;
-      box-shadow:0 2px 5px rgba(0,0,0,.05);
+      color: #fff;
+      padding: 12px 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
-    .brand{font-weight:700;font-size:1.2rem;}
-    .lapangan-card{
-      cursor:pointer;
-      transition:.12s;
-      border-radius:6px;
-      box-shadow:0 2px 6px rgba(0,0,0,.05);
-      overflow:hidden;
+
+    .brand {
+      font-weight: 700;
+      font-size: 1.2rem;
     }
-    .lapangan-card:hover{
-      transform:translateY(-3px);
-      box-shadow:0 6px 15px var(--card-hover);
+
+    .lapangan-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
     }
-    .lapangan-img{height:120px;object-fit:cover;width:100%}
-    .cart{
-      position:sticky;top:20px;height:calc(100vh - 40px);
-      background:#fff;border-radius:10px;
-      box-shadow:0 2px 5px rgba(0,0,0,.08);
-      padding:15px;overflow:auto
+
+    .lapangan-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px var(--card-hover);
     }
-    .btn-pay{background:var(--accent);color:#fff}
-    @media(max-width:991px){
-      .cart{position:relative;height:auto;margin-top:15px}
+
+    /* GAMBAR */
+    .lapangan-img,
+    .card .carousel-inner,
+    .card .carousel-item {
+      width: 100%;
+      height: 220px; /* tinggi konsisten */
+    }
+
+    .lapangan-img {
+      object-fit: cover;
+    }
+
+    /* Carousel image */
+    .card .carousel-inner img {
+      width: 100%;
+      height: 220px; /* sama dengan lapangan-img */
+      object-fit: cover;
+    }
+
+    .cart {
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .cart h6 {
+      font-weight: 600;
+    }
+
+    .btn-pay {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    input#searchInput {
+      border-radius: 20px;
+      max-width: 200px;
+    }
+
+    select#filterKategori {
+      max-width: 180px;
+    }
+
+    @media (max-width: 991px) {
+      .cart {
+        position: relative;
+        height: auto;
+        max-height: none;
+        margin-top: 15px;
+      }
+
+      .lapangan-img,
+      .card .carousel-inner,
+      .card .carousel-item,
+      .card .carousel-inner img {
+        height: 180px; /* lebih kecil di mobile */
+      }
+    }
+
+    .card .text-truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
@@ -181,7 +259,6 @@
         </div>
       </div>
       <div id="grid" class="row g-3"></div>
-      <ul id="gridPagination" class="pagination justify-content-center mt-3"></ul>
     </div>
 
     <!-- KERANJANG -->
