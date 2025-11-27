@@ -112,6 +112,12 @@
                 'active_routes' => ['pemilik.pemesanan.index'],
             ],
             [
+              'label' => 'Petugas',
+              'icon' => 'fa-solid fa-users',
+              'route' => 'pemilik.petugas',
+              'active_routes' => ['pemilik.petugas'],
+            ],
+            [
                 'label' => 'Pengaturan Akun',
                 'icon' => 'fa-solid fa-user-gear',
                 'route' => 'profile.index',
@@ -186,7 +192,7 @@
   {{-- Foto Profil --}}
   <div class="user-info">
     @php
-        $avatarUrl = $user->foto_profil 
+        $avatarUrl = $user->foto_profil
             ? asset('storage/' . $user->foto_profil)
             : 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
     @endphp

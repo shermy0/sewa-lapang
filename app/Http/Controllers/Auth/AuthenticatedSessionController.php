@@ -64,7 +64,13 @@ class AuthenticatedSessionController extends Controller
     }
 
     if ($user->role === 'pemilik') {
+    }
+
+    if ($user->role === 'pemilik') {
         return redirect()->route('dashboard.pemilik')->with('status', 'Login berhasil sebagai Pemilik.');
+    }
+
+    if ($user->role === 'admin') {
     }
 
     if ($user->role === 'admin') {

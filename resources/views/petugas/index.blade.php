@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Petugas POS - Kasir Lapangan</title>
+  <title>SEWALAP - Kasir</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
     :root{
@@ -49,15 +51,13 @@
     @media(max-width:991px){.cart{position:relative;height:auto;margin-top:18px}}
   </style>
 </head>
-
 <body>
 
 <header class="topbar d-flex align-items-center justify-content-between">
   <div class="d-flex align-items-center gap-3">
-    <div class="brand">SEWA-LAPANG • Petugas Kasir</div>
-    <div class="ms-3 searchbar d-none d-md-block">
-      <input id="searchInput" class="form-control form-control-sm" placeholder="Cari Lapangan / Nama...">
-    </div>
+    <div class="brand">SEWALAP</div>
+    <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
+           placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
   </div>
 
   <div class="d-flex align-items-center gap-3">
@@ -74,9 +74,15 @@
       <small>Petugas: <strong>{{ $petugasName }}</strong></small>
     </div>
     <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
-         style="width:36px;height:36px">
+         style="width:36px;height:36px;font-weight:600">
       {{ substr($petugasName, 0, 1) }}
     </div>
+    <form action="{{ route('logout') }}" method="POST">
+      @csrf
+      <button type="submit" class="btn btn-light btn-sm">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </form>
   </div>
 </header>
 
@@ -151,7 +157,7 @@
 <main class="container-fluid mt-3">
   <div class="row gx-4">
 
-    <!-- LEFT GRID -->
+    <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
 
       <div class="toolbar-card mb-3">
@@ -183,56 +189,58 @@
           <div class="chip" onclick="document.getElementById('filterStatus').value='all';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Reset filter</div>
         </div>
       </div>
-
       <div id="grid" class="row g-3"></div>
-
-      <div class="mt-4 d-flex justify-content-center">
-        <nav><ul id="pagination" class="pagination pagination-sm"></ul></nav>
+      <div class="d-flex justify-content-center mt-3">
+        <ul id="pagination" class="pagination pagination-sm"></ul>
       </div>
-
     </div>
 
-    <!-- CART -->
+    <!-- KERANJANG -->
     <div class="col-lg-4">
-      <div class="card cart p-3">
-
+      <div class="cart">
         <div class="d-flex justify-content-between mb-2">
           <h6 class="mb-0">Daftar Pesanan</h6>
           <small id="cartCount">0 item</small>
         </div>
-
         <ul id="orderList" class="list-group list-group-flush mb-2"></ul>
 
         <div>
           <div class="d-flex justify-content-between">
-            <div>Subtotal</div> <div id="subtotal">Rp 0</div>
+            <span>Subtotal</span>
+            <span id="subtotal">Rp 0</span>
           </div>
-          <div class="d-flex justify-content-between">
-            <div>Pajak (0%)</div> <div id="tax">Rp 0</div>
-          </div>
-
           <hr>
-
           <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <small class="text-muted">Total</small>
-              <div class="fs-5 fw-bold" id="totalPrice">Rp 0</div>
-            </div>
-
-            <div style="min-width:160px">
-              <button id="saveBtn" class="btn btn-outline-secondary w-100 mb-2">Simpan</button>
-              <button id="payBtn" class="btn btn-pay w-100">Bayar</button>
-            </div>
+            <small class="text-muted">Total</small>
+            <div class="fs-5 fw-bold" id="totalPrice">Rp 0</div>
           </div>
+          <button id="saveBtn" class="btn btn-outline-secondary w-100 mt-3">Simpan</button>
+          <button id="payBtn" class="btn btn-pay w-100 mt-2">Bayar</button>
         </div>
-
       </div>
     </div>
 
   </div>
 </main>
 
-<!-- DATA FROM LARAVEL -->
+<!-- MODAL JADWAL -->
+<div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="jadwalModalLabel">Jadwal Tersedia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="jadwalContent">
+        <p class="text-center text-muted">Memuat jadwal...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
     const lapanganData = @json($lapangan);
     const petugasName = "{{ $petugasName }}";
@@ -250,16 +258,16 @@
   let filterOwner = currentOwnerId; // null/undefined => tampil semua pemilik
   let filterCategory = "";
 
-  document.addEventListener("DOMContentLoaded", () => {
-    renderGrid();
-    renderCart();
-  });
+document.addEventListener("DOMContentLoaded", () => {
+  renderGrid();
+  renderCart();
+});
 
-  document.getElementById("filterStatus").addEventListener("change", e => {
-    filterStatus = e.target.value;
-    page = 1;
-    renderGrid();
-  });
+document.getElementById("filterKategori").addEventListener("change", e => {
+  filterKategori = e.target.value;
+  page = 1;
+  renderGrid();
+});
 
   document.getElementById("searchInput").addEventListener("input", () => {
     page = 1;
@@ -272,11 +280,11 @@
     renderGrid();
   });
 
-  function renderGrid(){
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
+function renderGrid(){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
 
-    const q = document.getElementById("searchInput").value.toLowerCase();
+  const q = document.getElementById("searchInput").value.toLowerCase();
 
     let items = [...lapanganData];
 
@@ -347,111 +355,79 @@
         openOrderModal(l);
       });
 
-      grid.appendChild(col);
+    grid.appendChild(col);
+  });
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages){
+  const pg = document.getElementById("pagination");
+  pg.innerHTML="";
+  for(let i=1;i<=totalPages;i++){
+    const li=document.createElement("li");
+    li.className="page-item "+(i===page?"active":"");
+    li.innerHTML=`<a href="#" class="page-link">${i}</a>`;
+    li.addEventListener("click",e=>{
+      e.preventDefault();
+      page=i;
+      renderGrid();
     });
-
-    renderPagination(totalPages);
+    pg.appendChild(li);
   }
+}
 
-  function renderPagination(totalPages){
-    const pg = document.getElementById("pagination");
-    pg.innerHTML = "";
+function addToCart(item){
+  const exist = cart.find(c => c.id===item.id && c.jam_mulai===item.jam_mulai);
+  if(exist) exist.durasi+=item.durasi;
+  else cart.push({...item});
+  renderCart();
+}
 
-    for(let i=1; i<=totalPages; i++){
-      const li = document.createElement("li");
-      li.className = "page-item " + (i === page ? "active" : "");
-      li.innerHTML = `<a href="#" class="page-link">${i}</a>`;
-      li.addEventListener("click", e => {
-        e.preventDefault();
-        page = i;
-        renderGrid();
-      });
-      pg.appendChild(li);
-    }
-  }
+function changeQty(i,d){ cart[i].durasi = Math.max(1, cart[i].durasi+d); renderCart(); }
+function removeItem(i){ cart.splice(i,1); renderCart(); }
 
-  function openOrderModal(l){
-    const jam = prompt("Jam mulai (HH:MM)", "10:00");
-    if(!jam) return;
-
-    const dur = parseInt(prompt("Durasi (jam)", "1")) || 1;
-
-    addToCart({
-      id: l.id,
-      nama: l.nama,
-      harga: l.harga,
-      jam_mulai: jam,
-      durasi: dur
-    });
-  }
-
-  function addToCart(item){
-    const exist = cart.find(c => c.id===item.id && c.jam_mulai===item.jam_mulai);
-    if(exist) exist.durasi += item.durasi;
-    else cart.push({...item});
-    renderCart();
-  }
-
-  function renderCart(){
-    const list = document.getElementById("orderList");
-    list.innerHTML = "";
-
-    if(cart.length === 0){
-      list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-    } else {
-      cart.forEach((it, idx) => {
-        const li = document.createElement("li");
-        li.className = "list-group-item";
-
-        li.innerHTML = `
-          <div class="order-item">
-            <div style="flex:1">
-              <div class="fw-bold">${it.nama}</div>
-              <small class="text-muted">${it.jam_mulai} • ${it.durasi} jam</small>
-            </div>
-
-            <div class="text-end">
-              <div>Rp ${formatNum(it.harga * it.durasi)}</div>
-              <div class="d-flex justify-content-end mt-1">
-                <div class="qty-btn" onclick="changeQty(${idx}, -1)">-</div>
-                <div class="px-2">${it.durasi}</div>
-                <div class="qty-btn" onclick="changeQty(${idx}, 1)">+</div>
-                <div class="ms-2 text-danger" style="cursor:pointer" onclick="removeItem(${idx})">✕</div>
-              </div>
+function renderCart(){
+  const list=document.getElementById("orderList");
+  list.innerHTML="";
+  if(cart.length===0){
+    list.innerHTML='<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
+  } else {
+    cart.forEach((it,idx)=>{
+      const li=document.createElement("li");
+      li.className="list-group-item py-2";
+      li.innerHTML=`
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fw-bold">${it.nama}</div>
+            <small class="text-muted">${it.jam_mulai} • ${it.durasi} jam</small>
+          </div>
+          <div class="text-end">
+            <div>Rp ${formatNum(it.harga*it.durasi)}</div>
+            <div class="d-flex justify-content-end mt-1">
+              <div class="qty-btn" onclick="changeQty(${idx},-1)">-</div>
+              <div class="px-2">${it.durasi}</div>
+              <div class="qty-btn" onclick="changeQty(${idx},1)">+</div>
+              <div class="ms-2 text-danger" style="cursor:pointer" onclick="removeItem(${idx})">✕</div>
             </div>
           </div>
-        `;
-
-        list.appendChild(li);
-      });
-    }
-
-    document.getElementById("cartCount").innerText = cart.length + " item";
-    updateTotals();
+        </div>`;
+      list.appendChild(li);
+    });
   }
+  document.getElementById("cartCount").innerText = cart.length + " item";
+  updateTotals();
+}
 
-  function changeQty(i,d){
-    cart[i].durasi = Math.max(1, cart[i].durasi + d);
-    renderCart();
-  }
+function updateTotals(){
+  const subtotal = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
+  document.getElementById("subtotal").innerText="Rp "+formatNum(subtotal);
+  document.getElementById("totalPrice").innerText="Rp "+formatNum(subtotal);
+}
 
-  function removeItem(i){
-    cart.splice(i,1);
-    renderCart();
-  }
-
-  function updateTotals(){
-    const subtotal = cart.reduce((s,i)=>s+(i.harga*i.durasi),0);
-    const total = subtotal;
-
-    document.getElementById("subtotal").innerText = "Rp " + formatNum(subtotal);
-    document.getElementById("totalPrice").innerText = "Rp " + formatNum(total);
-  }
-
-  function formatNum(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,"."); }
-
+function formatNum(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,"."); }
 </script>
 
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

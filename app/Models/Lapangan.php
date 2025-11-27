@@ -43,7 +43,7 @@ class Lapangan extends Model
     public function kategoriData()
     {
         return $this->belongsTo(Kategori::class, 'id_kategori');
-    }
+    }    
 
     // Relationship ke pemilik
     public function pemilik()
