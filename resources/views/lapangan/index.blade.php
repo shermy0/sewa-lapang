@@ -8,14 +8,14 @@
         <div class="row align-items-center mb-4">
             <div class="col-lg-8">
                 <h2 class="fw-bold text-dark mb-2">
-                    <i class="fa-solid fa-layer-group me-2 text-success"></i> Kelola Lapangan
+                    <i class="fa-solid fa-layer-group me-2 text-success"></i> Kelola Arena
                 </h2>
                 <p class="text-muted mb-0">Kelola portofolio tempat olahraga Anda dengan mudah</p>
             </div>
             <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                 <button class="btn btn-success btn-lg px-4 shadow" data-bs-toggle="modal"
                     data-bs-target="#tambahLapanganModal">
-                    <i class="fa-solid fa-plus-circle me-2"></i> Tambah Lapangan Baru
+                    <i class="fa-solid fa-plus-circle me-2"></i> Tambah Arena Baru
                 </button>
             </div>
         </div>
@@ -122,7 +122,7 @@
                             <div class="position-absolute top-0 start-0 m-3" style="z-index: 10;">
                                 <span class="badge bg-primary px-3 py-2 shadow">
                                     <i class="fa-solid fa-layer-group me-1"></i>
-                                    {{ $totalSections }} Section
+                                    {{ $totalSections }} Lapangan
                                 </span>
                             </div>
 
@@ -157,7 +157,7 @@
                             {{-- Informasi Sections --}}
                             <div class="mb-3">
                                 <small class="text-muted d-block mb-2">
-                                    <i class="fa-solid fa-layer-group text-primary me-1"></i> Daftar Section:
+                                    <i class="fa-solid fa-layer-group text-primary me-1"></i> Daftar Lapangan:
                                 </small>
                                 <div class="d-flex flex-wrap gap-1">
                                     @foreach($item->sections->take(3) as $section)
@@ -267,12 +267,12 @@
                                             <textarea name="deskripsi" class="form-control" rows="4">{{ $item->deskripsi }}</textarea>
                                         </div>
 
-                                        {{-- Section Management --}}
+                                        {{-- Lapangan Management --}}
                                         <div class="col-12">
                                             <div class="card border-0 bg-light">
                                                 <div class="card-header bg-transparent border-bottom">
                                                     <h6 class="mb-0 fw-bold text-dark">
-                                                        <i class="fa-solid fa-layer-group me-2 text-primary"></i> Kelola Section
+                                                        <i class="fa-solid fa-layer-group me-2 text-primary"></i> Kelola Lapangan
                                                     </h6>
                                                 </div>
                                                 <div class="card-body">
@@ -280,7 +280,7 @@
                                                         @foreach($item->sections as $index => $section)
                                                             <div class="row g-3 mb-3 section-item">
                                                                 <div class="col-md-5">
-                                                                    <label class="form-label">Nama Section</label>
+                                                                    <label class="form-label">Nama Lapangan</label>
                                                                     <input type="text" name="sections[{{ $section->id }}][nama_section]"
                                                                         class="form-control" value="{{ $section->nama_section }}" required>
                                                                 </div>
@@ -302,7 +302,7 @@
                                                     </div>
                                                     <button type="button" class="btn btn-outline-primary btn-sm mt-2"
                                                         onclick="tambahSection({{ $item->id }})">
-                                                        <i class="fa-solid fa-plus me-1"></i> Tambah Section
+                                                        <i class="fa-solid fa-plus me-1"></i> Tambah Lapangan
                                                     </button>
                                                 </div>
                                             </div>
@@ -310,27 +310,32 @@
 
                                         <div class="col-12">
                                             <label class="form-label fw-semibold text-dark">
-                                                <i class="fa-solid fa-image me-1 text-success"></i> Upload Foto Lapangan
+                                                <i class="fa-solid fa-image me-1 text-success"></i> Kelola Foto Lapangan
                                             </label>
+                                            <p class="text-muted small">Seret dan lepas untuk mengatur ulang urutan foto. Klik 'x' untuk menghapus.</p>
+
+                                            <!-- Hidden input to store the order of existing photos -->
+                                            <input type="hidden" name="foto_order" id="foto-order-{{ $item->id }}" value="">
+
+                                            <!-- Container for sortable existing photos -->
+                                            <div id="sortable-container-{{ $item->id }}" class="d-flex flex-wrap gap-2 mb-3">
+                                                @if (!empty($item->foto))
+                                                    @foreach ($item->foto as $photo)
+                                                        <div class="position-relative sortable-item" data-foto-path="{{ $photo }}" style="width: 100px; height: 80px; cursor: move;">
+                                                            <img src="{{ asset('storage/' . $photo) }}"
+                                                                class="w-100 h-100 rounded border"
+                                                                style="object-fit: cover;" alt="Foto lapangan">
+                                                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 p-1 d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 10px; line-height: 1; border-radius: 50%;">
+                                                                <i class="fa-solid fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    @endforeach
+                                                @endif
+                                            </div>
+
                                             <input type="file" name="foto[]"
                                                 class="form-control form-control-lg foto-input" accept="image/*" multiple>
                                             <div class="preview-container mt-3 d-flex flex-wrap gap-2"></div>
-
-                                            @if (!empty($item->foto))
-                                                <div class="mt-3">
-                                                    <small class="text-muted d-block mb-2">Foto saat ini:</small>
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        @foreach ($item->foto as $photo)
-                                                            <div class="position-relative"
-                                                                style="width: 100px; height: 80px;">
-                                                                <img src="{{ asset('storage/' . $photo) }}"
-                                                                    class="w-100 h-100 rounded border"
-                                                                    style="object-fit: cover;" alt="Foto lapangan">
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -362,11 +367,11 @@
                                     data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body p-4">
-                                {{-- Pilih Section --}}
+                                {{-- Pilih Lapangan --}}
                                 <div class="card border-0 bg-light mb-4">
                                     <div class="card-header bg-transparent border-0">
                                         <h6 class="mb-0 fw-bold text-dark">
-                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Pilih Section
+                                            <i class="fa-solid fa-layer-group me-2 text-primary"></i> Pilih Lapangan
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -375,7 +380,7 @@
                                                 <select class="form-select" id="section-selector-{{ $item->id }}"
                                                     data-default-harga="{{ $item->harga_sewa ?? 0 }}"
                                                     onchange="tampilkanJadwalSection({{ $item->id }})">
-                                                    <option value="">-- Pilih Section --</option>
+                                                    <option value="">-- Pilih Lapangan --</option>
                                                     @foreach($item->sections as $section)
                                                         <option value="{{ $section->id }}" data-harga="{{ $section->harga_per_jam ?? '' }}" data-label="{{ $section->nama_section }}">
                                                             {{ $section->nama_section }}
@@ -391,7 +396,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <div id="section-info-{{ $item->id }}" class="text-muted">
-                                                    Pilih section untuk melihat dan mengelola jadwal
+                                                    Pilih lapangan untuk melihat dan mengelola jadwal
                                                 </div>
                                             </div>
                                         </div>
@@ -687,7 +692,7 @@
                                 <div id="jadwal-container-{{ $item->id }}">
                                     <div class="text-center text-muted py-4">
                                         <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                                        <br>Pilih section untuk melihat jadwal
+                                        <br>Pilih lapangan untuk melihat jadwal
                                     </div>
                                 </div>
                             </div>
@@ -891,20 +896,20 @@
                                 <textarea name="deskripsi" class="form-control" rows="4" placeholder="Jelaskan fasilitas lapangan...">{{ old('deskripsi') }}</textarea>
                             </div>
 
-                            {{-- Section Management --}}
+                            {{-- Lapangan Management --}}
                             <div class="col-12">
                                 <div class="card border-0 shadow-sm">
                                     <div class="card-header bg-white border-0 pb-0">
                                         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
                                             <h6 class="mb-0 fw-bold text-dark">
-                                                <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Section Lapangan
+                                                <i class="fa-solid fa-layer-group me-2 text-primary"></i> Tambah Daftar Lapangan
                                             </h6>
                                             <span class="badge rounded-pill bg-light text-primary border border-primary fw-semibold px-3 py-2">
                                                 Kelola Area
                                             </span>
                                         </div>
                                         <p class="text-muted small mt-2 mb-0">
-                                            Kelompokkan lapangan menjadi beberapa section (contoh: Lapangan A, Court 1, VIP) agar penyewa lebih mudah memilih.
+                                            Kelompokkan lapangan menjadi beberapa area (contoh: Lapangan A, Court 1, VIP) agar penyewa lebih mudah memilih.
                                         </p>
                                     </div>
                                     <div class="card-body bg-light">
@@ -912,16 +917,16 @@
                                             <div class="d-flex align-items-start gap-2 mb-3">
                                                 <i class="fa-solid fa-circle-info text-primary mt-1"></i>
                                                 <div class="small text-muted">
-                                                    Isi minimal satu section sebagai area utama. Tambahkan section baru jika lapangan memiliki lebih dari satu area.
+                                                    Isi minimal satu lapangan sebagai area utama. Tambahkan lapangan baru jika tempat olahraga memiliki lebih dari satu area.
                                                 </div>
                                             </div>
                                             <div id="section-container" class="section-wrapper">
-                                                {{-- Section Pertama --}}
+                                                {{-- Lapangan Pertama --}}
                                                 <div class="section-item rounded-3 border border-secondary border-opacity-25 bg-white p-3 p-md-4 mb-3 shadow-sm">
                                                     <div class="row g-3 align-items-end">
                                                         <div class="col-md-4">
                                                             <label class="form-label fw-semibold">
-                                                                Nama Section <span class="text-danger">*</span>
+                                                                Nama Lapangan <span class="text-danger">*</span>
                                                             </label>
                                                             <input type="text" name="sections[0][nama_section]"
                                                                 class="form-control"
@@ -934,21 +939,21 @@
                                                             <label class="form-label fw-semibold">Deskripsi</label>
                                                             <input type="text" name="sections[0][deskripsi]"
                                                                 class="form-control"
-                                                                placeholder="Deskripsi singkat section..."
+                                                                placeholder="Deskripsi singkat lapangan..."
                                                                 value="{{ old('sections.0.deskripsi') }}">
                                                             <div class="form-text">Opsional, gunakan untuk membedakan fasilitas.</div>
                                                         </div>
                                                         <div class="col-md-1 d-flex align-items-end justify-content-md-end">
-                                                            <span class="text-muted small">Section utama</span>
+                                                            <span class="text-muted small">Lapangan utama</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3">
                                                 <button type="button" class="btn btn-outline-primary btn-sm px-3" id="tambah-section">
-                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Section Lain
+                                                    <i class="fa-solid fa-plus me-1"></i> Tambah Lapangan Lain
                                                 </button>
-                                                <span class="small text-muted">Section tambahan cocok untuk area indoor/outdoor, court berbeda, atau sesi eksklusif.</span>
+                                                <span class="small text-muted">Lapangan tambahan cocok untuk area indoor/outdoor, court berbeda, atau sesi eksklusif.</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1010,9 +1015,52 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     {{-- Animate.css for smooth animations --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    {{-- Sortable.js for drag and drop --}}
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <script>
-        // ========== SECTION MANAGEMENT ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const updateFotoOrder = (lapanganId) => {
+                const container = document.getElementById(`sortable-container-${lapanganId}`);
+                const orderInput = document.getElementById(`foto-order-${lapanganId}`);
+                if (!container || !orderInput) return;
+
+                const order = Array.from(container.querySelectorAll('.sortable-item'))
+                    .map(item => item.dataset.fotoPath)
+                    .filter(Boolean);
+
+                orderInput.value = order.join(',');
+            };
+
+            // Initialize Sortable for each edit modal
+            @foreach ($lapangan as $item)
+                const el{{ $item->id }} = document.getElementById('sortable-container-{{ $item->id }}');
+                if (el{{ $item->id }}) {
+                    new Sortable(el{{ $item->id }}, {
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        onEnd: function() {
+                            updateFotoOrder({{ $item->id }});
+                        }
+                    });
+
+                    // Set initial order on load
+                    updateFotoOrder({{ $item->id }});
+                }
+
+                // Handle delete button for existing photos
+                document.querySelectorAll('#sortable-container-{{ $item->id }} .btn-danger').forEach(button => {
+                    button.addEventListener('click', function() {
+                        this.closest('.sortable-item').remove();
+                        updateFotoOrder({{ $item->id }});
+                    });
+                });
+            @endforeach
+        });
+    </script>
+
+    <script>
+        // ========== LAPANGAN MANAGEMENT ==========
         let sectionCount = 1;
         const rupiahFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 });
         const formatRupiahValue = (value) => {
@@ -1022,7 +1070,7 @@
         const jadwalPaginationState = {};
         const JADWAL_PER_PAGE_OPTIONS = [5, 10, 25, 50];
         const JADWAL_DEFAULT_PER_PAGE = 10;
-        const getActiveJadwalType = (form) => form?.querySelector('input[name=\"tipe_jadwal\"]:checked')?.value || 'custom';
+        const getActiveJadwalType = (form) => form?.querySelector('input[name="tipe_jadwal"]:checked')?.value || 'custom';
 
         function updateDefaultHargaInputs(lapanganId, harga) {
             const form = document.getElementById(`formJadwal${lapanganId}`);
@@ -1060,7 +1108,7 @@
 
             if (formContainer) formContainer.style.display = 'none';
             if (infoEl) {
-                infoEl.innerHTML = 'Pilih section untuk melihat jadwal';
+                infoEl.innerHTML = 'Pilih lapangan untuk melihat jadwal';
             }
             if (nameEl) {
                 nameEl.textContent = '';
@@ -1069,7 +1117,7 @@
                 jadwalContainer.innerHTML = `
                     <div class="text-center text-muted py-4">
                         <i class="fa-solid fa-calendar-times fa-2x mb-2"></i>
-                        <br>Pilih section untuk melihat jadwal
+                        <br>Pilih lapangan untuk melihat jadwal
                     </div>
                 `;
             }
@@ -1081,9 +1129,12 @@
             }
         }
 
+        // ... (Lanjutan dari kode sebelumnya)
+
         function setSectionInfo(lapanganId, sectionName, hargaDefault) {
             const infoEl = document.getElementById(`section-info-${lapanganId}`);
             const nameEl = document.getElementById(`section-name-${lapanganId}`);
+            const hargaText = hargaDefault > 0 ? formatRupiahValue(hargaDefault) + ' / jam' : 'Harga tidak ditentukan';
 
             if (infoEl) {
                 infoEl.innerHTML = `<strong>${sectionName}</strong> - ${hargaText}. Pilih tanggal dan waktu untuk menambah jadwal`;
@@ -1270,64 +1321,6 @@
                     });
                 });
 
-                const calculateSimpleSlots = () => {
-                    const selectedIso = getSelectedHariIso();
-                    if (!selectedIso.length) {
-                        return 0;
-                    }
-                    if (!rangeStartInput?.value || !rangeEndInput?.value) {
-                        return 0;
-                    }
-                    const startDate = new Date(`${rangeStartInput.value}T00:00:00`);
-                    const endDate = new Date(`${rangeEndInput.value}T00:00:00`);
-                    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) {
-                        return 0;
-                    }
-                    const slotMinutes = Math.round(normalizeNumber(slotDurasiInput?.value) * 60);
-                    if (!slotMinutes || slotMinutes <= 0) {
-                        return 0;
-                    }
-                    const startMinutes = timeStringToMinutes(jamMulaiHarian?.value);
-                    const endMinutes = timeStringToMinutes(jamSelesaiHarian?.value);
-                    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
-                        return 0;
-                    }
-                    if (slotMinutes > endMinutes - startMinutes) {
-                        return 0;
-                    }
-                    const slotsPerDay = Math.floor((endMinutes - startMinutes) / slotMinutes);
-                    if (slotsPerDay <= 0) {
-                        return 0;
-                    }
-                    let dayMatches = 0;
-                    for (let cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
-                        const iso = cursor.getDay() === 0 ? 7 : cursor.getDay();
-                        if (selectedIso.includes(iso)) {
-                            dayMatches += 1;
-                        }
-                    }
-                    return dayMatches * slotsPerDay;
-                };
-
-                const calculateCustomSlots = () => {
-                    if (!customDateInput?.value) {
-                        return 0;
-                    }
-                    if (!customJamMulai?.value || !customJamSelesai?.value) {
-                        return 0;
-                    }
-                    const startMinutes = timeStringToMinutes(customJamMulai.value);
-                    const endMinutes = timeStringToMinutes(customJamSelesai.value);
-                    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
-                        return 0;
-                    }
-                    const durasiJam = normalizeNumber(customDurasiInput?.value);
-                    if (!durasiJam || durasiJam <= 0) {
-                        return 0;
-                    }
-                    return 1;
-                };
-
                 const handleDurationPreset = (event) => {
                     event.preventDefault();
                     const value = parseFloat(event.currentTarget.dataset.durationPreset);
@@ -1475,8 +1468,8 @@
             });
         });
 
-        // Tambah section baru di form tambah lapangan
-        document.getElementById('tambah-section').addEventListener('click', function() {
+        // Tambah lapangan baru di form tambah lapangan
+        document.getElementById('tambah-section')?.addEventListener('click', function() {
             const container = document.getElementById('section-container');
             const newSection = document.createElement('div');
             newSection.classList.add(
@@ -1494,7 +1487,7 @@
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">Nama Lapangan <span class="text-danger">*</span></label>
                         <input type="text" name="sections[${sectionCount}][nama_section]"
                             class="form-control"
                             placeholder="Contoh: Lapangan B, Court 2" required>
@@ -1504,7 +1497,7 @@
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[${sectionCount}][deskripsi]"
                             class="form-control"
-                            placeholder="Deskripsi singkat section...">
+                            placeholder="Deskripsi singkat lapangan...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
 
@@ -1523,7 +1516,7 @@
             sectionCount++;
         });
 
-        // Hapus section
+        // Hapus lapangan
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('remove-section') ||
                 e.target.closest('.remove-section')) {
@@ -1532,7 +1525,7 @@
             }
         });
 
-        // Tambah section di form edit
+        // Tambah lapangan di form edit
         function tambahSection(lapanganId) {
             const container = document.getElementById(`section-container-${lapanganId}`);
             const newSection = document.createElement('div');
@@ -1551,7 +1544,7 @@
             newSection.innerHTML = `
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Nama Section <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">Nama Lapangan <span class="text-danger">*</span></label>
                         <input type="text" name="sections[new_${sectionCount}][nama_section]"
                             class="form-control"
                             placeholder="Contoh: Lapangan B, Court 2" required>
@@ -1561,12 +1554,12 @@
                         <label class="form-label fw-semibold">Deskripsi</label>
                         <input type="text" name="sections[new_${sectionCount}][deskripsi]"
                             class="form-control"
-                            placeholder="Deskripsi singkat section...">
+                            placeholder="Deskripsi singkat lapangan...">
                         <div class="form-text">Opsional, gunakan jika ada informasi tambahan.</div>
                     </div>
 
                     <div class="col-md-1 d-flex align-items-end justify-content-md-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
+                                                <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-section">
                             <i class="fa-solid fa-trash me-1"></i>
                         </button>
                     </div>
@@ -1576,7 +1569,7 @@
             sectionCount++;
         }
 
-        // ========== TAMPILKAN JADWAL PER SECTION ==========
+        // ========== TAMPILKAN JADWAL PER LAPANGAN ==========
         function tampilkanJadwalSection(lapanganId) {
             const selector = document.getElementById(`section-selector-${lapanganId}`);
             if (!selector) return;
@@ -1590,7 +1583,7 @@
             }
 
             const selectedOption = selector.options[selector.selectedIndex];
-            const sectionName = selectedOption?.dataset.label || selectedOption?.text || 'Section';
+            const sectionName = selectedOption?.dataset.label || selectedOption?.text || 'Lapangan';
             const sectionHarga = Number(selectedOption?.dataset.harga || 0);
             const hargaTerpilih = sectionHarga > 0 ? sectionHarga : defaultHargaLapangan;
 
@@ -1644,7 +1637,7 @@
                 });
         }
 
-        document.querySelectorAll('[data-kelola-jadwal=\"true\"]').forEach(modalEl => {
+        document.querySelectorAll('[data-kelola-jadwal="true"]').forEach(modalEl => {
             modalEl.addEventListener('shown.bs.modal', function () {
                 const lapanganId = this.dataset.lapanganId;
                 const selector = document.getElementById(`section-selector-${lapanganId}`);
@@ -1958,7 +1951,7 @@
                     ${controlsHtml}
                     <div class="alert alert-light border text-center mb-0">
                         <i class="fa-solid fa-circle-info me-1 text-muted"></i>
-                        Belum ada jadwal untuk section ini.
+                        Belum ada jadwal untuk lapangan ini.
                     </div>
                 `;
                 return;
@@ -1991,8 +1984,8 @@
                 const isDefaultPrice = defaultHargaSection > 0 && Number(jadwal.harga_sewa) === defaultHargaSection;
                 const hargaBadge = defaultHargaSection > 0
                     ? `<span class="badge ${isDefaultPrice ? 'bg-primary' : 'bg-warning text-dark'} ms-1">
-                           ${isDefaultPrice ? 'Default' : 'Custom'}
-                       </span>`
+                       ${isDefaultPrice ? 'Default' : 'Custom'}
+                      </span>`
                     : '';
 
                 tableHtml += `
@@ -2501,6 +2494,16 @@
 
         .swal2-html-container {
             font-size: 1rem;
+        }
+
+        /* Drag and Drop Styling */
+        .sortable-item {
+            transition: transform 0.2s ease;
+        }
+        .sortable-ghost {
+            opacity: 0.5;
+            background: #c8ebfb;
+            border: 1px dashed #0d6efd;
         }
     </style>
 @endsection
