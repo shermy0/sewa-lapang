@@ -127,6 +127,6 @@ class PetugasController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        return $jadwal;
+        return response()->json($jadwal);
     }
 }

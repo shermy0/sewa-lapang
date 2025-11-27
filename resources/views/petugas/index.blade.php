@@ -132,7 +132,7 @@
 
 <!-- MODAL JADWAL -->
 <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="jadwalModalLabel">Jadwal Tersedia</h5>
@@ -230,33 +230,62 @@ function renderGrid(){
       </div>
     </div>`;
 
-    col.querySelector(".lapangan-card").addEventListener("click", async () => {
-    const modal = new bootstrap.Modal(document.getElementById('jadwalModal'));
-    document.getElementById('jadwalModalLabel').innerText = l.nama;
-    const content = document.getElementById('jadwalContent');
-    content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
-    modal.show();
+    document.querySelectorAll(".lapangan-card").forEach(card=>{
+    card.addEventListener("click", async ()=>{
+      const lapanganId = card.dataset.id;
+      const modal = new bootstrap.Modal(document.getElementById('jadwalModal'));
+      const content = document.getElementById('jadwalContent');
+      document.getElementById('jadwalModalLabel').innerText = card.querySelector(".card-title").innerText;
+      content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
+      modal.show();
 
-    try {
-      const res = await fetch(`/petugas/api/jadwal/${l.id}`);
-      const data = await res.json();
-      if(data.length === 0){
-        content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
-      } else {
-        content.innerHTML = `
-          <ul class="list-group">
-            ${data.map(j => `
-              <li class="list-group-item d-flex justify-content-between">
-                <span>${j.tanggal} • ${j.jam_mulai} - ${j.jam_selesai}</span>
-                <span>${j.harga.toLocaleString('id-ID')}</span>
-              </li>
-            `).join('')}
-          </ul>`;
+      try {
+        const res = await fetch(`/petugas/api/jadwal/${lapanganId}`);
+        const data = await res.json();
+        if(!data.length){
+          content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
+          return;
+        }
+
+        // GRID JADWAL
+        const grid = document.createElement("div");
+        grid.className = "row g-3";
+
+        data.forEach(j => {
+          const col = document.createElement("div");
+          col.className = "col-md-4";
+
+          // STATUS WARNA
+          let statusClass="", statusText="";
+          if(j.booking_status==="dibayar"){
+            statusClass="bg-success text-white";
+            statusText="Sudah Dibayar";
+          } else if(j.booking_status==="menunggu"){
+            statusClass="bg-warning text-dark";
+            statusText="Sedang Dibooking";
+          } else {
+            statusClass="bg-light text-dark";
+          }
+
+          col.innerHTML = `
+            <div class="card p-2 text-center ${statusClass}" style="cursor:pointer;border-radius:8px;">
+              <div><strong>${j.tanggal}</strong></div>
+              <div>${j.jam_mulai} - ${j.jam_selesai}</div>
+              <div class="mt-1 fw-bold">Rp ${j.harga_sewa.toLocaleString('id-ID')}</div>
+              <div class="small">${statusText}</div>
+            </div>
+          `;
+          grid.appendChild(col);
+        });
+
+        content.innerHTML = "";
+        content.appendChild(grid);
+
+      } catch(e){
+        content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>';
+        console.error(e);
       }
-    } catch(err){
-      content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>';
-      console.error(err);
-    }
+    });
   });
 
     grid.appendChild(col);
