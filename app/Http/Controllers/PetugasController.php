@@ -8,7 +8,7 @@ use App\Models\JadwalLapangan;
 use App\Models\Pemesanan;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
-use App\Models\User;
+use App\Models\User; 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -224,6 +224,38 @@ class PetugasController extends Controller
 
         return response()->json($jadwal);
     }
+
+    public function display()
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        // Ambil semua lapangan milik pemilik petugas
+        $lapangan = Lapangan::where('pemilik_id', $pemilikId)
+            ->with('kategori')
+            ->get();
+
+        // Data antrean per section
+        $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
+
+        // Filter images for carousel
+        $carouselImages = collect();
+        foreach ($lapangan as $l) {
+            if (is_array($l->foto)) {
+                foreach ($l->foto as $f) $carouselImages->push($f);
+            } elseif (is_string($l->foto) && !empty($l->foto)) {
+                $carouselImages->push($l->foto);
+            }
+        }
+        
+        return view('petugas.display', [
+            'sectionQueues' => $sectionQueues,
+            'carouselImages' => $carouselImages,
+            'petugasName' => $petugas->name,
+        ]);
+    }
+}
+
 
     public function penyewa()
     {
