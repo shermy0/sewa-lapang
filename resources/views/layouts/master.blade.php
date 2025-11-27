@@ -121,6 +121,11 @@
 
         <div class="d-flex align-items-center gap-3">
 
+            {{-- Tombol Kasir --}}
+            <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="fa-solid fa-money-bill-wave me-1"></i> Kasir
+            </a>
+
             {{-- Tombol Scan QR --}}
             <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="fa-solid fa-qrcode me-1"></i> Scan QR
@@ -129,6 +134,11 @@
             {{-- Tombol Tambah Penyewa --}}
             <a href="{{ route('petugas.penyewa') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="fa-solid fa-user-plus me-1"></i> Tambah Penyewa
+            </a>
+
+            {{-- Tombol Tiket --}}
+            <a href="{{ route('petugas.penyewa') }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="fa-solid fa-user-plus me-1"></i> Tiket
             </a>
 
             {{-- Nama Petugas --}}

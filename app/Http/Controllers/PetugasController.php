@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class PetugasController extends Controller
 {
@@ -73,38 +74,61 @@ class PetugasController extends Controller
         return view('petugas.create', compact('kategori'));
     }
 
-    public function store(Request $request)
-    {
-        try {
-            $data = $request->all(); // Pastikan data dari JS masuk
-            // contoh: $cart = $data['cart'];
-            // Simpan transaksi
-            foreach($data['cart'] as $item){
-                DB::table('transaksi')->insert([
-                    'lapangan_id' => $item['id'],
-                    'petugas_name' => auth()->user()->name,
-                    'harga' => $item['harga'],
-                    'jam_mulai' => $item['jam_mulai'],
-                    'tanggal' => $item['tanggal'],
-                    'durasi' => $item['durasi'],
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
+    public function storeCash(Request $request)
+{
+    $request->validate([
+        'penyewa_id' => 'required|integer',
+        'total' => 'required|numeric',
+        'items' => 'required|array|min:1',
+        'kasir' => 'required|string',
+    ]);
 
-                // update jadwal jadi booked
-                DB::table('jadwal')
-                    ->where('lapangan_id', $item['id'])
-                    ->where('tanggal', $item['tanggal'])
-                    ->where('jam_mulai', $item['jam_mulai'])
-                    ->update(['booking_status' => 'dibayar']);
-            }
+    try {
+        $data = $request->all();
 
-            return response()->json(['success' => true]);
-        } catch (\Exception $e){
-            \Log::error($e->getMessage());
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        $pemesanan = Pemesanan::create([
+            'kasir' => $data['kasir'],
+            'penyewa_id' => $data['penyewa_id'],
+            'metode' => 'cash',
+            'total' => $data['total']
+        ]);
+
+        foreach($data['items'] as $item){
+            PemesananItem::create([
+                'pemesanan_id' => $pemesanan->id,
+                'lapangan_id' => $item['id'],
+                'jadwal_id' => $item['jadwal_id'],
+                'harga' => $item['harga'],
+                'durasi' => $item['durasi']
+            ]);
         }
+
+        return response()->json(['success'=>true]);
+
+    } catch(\Exception $e){
+        \Log::error($e->getMessage());
+        return response()->json(['success'=>false,'message'=>$e->getMessage()]);
     }
+}
+
+public function storeMidtrans(Request $request)
+{
+    // Kirim ke Midtrans (payment gateway) dulu
+    // Contoh: generate Snap token, redirect, dll
+    $request->validate([
+        'penyewa_id' => 'required|integer',
+        'total' => 'required|numeric',
+        'items' => 'required|array|min:1',
+        'kasir' => 'required|string',
+    ]);
+
+    // TODO: Integrasi Midtrans
+    return response()->json([
+        'success' => true,
+        'redirect_url' => '/midtrans/payment-page' // misal nanti redirect ke page midtrans
+    ]);
+}
+
 
     public function getJadwalLapangan($lapanganId)
     {
@@ -113,7 +137,7 @@ class PetugasController extends Controller
             ->where('lapangan_id', $lapanganId)
             ->pluck('id');
 
-        $now = Carbon::now();
+        $now = Carbon::now('Asia/Jakarta');
 
         // Hapus jadwal yang sudah lewat
         DB::table('jadwal_lapangan')
@@ -129,33 +153,80 @@ class PetugasController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        return response()->json($jadwal);
+        // Format data sesuai JS
+        $jadwalFormatted = $jadwal->map(function($j){
+            return [
+                'jam_mulai' => $j->jam_mulai,
+                'jam_selesai' => $j->jam_selesai,
+                'tanggal' => $j->tanggal,
+                'harga_sewa' => $j->harga_sewa ?? 0,
+                'booking_status' => $j->booking_status ?? 'tersedia', // default 'tersedia' jika null
+            ];
+        });
+
+        return response()->json($jadwalFormatted);
     }
 
     public function penyewa()
     {
-        $penyewa = User::where('role', 'penyewa')->orderBy('created_at', 'desc')->get();
+        $petugas = auth()->user();
+    
+        // Ambil penyewa milik pemilik dari petugas
+        $penyewa = User::where('role', 'penyewa')
+                       ->where('pemilik_id', $petugas->pemilik_id)
+                       ->orderBy('created_at', 'desc')
+                       ->get();
+    
         return view('petugas.penyewa', compact('penyewa'));
-    }
+    }    
 
-    // Menyimpan penyewa baru
     public function storePenyewa(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required',
             'email' => 'required|email|unique:users,email',
-            'password' => 'nullable|string|min:6'
         ]);
-
-        $password = $request->password ?? 'password123';
-
+    
+        $petugas = auth()->user(); // petugas yang login
+    
         User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($password),
-            'role' => 'penyewa'
+            'name'        => $request->name,
+            'email'       => $request->email,
+            'password'    => bcrypt('12345678'),
+            'role'        => 'penyewa',
+            'pemilik_id'  => $petugas->pemilik_id,   // <-- INI KUNCI!
+            'status'      => 'aktif',
         ]);
+    
+        return back()->with('success', 'Penyewa berhasil ditambahkan');
+    }    
 
-        return redirect()->route('petugas.penyewa')->with('success', 'Penyewa berhasil ditambahkan!');
+    public function destroyPenyewa($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Pastikan hanya role 'penyewa' yang bisa dihapus
+        if($user->role !== 'penyewa') {
+            return redirect()->route('petugas.penyewa')->with('error', 'Hanya penyewa yang bisa dihapus.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('petugas.penyewa')->with('success', 'Penyewa berhasil dihapus.');
     }
+
+    public function searchPenyewa(Request $request)
+    {
+        $keyword = $request->q ?? ''; // ambil query param 'q' dari JS
+        $petugas = auth()->user();
+    
+        $data = User::where('role', 'penyewa')
+            ->where('pemilik_id', $petugas->pemilik_id)
+            ->when($keyword, function($query, $keyword){
+                return $query->where('name', 'LIKE', "%$keyword%");
+            })
+            ->get();
+    
+        return response()->json($data);
+    }    
 }
