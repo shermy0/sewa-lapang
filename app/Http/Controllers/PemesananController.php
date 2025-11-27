@@ -345,65 +345,78 @@ class PemesananController extends Controller
     }
 
     // ==================== PINDAH LANGSUNG ====================
-    public function pindahLangsung(Request $request, $pemesananId)
-    {
-        $request->validate([
-            'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
-            'section_baru_id' => 'nullable|exists:section_lapangan,id',
-                    'alasan' => 'nullable|string|max:500',
+public function pindahLangsung(Request $request, $pemesananId)
+{
+    $request->validate([
+        'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
+        'section_baru_id' => 'nullable|exists:section_lapangan,id',
+        'alasan' => 'nullable|string|max:500',
+    ]);
+
+    $pemesanan = Pemesanan::with('jadwal.section')->findOrFail($pemesananId);
+
+    if ($pemesanan->penyewa_id !== Auth::id()) {
+        abort(403, 'Tidak boleh memindahkan pemesanan orang lain.');
+    }
+
+    if ($pemesanan->status === 'dibayar' && $pemesanan->status_scan === 'sudah_scan') {
+        return response()->json(['error' => 'Sudah discan, tidak bisa dipindah.'], 422);
+    }
+
+    $jadwalBaru = JadwalLapangan::findOrFail($request->jadwal_baru_id);
+
+    // cek apakah jadwal baru sedang dipakai orang lain
+    $dipakaiOrangLain = Pemesanan::where('jadwal_id', $jadwalBaru->id)
+        ->where('penyewa_id', '!=', Auth::id())
+        ->whereIn('status', ['menunggu', 'dibayar'])
+        ->exists();
+
+    if ($dipakaiOrangLain || ! $jadwalBaru->tersedia) {
+        return response()->json(['error' => 'Jadwal tidak tersedia.'], 422);
+    }
+
+    DB::beginTransaction();
+    try {
+        // buka jadwal lama
+        if ($pemesanan->jadwal) {
+            $pemesanan->jadwal->update(['tersedia' => true]);
+        }
+
+        // simpan riwayat perpindahan ke tabel permintaan_perubahan
+        $perubahan = \App\Models\PermintaanPerubahan::create([
+            'pemesanan_id' => $pemesanan->id,
+            'section_lama_id' => $pemesanan->jadwal->section_id ?? null,
+            'section_baru_id' => $request->section_baru_id,
+            'jadwal_lama_id' => $pemesanan->jadwal_id,
+            'jadwal_baru_id' => $request->jadwal_baru_id,
+            'alasan' => $request->alasan,
+            'status' => 'disetujui', // bisa diubah menjadi 'menunggu' jika perlu approval
+            'expires_at' => now()->addMinutes(15),
         ]);
 
-        $pemesanan = Pemesanan::with('jadwal')->findOrFail($pemesananId);
-
-        if ($pemesanan->penyewa_id !== Auth::id()) {
-            abort(403);
-        }
-
-        if ($pemesanan->status === 'dibayar' && $pemesanan->status_scan === 'sudah_scan') {
-            return response()->json(['error' => 'Sudah discan, tidak bisa dipindah.'], 422);
-        }
-
-        $jadwalBaru = JadwalLapangan::findOrFail($request->jadwal_baru_id);
-
-        // cek apakah jadwal baru sedang dipakai orang lain
-        $dipakaiOrangLain = Pemesanan::where('jadwal_id', $jadwalBaru->id)
-            ->where('penyewa_id', '!=', Auth::id())
-            ->whereIn('status', ['menunggu', 'dibayar'])
-            ->exists();
-
-        if ($dipakaiOrangLain || ! $jadwalBaru->tersedia) {
-            return response()->json(['error' => 'Jadwal tidak tersedia.'], 422);
-        }
-
-        DB::beginTransaction();
-        try {
-            // buka jadwal lama
-            if ($pemesanan->jadwal) {
-                $pemesanan->jadwal->update(['tersedia' => true]);
-            }
-
-            // pindah
+        // update pemesanan utama
         $pemesanan->update([
             'jadwal_id' => $jadwalBaru->id,
-            'alasan' => $request->alasan, // simpan alasan
+            'alasan' => $request->alasan,
         ]);
 
-            // kunci jadwal baru
-            $jadwalBaru->update(['tersedia' => false]);
+        // kunci jadwal baru
+        $jadwalBaru->update(['tersedia' => false]);
 
-            DB::commit();
+        DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Berhasil memindahkan jadwal.',
-                'pemesanan' => $pemesanan->fresh()->load('jadwal.section')
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil memindahkan jadwal dan menyimpan riwayat perubahan.',
+            'pemesanan' => $pemesanan->fresh()->load('jadwal.section'),
+            'perubahan' => $perubahan,
+        ]);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Gagal memindahkan jadwal.'], 500);
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['error' => 'Gagal memindahkan jadwal.'], 500);
     }
+}
 
     // ==================== DOWNLOAD TIKET ====================
     public function downloadTiket($id)
