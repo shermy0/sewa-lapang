@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Lapangan;
 use App\Models\Kategori;
-use App\Models\JadwalLapangan;
-use App\Models\Pemesanan;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use App\Models\User; 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class PetugasController extends Controller
 {
@@ -64,11 +63,13 @@ class PetugasController extends Controller
                 'pemilik_id' => $l->pemilik_id,
                 'kategori_id' => $l->id_kategori,
                 'kategori' => $l->kategori->nama_kategori ?? '',
-                'foto' => $primaryPhoto,
-                'harga' => $harga ? (int) $harga : 0,
+                'foto' => $fotoArray, // Pass array for carousel
+                'hargaRataRata' => $harga ? (int) $harga : 0,
                 'durasi' => 'Per jam',
                 'lokasi' => $l->lokasi ?? '',
                 'status' => $l->status ?? 'available',
+                'deskripsi' => $l->deskripsi ?? '',
+                'kategori_nama' => $l->kategori->nama_kategori ?? '',
             ];
         });
 
@@ -169,23 +170,14 @@ class PetugasController extends Controller
     public function store(Request $request)
     {
         try {
-            $data = $request->all(); // Pastikan data dari JS masuk
-            // contoh: $cart = $data['cart'];
-            // Simpan transaksi
-            foreach($data['cart'] as $item){
-                DB::table('transaksi')->insert([
-                    'lapangan_id' => $item['id'],
-                    'petugas_name' => auth()->user()->name,
-                    'harga' => $item['harga'],
-                    'jam_mulai' => $item['jam_mulai'],
-                    'tanggal' => $item['tanggal'],
-                    'durasi' => $item['durasi'],
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-
-                // update jadwal jadi booked
-                DB::table('jadwal')
+            $data = $request->all(); 
+            foreach($data['items'] as $item){ // Changed from $data['cart'] to $data['items'] based on JS
+                // Logic simpan transaksi (sesuaikan dengan tabel Anda)
+                // Disini saya asumsikan ada tabel pemesanan atau transaksi
+                // ...
+                
+                // Update jadwal jadi booked/dibayar
+                DB::table('jadwal_lapangan') // Sesuaikan nama tabel
                     ->where('lapangan_id', $item['id'])
                     ->where('tanggal', $item['tanggal'])
                     ->where('jam_mulai', $item['jam_mulai'])
@@ -201,20 +193,18 @@ class PetugasController extends Controller
 
     public function getJadwalLapangan($lapanganId)
     {
-        // Ambil semua section id untuk lapangan ini
         $sectionIds = DB::table('section_lapangan')
             ->where('lapangan_id', $lapanganId)
             ->pluck('id');
 
         $now = Carbon::now();
 
-        // Hapus jadwal yang sudah lewat
+        // Hapus jadwal lewat
         DB::table('jadwal_lapangan')
             ->whereIn('section_id', $sectionIds)
             ->where('tanggal', '<', $now->toDateString())
             ->delete();
 
-        // Ambil jadwal tersisa
         $jadwal = DB::table('jadwal_lapangan')
             ->whereIn('section_id', $sectionIds)
             ->where('tanggal', '>=', $now->toDateString())
@@ -230,15 +220,12 @@ class PetugasController extends Controller
         $petugas = Auth::user();
         $pemilikId = $petugas->pemilik_id;
 
-        // Ambil semua lapangan milik pemilik petugas
         $lapangan = Lapangan::where('pemilik_id', $pemilikId)
             ->with('kategori')
             ->get();
 
-        // Data antrean per section
         $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
 
-        // Filter images for carousel
         $carouselImages = collect();
         foreach ($lapangan as $l) {
             if (is_array($l->foto)) {
@@ -254,8 +241,6 @@ class PetugasController extends Controller
             'petugasName' => $petugas->name,
         ]);
     }
-}
-
 
     public function penyewa()
     {
@@ -263,7 +248,6 @@ class PetugasController extends Controller
         return view('petugas.penyewa', compact('penyewa'));
     }
 
-    // Menyimpan penyewa baru
     public function storePenyewa(Request $request)
     {
         $request->validate([

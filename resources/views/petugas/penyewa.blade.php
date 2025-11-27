@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container mt-4">
-    <h1>Daftar Penyewa</h1>
+    <h1 class="mb-3">Daftar Penyewa</h1>
 
     {{-- Pesan sukses --}}
     @if(session('success'))

@@ -57,22 +57,31 @@
     .status-bar {
         border-top: 1px solid rgba(0,0,0,0.05);
     }
-
+    
     /* Queue Section Styling */
+    .queue-wrapper {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        scroll-behavior: smooth;
+    }
     .queue-card {
         background: #f8f9fc;
         border-radius: 12px;
         padding: 15px;
-        margin-bottom: 20px;
         border: 1px solid #e3e6f0;
+        min-width: 320px;
+        flex-shrink: 0;
+        margin-bottom: 0; /* Remove bottom margin */
     }
     .queue-card .title {
         font-weight: 700;
         color: #2c3e50;
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     .queue-card .subtitle {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -83,11 +92,13 @@
         border: 1px solid #e3e6f0;
         padding: 4px 10px;
         border-radius: 20px;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 600;
         color: var(--accent);
         box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
+
+    .lapangan-card {
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
       border-radius: 8px;
@@ -227,9 +238,9 @@
             </div>
 
             @if($section['queue']->isEmpty())
-              <div class="queue-empty">Belum ada pemesanan pada section ini.</div>
+              <div class="queue-empty mt-3 text-muted small">Belum ada pemesanan pada section ini.</div>
             @else
-              <div class="d-flex flex-column gap-2">
+              <div class="d-flex flex-column gap-2 mt-3">
                 @foreach($section['queue'] as $order)
                   <div class="queue-item-card shadow-sm">
                     <div class="p-3">
@@ -257,7 +268,7 @@
       </div>
     </div>
   </div>
-</section>
+</div>
 
 
 <main class="container-fluid mt-3">
@@ -272,14 +283,15 @@
             <span class="badge bg-success bg-opacity-10 text-success">Realtime</span>
           </div>
           <div class="d-flex gap-2 flex-wrap">
-              <select id="filterStatus" class="form-select form-select-sm">
+              <input id="searchInput" class="form-control form-control-sm" placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
+              <select id="filterStatus" class="form-select form-select-sm" style="width: auto;">
                   <option value="all">Semua Status</option>
                   <option value="available">Tersedia</option>
                   <option value="booked">Dipesan</option>
               </select>
 
-              <select id="filterCategory" name="id_kategori" class="form-select form-select-sm">
-                  <option value="">Pilih Kategori</option>
+              <select id="filterKategori" name="id_kategori" class="form-select form-select-sm" style="width: auto;">
+                  <option value="all">Pilih Kategori</option>
                   @foreach ($kategori as $kat)
                       <option value="{{ $kat->id }}">
                           {{ $kat->nama_kategori }}
@@ -295,6 +307,10 @@
         </div>
       </div>
       <div id="grid" class="row g-3"></div>
+      <div class="d-flex justify-content-between align-items-center mt-3">
+         <div id="gridPaginationSummary"></div>
+         <ul id="gridPagination" class="pagination pagination-sm mb-0"></ul>
+      </div>
     </div>
 
     <!-- KERANJANG -->
@@ -410,9 +426,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
     const q = document.getElementById("searchInput").value.toLowerCase();
+    const statusFilter = document.getElementById("filterStatus").value;
 
     let items = lapanganData.map(l => ({ ...l, foto: l.foto || [], hargaRataRata: l.hargaRataRata, kategori_nama: l.kategori_nama || 'Tidak ada'}));
+    
     if(filterKategori!=="all") items = items.filter(l=>l.id_kategori==filterKategori);
+    if(statusFilter!=="all") items = items.filter(l=>l.status===statusFilter);
     if(q) items = items.filter(l=>l.nama.toLowerCase().includes(q));
 
     const totalPages = Math.ceil(items.length/perPage) || 1;
@@ -435,7 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h6 class="card-title mb-1">${l.nama}</h6>
           ${l.deskripsi?`<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>`:''}
           <div class="mt-1 d-flex justify-content-between">
-            <small>Harga: </small>
+            <small>Harga Rata-rata:</small>
             <small style="color:#41A67E;font-weight:600;">${l.hargaRataRata?`Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam`:'-'}</small>
           </div>
         </div>
@@ -668,6 +687,11 @@ document.addEventListener("DOMContentLoaded", () => {
     page = 1;
     renderGrid();
   });
+  
+  document.getElementById("filterStatus").addEventListener("change", e => {
+    page = 1;
+    renderGrid();
+  });
 
   document.getElementById("searchInput").addEventListener("input", () => {
     page = 1;
@@ -702,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
           total: cart.reduce((s,i)=>s+i.harga*i.durasi,0),
           items: cart
       };fetch('{{ route("petugas.payment.store") }}', {
-
+          
           method:'POST',
           headers:{
               'Content-Type':'application/json',
