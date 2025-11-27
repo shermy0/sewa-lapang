@@ -10,7 +10,14 @@ class ScanTiketController extends Controller
     // Halaman untuk menampilkan scanner
     public function index()
     {
-        return view('pemilik.scan');
+        $user = auth()->user();
+
+        if ($user && $user->role === 'petugas') {
+            return view('petugas.scan');
+        }
+
+        // Tidak ada lagi halaman scan untuk pemilik/admin
+        abort(404);
     }
 
     public function verifyTiket($kode)

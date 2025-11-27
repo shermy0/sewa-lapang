@@ -61,10 +61,24 @@ class AuthenticatedSessionController extends Controller
     // 🚀 Arahkan berdasarkan role pengguna
     if ($user->role === 'penyewa') {
         return redirect()->route('penyewa.beranda')->with('status', 'Login berhasil sebagai Penyewa.');
-    } elseif ($user->role === 'pemilik') {
+    }
+
+    if ($user->role === 'pemilik') {
+    }
+
+    if ($user->role === 'pemilik') {
         return redirect()->route('dashboard.pemilik')->with('status', 'Login berhasil sebagai Pemilik.');
-    } elseif ($user->role === 'admin') {
+    }
+
+    if ($user->role === 'admin') {
+    }
+
+    if ($user->role === 'admin') {
         return redirect()->route('dashboard.admin');
+    }
+
+    if ($user->role === 'petugas') {
+        return redirect()->route('petugas.index')->with('status', 'Login berhasil sebagai Petugas.');
     }
 
     // Default kalau role-nya tidak dikenali

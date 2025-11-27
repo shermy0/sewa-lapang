@@ -31,7 +31,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'no_hp',
         'foto_profil',
-    ];
+        'pemilik_id',
+    ];    
 
     /**
      * The attributes that should be hidden for serialization.
@@ -106,6 +107,11 @@ public function pencairan()
 public function banding()
 {
     return $this->hasMany(BandingPemilik::class, 'pemilik_id');
+}
+
+public function kategori()
+{
+    return $this->hasMany(Kategori::class, 'pemilik_id');
 }
 
 }

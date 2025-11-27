@@ -1,22 +1,44 @@
-@extends('layouts.sidebar')
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scan Tiket • Petugas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('images/logo-sewalap.svg') }}" type="image/svg+xml">
+    <style>
+        body { background:#f5f7fb; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+        .topbar { background:#41A67E; color:#fff; padding:14px 18px; }
+        .brand { font-weight:700; letter-spacing:.4px; }
+        .scan-wrapper { max-width: 900px; margin: 30px auto; }
+        #qr-reader { width: 100%; max-width: 640px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(25,135,84,.2); }
+        .scanner-status { margin-top: 15px; text-align: center; background:#198754; padding:10px 20px; color:white; font-weight:600; border-radius:25px; }
+        #result-box { background:#fff; padding:25px; border-radius:16px; margin-top:25px; box-shadow:0 4px 15px rgba(0,0,0,.1); }
+        #result-box h5 { color:#198754; margin-bottom:15px; font-weight:700; }
+        .success-result, .error-result { border-radius:12px; padding:20px; margin-top:12px; }
+        .success-result { background:#d4edda; border-left:6px solid #28a745; }
+        .error-result { background:#f8d7da; border-left:6px solid #dc3545; }
+        .badge { padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
+    </style>
+</head>
+<body>
 
-@section('title', 'Scan Tiket')
-
-@section('content')
-<link rel="stylesheet" href="{{ asset('css/pemilik.css') }}">
-
-<!-- ========== CSS UI (dipersingkat tapi tetap sama tampilannya) ========== -->
-<style>
-    .scan-wrapper { max-width: 900px; margin: auto; }
-    #qr-reader { width: 100%; max-width: 640px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(25,135,84,.2); }
-    .scanner-status { margin-top: 15px; text-align: center; background:#198754; padding:10px 20px; color:white; font-weight:600; border-radius:25px; }
-    #result-box { background:#fff; padding:25px; border-radius:16px; margin-top:25px; box-shadow:0 4px 15px rgba(0,0,0,.1); }
-    #result-box h5 { color:#198754; margin-bottom:15px; font-weight:700; }
-    .success-result, .error-result { border-radius:12px; padding:20px; margin-top:12px; }
-    .success-result { background:#d4edda; border-left:6px solid #28a745; }
-    .error-result { background:#f8d7da; border-left:6px solid #dc3545; }
-    .badge { padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
-</style>
+<header class="topbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+        <div class="brand">SEWA-LAPANG • Petugas Kasir</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm">Kembali ke POS</a>
+        <div class="text-end me-2 d-none d-md-block">
+            <small>Petugas: <strong>{{ auth()->user()->name ?? '-' }}</strong></small>
+        </div>
+        <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
+             style="width:36px;height:36px">
+            {{ substr(auth()->user()->name ?? 'P', 0, 1) }}
+        </div>
+    </div>
+</header>
 
 <div class="container py-4">
     <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode"></i> Scan Tiket QR</h2>
@@ -37,7 +59,7 @@
             <div class="small text-muted">Scan di pintu Arena dulu, lalu pintu Lapang.</div>
         </div>
 
-        <!-- Scanner `-->
+        <!-- Scanner -->
         <div id="qr-reader"></div>
 
         <div class="scanner-status">
@@ -51,13 +73,11 @@
                 <i class="fas fa-camera me-2"></i> Arahkan kamera ke QR code tiket...
             </div>
         </div>
-
     </div>
 </div>
 
-<!-- Library scanner tercepat -->
+<!-- Library scanner -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", async function () {
 
@@ -92,19 +112,28 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function renderResult(payload, statusFlag, message, isSuccess) {
-        const statusLabel = {
-            valid: { text: 'Valid', cls: 'bg-success' },
-            valid_lobby: { text: 'Masuk Arena', cls: 'bg-info text-dark' },
-            valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
-            expired: { text: 'Expired', cls: 'bg-danger' },
-            double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
-            double_scan_lobby: { text: 'Sudah Scan Arena', cls: 'bg-warning text-dark' },
-            double_scan_lapang: { text: 'Sudah Scan Lapang', cls: 'bg-warning text-dark' },
-            too_early: { text: 'Belum Waktunya', cls: 'bg-secondary' },
-            unpaid: { text: 'Belum Dibayar', cls: 'bg-secondary' },
-            not_found: { text: 'Tidak Ditemukan', cls: 'bg-secondary' },
-            invalid: { text: 'Tidak Valid', cls: 'bg-secondary' },
-        }[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
+        const statusLabel = (() => {
+            const map = {
+                valid_lobby: { text: 'Scan Arena', cls: 'bg-info text-dark' },
+                valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
+                expired: { text: 'Expired', cls: 'bg-danger' },
+                double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
+                double_scan_lobby: { text: 'Sudah Scan Arena', cls: 'bg-warning text-dark' },
+                double_scan_lapang: { text: 'Sudah Scan Lapang', cls: 'bg-warning text-dark' },
+                too_early: { text: 'Belum Waktunya', cls: 'bg-secondary' },
+                unpaid: { text: 'Belum Dibayar', cls: 'bg-secondary' },
+                not_found: { text: 'Tidak Ditemukan', cls: 'bg-secondary' },
+                invalid: { text: 'Tidak Valid', cls: 'bg-secondary' },
+            };
+
+            if (statusFlag === 'valid') {
+                return currentCheckpoint === 'gor'
+                    ? map.valid_lobby
+                    : map.valid_lapang;
+            }
+
+            return map[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
+        })();
 
         const scanStatus = payload.status_scan === 'sudah_scan'
             ? '<span class="badge bg-success">Sudah Scan Lapang</span>'
@@ -245,5 +274,5 @@ document.addEventListener("DOMContentLoaded", async function () {
     updateStatus("Siap Memindai", "fa-circle-notch fa-spin");
 });
 </script>
-
-@endsection
+</body>
+</html>

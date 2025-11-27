@@ -110,11 +110,12 @@
                 'icon' => 'fa-solid fa-bag-shopping',
                 'route' => 'pemilik.pemesanan.index',
                 'active_routes' => ['pemilik.pemesanan.index'],
-            ],            [
-                'label' => 'Scan',
-                'icon' => 'fa-solid fa-qrcode',
-                'route' => 'pemilik.scan',
-                'active_routes' => ['pemilik.scan'],
+            ],
+            [
+              'label' => 'Petugas',
+              'icon' => 'fa-solid fa-users',
+              'route' => 'pemilik.petugas',
+              'active_routes' => ['pemilik.petugas'],
             ],
             [
                 'label' => 'Pengaturan Akun',
@@ -191,7 +192,7 @@
   {{-- Foto Profil --}}
   <div class="user-info">
     @php
-        $avatarUrl = $user->foto_profil 
+        $avatarUrl = $user->foto_profil
             ? asset('storage/' . $user->foto_profil)
             : 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=41A67E&color=fff';
     @endphp

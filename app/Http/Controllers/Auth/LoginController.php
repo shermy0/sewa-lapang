@@ -45,6 +45,8 @@ class LoginController extends Controller
                 return route('dashboard.pemilik');
             case 'penyewa':
                 return route('penyewa.beranda');
+            case 'petugas':
+                return route('petugas.index');
             default:
                 return '/';
         }

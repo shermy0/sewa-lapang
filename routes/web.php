@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\ProfileController;
@@ -26,10 +28,32 @@ use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikController;
 use App\Http\Controllers\BandingPemilikController;
+use App\Http\Controllers\PetugasController;
+use App\Http\Controllers\PemilikPetugasController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
+    $user = auth()->user();
+
+    if ($user) {
+        if ($user->role === 'penyewa') {
+            return redirect()->route('penyewa.beranda');
+        }
+
+        if ($user->role === 'pemilik') {
+            return redirect()->route('dashboard.pemilik');
+        }
+
+        if ($user->role === 'admin') {
+            return redirect()->route('dashboard.admin');
+        }
+
+        if ($user->role === 'petugas') {
+            return redirect()->route('petugas.index');
+        }
+    }
+
     return redirect()->route('login');
 });
 
@@ -39,6 +63,11 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
 Route::middleware('auth')->group(function () {
@@ -100,7 +129,7 @@ Route::patch('/pemesanan/{pemesanan}/pindah', [PemesananController::class, 'pind
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
-Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection']);        
+Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection']);
     Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
@@ -150,14 +179,31 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
+// PETUGAS KASIR
+Route::middleware(['auth', 'verified', 'role:petugas'])
+    ->prefix('petugas')->name('petugas.')
+    ->group(function () {
+        Route::get('/', [PetugasController::class, 'index'])->name('index');
+        Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
+        Route::post('/payment/store', [PetugasController::class, 'store'])->name('payment.store');
+        Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
+        Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
+    });
+
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
+
+    Route::get('/kelolapetugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
+    Route::post('/kelolapetugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
+
+      // PERSETUJUAN PEMILIK
+    Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
+    Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
+
         // PERSETUJUAN PEMILIK
 Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
 Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
-    Route::get('/pemilik/scan', [ScanTiketController::class, 'index'])->name('pemilik.scan');
-    Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket']);
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');
 
     // CRUD Kategori
