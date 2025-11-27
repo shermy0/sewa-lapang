@@ -61,14 +61,8 @@
 
   <div class="d-flex align-items-center gap-3">
     <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-      Scan lobby
+      Scan Arena
     </a>
-    <form method="POST" action="{{ route('logout') }}" class="mb-0">
-      @csrf
-      <button type="submit" class="btn btn-outline-light btn-sm fw-semibold">
-        Logout
-      </button>
-    </form>
     <div class="text-end me-2 d-none d-md-block">
       <small>Petugas: <strong>{{ $petugasName }}</strong></small>
     </div>

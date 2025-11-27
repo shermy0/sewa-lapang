@@ -29,7 +29,7 @@
         <div class="brand">SEWA-LAPANG • Petugas Kasir</div>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm">POS</a>
+        <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm">Kembali ke POS</a>
         <div class="text-end me-2 d-none d-md-block">
             <small>Petugas: <strong>{{ auth()->user()->name ?? '-' }}</strong></small>
         </div>
@@ -114,8 +114,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     function renderResult(payload, statusFlag, message, isSuccess) {
         const statusLabel = (() => {
             const map = {
-                valid_lobby: { text: 'Masuk Arena', cls: 'bg-info text-dark' },
-                valid_lapang: { text: 'Masuk Lapang', cls: 'bg-success' },
+                valid_lobby: { text: 'Scan Arena', cls: 'bg-info text-dark' },
+                valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
                 expired: { text: 'Expired', cls: 'bg-danger' },
                 double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
                 double_scan_lobby: { text: 'Sudah Scan Arena', cls: 'bg-warning text-dark' },

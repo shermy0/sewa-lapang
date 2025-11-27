@@ -28,7 +28,7 @@ class PemilikPetugasController extends Controller
 
         try {
             // Buat petugas baru
-            User::create([
+            $petugas = User::create([
                 'name'       => $request->name,
                 'email'      => $request->email,
                 'role'       => 'petugas',
@@ -36,6 +36,11 @@ class PemilikPetugasController extends Controller
                 'password'   => bcrypt('password123'), // default password
                 'status'     => 'aktif',
             ]);
+
+            // Verifikasi otomatis akun petugas yang dibuat oleh pemilik
+            $petugas->forceFill([
+                'email_verified_at' => now(),
+            ])->save();
 
             return redirect()->route('pemilik.petugas')
                              ->with('success', 'Petugas berhasil ditambahkan.');
