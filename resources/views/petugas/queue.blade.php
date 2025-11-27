@@ -2,17 +2,7 @@
 
 @section('title', 'Petugas Kasir')
 
-@section('content')
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SEWALAP - Kasir</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+@push('styles')
   <style>
     :root{
       --accent:#2f9f6f;
@@ -21,26 +11,83 @@
       --bg:#f5f7fb;
     }
 
-    body {
-      background: var(--bg);
-      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-      margin: 0;
-      padding: 0;
-    }
-
+    /* Override Master Layout Topbar */
     .topbar {
-      background: var(--accent);
-      color: #fff;
-      padding: 12px 20px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        background: var(--accent) !important;
+        color: #fff !important;
+        border-bottom: none !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .topbar .brand {
+        color: #fff !important;
+    }
+    .topbar small {
+        color: rgba(255,255,255,0.9) !important;
     }
 
-    .brand {
-      font-weight: 700;
-      font-size: 1.2rem;
+    /* Custom Scrollbar for Queue */
+    .queue-wrapper::-webkit-scrollbar {
+        height: 6px;
+    }
+    .queue-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    .queue-wrapper::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+    .queue-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #bbb;
     }
 
-    .lapangan-card {
+    /* Order List Item */
+    .queue-item-card {
+        background: #fff;
+        border: 1px solid #e3e6f0;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .queue-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        border-color: var(--accent);
+    }
+    .status-bar {
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Queue Section Styling */
+    .queue-card {
+        background: #f8f9fc;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #e3e6f0;
+    }
+    .queue-card .title {
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+    .queue-card .subtitle {
+        font-size: 0.85rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    .queue-chip {
+        background: #fff;
+        border: 1px solid #e3e6f0;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--accent);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
       border-radius: 8px;
@@ -53,7 +100,7 @@
 
     .lapangan-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 20px var(--card-hover);
+      box-shadow: 8px 20px var(--card-hover);
     }
 
     /* GAMBAR */
@@ -61,7 +108,7 @@
     .card .carousel-inner,
     .card .carousel-item {
       width: 100%;
-      height: 220px; /* tinggi konsisten */
+      height: 160px; /* Sedikit diperkecil agar lebih compact */
     }
 
     .lapangan-img {
@@ -71,54 +118,66 @@
     /* Carousel image */
     .card .carousel-inner img {
       width: 100%;
-      height: 220px; /* sama dengan lapangan-img */
+      height: 160px;
       object-fit: cover;
     }
 
+    /* Filter Chips */
+    .chip {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: #fff;
+        border: 1px solid #e3e6f0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .chip:hover {
+        background: #f8f9fc;
+        color: var(--accent);
+        border-color: var(--accent);
+    }
+    .chip.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+    }
+
+    /* Cart Styling */
     .cart {
-      position: sticky;
-      top: 20px;
-      max-height: calc(100vh - 40px);
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-      padding: 15px;
-      overflow-y: auto;
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid #e3e6f0;
+        position: sticky;
+        top: 20px;
     }
-
     .cart h6 {
-      font-weight: 600;
+        font-weight: 700;
+        color: #2c3e50;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.9rem;
     }
-
     .btn-pay {
-      background: var(--accent);
-      color: #fff;
-      font-weight: 600;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
-
-    input#searchInput {
-      border-radius: 20px;
-      max-width: 200px;
-    }
-
-    select#filterKategori {
-      max-width: 180px;
-    }
-
-    @media (max-width: 991px) {
-      .cart {
-        position: relative;
-        height: auto;
-        max-height: none;
-        margin-top: 15px;
-      }
-
-      .lapangan-img,
-      .card .carousel-inner,
-      .card .carousel-item,
-      .card .carousel-inner img {
-        height: 180px; /* lebih kecil di mobile */
-      }
+    .btn-pay:hover {
+        background: var(--accent-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(47, 159, 111, 0.3);
     }
 
     .card .text-truncate {
@@ -127,36 +186,10 @@
       text-overflow: ellipsis;
     }
   </style>
-</head>
-<body>
-<header class="topbar d-flex align-items-center justify-content-between">
-  <div class="d-flex align-items-center gap-3">
-    <div class="brand">SEWALAP</div>
-    <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
-           placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
-  </div>
+@endpush
 
-  <div class="d-flex align-items-center gap-3">
-    <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-      Scan Arena
-    </a>
-    <div class="text-end me-2 d-none d-md-block">
-      <small>Petugas: <strong>{{ $petugasName }}</strong></small>
-    </div>
-    <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
-         style="width:36px;height:36px;font-weight:600">
-      {{ substr($petugasName, 0, 1) }}
-    </div>
-    <form action="{{ route('logout') }}" method="POST">
-      @csrf
-      <button type="submit" class="btn btn-light btn-sm">
-        <i class="fa-solid fa-right-from-bracket"></i>
-      </button>
-    </form>
-  </div>
-</header>
-
-<section class="container-fluid mt-3">
+@section('content')
+<div class="container-fluid py-3">
   @if(!empty($needsOwner))
     <div class="alert alert-warning mb-3">
       Akun petugas belum dikaitkan dengan pemilik. Minta pemilik membuatkan akun petugas dari menu <strong>Petugas</strong>.
@@ -196,23 +229,26 @@
             @if($section['queue']->isEmpty())
               <div class="queue-empty">Belum ada pemesanan pada section ini.</div>
             @else
-              <ul class="queue-list">
+              <div class="d-flex flex-column gap-2">
                 @foreach($section['queue'] as $order)
-                  <li class="queue-item">
-                    <div class="queue-dot"></div>
-                    <div class="flex-grow-1">
-                      <div class="fw-semibold">{{ $order['penyewa'] }}</div>
-                      <div class="queue-meta">{{ $order['tanggal'] }} • {{ $order['jam_mulai'] }} - {{ $order['jam_selesai'] }}</div>
+                  <div class="queue-item-card shadow-sm">
+                    <div class="p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 1rem;">{{ $order['penyewa'] }}</h6>
+                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">{{ $order['kode_tiket'] }}</small>
+                        </div>
+                        <div class="d-flex align-items-center text-muted small">
+                            <i class="fa-regular fa-calendar me-2"></i>
+                            <span>{{ $order['tanggal'] }} • {{ $order['jam_mulai'] }} - {{ $order['jam_selesai'] }}</span>
+                        </div>
                     </div>
-                    <div class="text-end">
-                      <div class="queue-status {{ $statusClasses[$order['status']] ?? 'bg-secondary text-white' }}">
-                        {{ ucfirst($order['status']) }}
-                      </div>
-                      <div class="queue-code">{{ $order['kode_tiket'] }}</div>
+                    <div class="status-bar {{ $statusClasses[$order['status']] ?? 'bg-secondary' }} text-white px-3 py-1 d-flex justify-content-between align-items-center" style="font-size: 0.8rem;">
+                        <span class="fw-bold text-uppercase">{{ ucfirst($order['status']) }}</span>
+                        <i class="fa-solid fa-check-circle opacity-50"></i>
                     </div>
-                  </li>
+                  </div>
                 @endforeach
-              </ul>
+              </div>
             @endif
           </div>
         @empty
@@ -357,6 +393,9 @@
   </div>
 </div>
 
+@endsection
+
+@push('scripts')
 <script>
 const lapanganData = @json($lapangan);
 let cart = [];
@@ -695,6 +734,4 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+@endpush

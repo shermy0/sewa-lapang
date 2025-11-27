@@ -100,6 +100,7 @@ class PetugasController extends Controller
             ->join('section_lapangan as s', 'j.section_id', '=', 's.id')
             ->join('lapangan as l', 's.lapangan_id', '=', 'l.id')
             ->join('users as u', 'p.penyewa_id', '=', 'u.id')
+            ->join('kategori as k', 'l.id_kategori', '=', 'k.id')
             ->whereIn('l.id', $lapanganIds)
             ->whereIn('p.status', ['menunggu', 'dibayar'])
             ->where(function ($q) use ($today, $nowTime) {
@@ -119,9 +120,12 @@ class PetugasController extends Controller
                 'j.tanggal',
                 'j.jam_mulai',
                 'j.jam_selesai',
+                'j.harga_sewa',
                 's.id as section_id',
                 's.nama_section',
                 'l.nama_lapangan',
+                'l.lokasi',
+                'k.nama_kategori',
             ])
             ->orderBy('j.tanggal')
             ->orderBy('j.jam_mulai')
@@ -144,6 +148,11 @@ class PetugasController extends Controller
                             'status' => $row->status,
                             'status_scan' => $row->status_scan,
                             'kode_tiket' => $row->kode_tiket,
+                            'lokasi' => $row->lokasi,
+                            'kategori' => $row->nama_kategori,
+                            'harga_sewa' => $row->harga_sewa,
+                            'nama_lapangan' => $row->nama_lapangan,
+                            'nama_section' => $row->nama_section,
                         ];
                     }),
                 ];
@@ -213,5 +222,35 @@ class PetugasController extends Controller
             ->get();
 
         return response()->json($jadwal);
+    }
+
+    public function display()
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        // Ambil semua lapangan milik pemilik petugas
+        $lapangan = Lapangan::where('pemilik_id', $pemilikId)
+            ->with('kategori')
+            ->get();
+
+        // Data antrean per section
+        $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
+
+        // Filter images for carousel
+        $carouselImages = collect();
+        foreach ($lapangan as $l) {
+            if (is_array($l->foto)) {
+                foreach ($l->foto as $f) $carouselImages->push($f);
+            } elseif (is_string($l->foto) && !empty($l->foto)) {
+                $carouselImages->push($l->foto);
+            }
+        }
+        
+        return view('petugas.display', [
+            'sectionQueues' => $sectionQueues,
+            'carouselImages' => $carouselImages,
+            'petugasName' => $petugas->name,
+        ]);
     }
 }

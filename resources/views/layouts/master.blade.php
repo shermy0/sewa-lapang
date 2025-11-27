@@ -19,6 +19,7 @@
             background: #f5f6fa;
         }
     </style>
+    @stack('styles')
 </head>
 
 <body>
@@ -29,39 +30,30 @@
     <header class="topbar d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
             <div class="brand fw-bold fs-5">SEWALAP</div>
+            <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
+                   placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
         </div>
 
         <div class="d-flex align-items-center gap-3">
-
-            {{-- Tombol Scan QR --}}
             <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-qrcode me-1"></i> Scan QR
+                Scan Arena
             </a>
-
-            {{-- Tombol Scan QR --}}
-            <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-qrcode me-1"></i> Penyewa
+            <a href="{{ route('petugas.display') }}" target="_blank" class="btn btn-light btn-sm fw-semibold">
+                <i class="fa-solid fa-tv me-1"></i> Layar Antrian
             </a>
-
-            {{-- Nama Petugas --}}
             <div class="text-end d-none d-md-block">
                 <small>Petugas: <strong>{{ $petugasName ?? auth()->user()->name }}</strong></small>
             </div>
-
-            {{-- Inisial --}}
             <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
-                style="width:36px;height:36px;font-weight:600">
+                 style="width:36px;height:36px;font-weight:600">
                 {{ substr($petugasName ?? auth()->user()->name, 0, 1) }}
             </div>
-
-            {{-- Logout --}}
             <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
                 @csrf
                 <button type="submit" class="btn btn-light btn-sm">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </form>
-
         </div>
     </header>
 
