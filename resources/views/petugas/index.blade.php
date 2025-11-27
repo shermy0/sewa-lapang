@@ -1,3 +1,8 @@
+@extends('layouts.master')
+
+@section('title', 'Petugas Kasir')
+
+@section('content')
 <!doctype html>
 <html lang="id">
 <head>
@@ -9,81 +14,128 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    :root{
-      --accent:#41A67E;
-      --bg:#f5f7fb;
-      --card-hover:rgba(0,0,0,.08);
+    :root {
+      --accent: #41A67E;
+      --bg: #f5f7fb;
+      --card-hover: rgba(0, 0, 0, 0.08);
     }
-    body{
+
+    body {
       background: var(--bg);
-      font-family: Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      margin: 0;
+      padding: 0;
     }
-    .topbar{
+
+    .topbar {
       background: var(--accent);
-      color:#fff;
-      padding:12px 20px;
-      box-shadow:0 2px 5px rgba(0,0,0,.05);
+      color: #fff;
+      padding: 12px 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
-    .brand{font-weight:700;font-size:1.2rem;}
-    .lapangan-card{
-      cursor:pointer;
-      transition:.12s;
-      border-radius:6px;
-      box-shadow:0 2px 6px rgba(0,0,0,.05);
-      overflow:hidden;
+
+    .brand {
+      font-weight: 700;
+      font-size: 1.2rem;
     }
-    .lapangan-card:hover{
-      transform:translateY(-3px);
-      box-shadow:0 6px 15px var(--card-hover);
+
+    .lapangan-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
     }
-    .lapangan-img{height:120px;object-fit:cover;width:100%}
-    .cart{
-      position:sticky;top:20px;height:calc(100vh - 40px);
-      background:#fff;border-radius:10px;
-      box-shadow:0 2px 5px rgba(0,0,0,.08);
-      padding:15px;overflow:auto
+
+    .lapangan-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px var(--card-hover);
     }
-    .btn-pay{background:var(--accent);color:#fff}
-    @media(max-width:991px){
-      .cart{position:relative;height:auto;margin-top:15px}
+
+    /* GAMBAR */
+    .lapangan-img,
+    .card .carousel-inner,
+    .card .carousel-item {
+      width: 100%;
+      height: 220px; /* tinggi konsisten */
+    }
+
+    .lapangan-img {
+      object-fit: cover;
+    }
+
+    /* Carousel image */
+    .card .carousel-inner img {
+      width: 100%;
+      height: 220px; /* sama dengan lapangan-img */
+      object-fit: cover;
+    }
+
+    .cart {
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .cart h6 {
+      font-weight: 600;
+    }
+
+    .btn-pay {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    input#searchInput {
+      border-radius: 20px;
+      max-width: 200px;
+    }
+
+    select#filterKategori {
+      max-width: 180px;
+    }
+
+    @media (max-width: 991px) {
+      .cart {
+        position: relative;
+        height: auto;
+        max-height: none;
+        margin-top: 15px;
+      }
+
+      .lapangan-img,
+      .card .carousel-inner,
+      .card .carousel-item,
+      .card .carousel-inner img {
+        height: 180px; /* lebih kecil di mobile */
+      }
+    }
+
+    .card .text-truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
 <body>
-
-<header class="topbar d-flex align-items-center justify-content-between">
-  <div class="d-flex align-items-center gap-3">
-    <div class="brand">SEWALAP</div>
-    <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
-           placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
-  </div>
-
-  <div class="d-flex align-items-center gap-3">
-    <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-      <i class="fa-solid fa-qrcode me-1"></i> Scan QR
-    </a>
-    <div class="text-end d-none d-md-block">
-      <small>Petugas: <strong>{{ $petugasName }}</strong></small>
-    </div>
-    <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
-         style="width:36px;height:36px;font-weight:600">
-      {{ substr($petugasName, 0, 1) }}
-    </div>
-    <form action="{{ route('logout') }}" method="POST">
-      @csrf
-      <button type="submit" class="btn btn-light btn-sm">
-        <i class="fa-solid fa-right-from-bracket"></i>
-      </button>
-    </form>
-  </div>
-</header>
 
 <main class="container-fluid mt-3">
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
       <div class="d-flex justify-content-between mb-3">
-        <h5 class="mb-0">Pilih Lapangan</h5>
+        <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
+           placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
         <select id="filterKategori" name="id_kategori" class="form-select form-select-sm" style="max-width:150px;" required>
             <option value="all" selected>Pilih Kategori</option>
             @foreach ($kategori as $kat)
@@ -92,7 +144,6 @@
         </select>
       </div>
       <div id="grid" class="row g-3"></div>
-      <ul id="gridPagination" class="pagination justify-content-center mt-3"></ul>
     </div>
 
     <!-- KERANJANG -->
@@ -496,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
           metode: method,
           total: cart.reduce((s,i)=>s+i.harga*i.durasi,0),
           items: cart
-      };fetch('{{ route("petugas.payment.store") }}', {
+      };fetch('{{ route("petugas.store") }}', {
           
           method:'POST',
           headers:{
@@ -532,3 +583,4 @@ document.addEventListener("DOMContentLoaded", () => {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+@endsection

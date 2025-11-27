@@ -75,35 +75,33 @@ class PetugasController extends Controller
     public function store(Request $request)
     {
         try {
-            $transaksi = Transaksi::create([
-                'kasir' => $request->kasir,
-                'metode' => $request->metode,
-                'total' => $request->total,
-            ]);
-
-            foreach($request->items as $item){
-                // Simpan item transaksi
-                TransaksiItem::create([
-                    'transaksi_id' => $transaksi->id,
+            $data = $request->all(); // Pastikan data dari JS masuk
+            // contoh: $cart = $data['cart'];
+            // Simpan transaksi
+            foreach($data['cart'] as $item){
+                DB::table('transaksi')->insert([
                     'lapangan_id' => $item['id'],
-                    'nama_lapangan' => $item['nama'],
+                    'petugas_name' => auth()->user()->name,
                     'harga' => $item['harga'],
                     'jam_mulai' => $item['jam_mulai'],
                     'tanggal' => $item['tanggal'],
                     'durasi' => $item['durasi'],
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
 
-                // Update jadwal supaya slot hilang
+                // update jadwal jadi booked
                 DB::table('jadwal')
                     ->where('lapangan_id', $item['id'])
                     ->where('tanggal', $item['tanggal'])
                     ->where('jam_mulai', $item['jam_mulai'])
-                    ->update(['booking_status'=>'dibayar']);
+                    ->update(['booking_status' => 'dibayar']);
             }
 
-            return response()->json(['success'=>true]);
-        } catch (\Exception $e) {
-            return response()->json(['success'=>false,'error'=>$e->getMessage()]);
+            return response()->json(['success' => true]);
+        } catch (\Exception $e){
+            \Log::error($e->getMessage());
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 
