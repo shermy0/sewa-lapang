@@ -45,75 +45,6 @@
             <div class="col-md-6 mb-4 ticket-card">
 
                 {{-- Notifikasi perubahan --}}
-@if($p->permintaanPerubahan)
-
-    {{-- STATUS MENUNGGU --}}
-    @if($p->permintaanPerubahan->status === 'menunggu')
-        @php
-            $expires = \Carbon\Carbon::parse($p->permintaanPerubahan->expires_at);
-            $now = \Carbon\Carbon::now();
-            $selisihDetik = intval($expires->diffInSeconds($now, false));
-        @endphp
-
-@if($selisihDetik < 0)
-    <div class="alert alert-warning py-2 px-3 small mb-2">
-        <i class="fa-solid fa-hourglass-half me-1"></i>
-        Permintaan sedang menunggu persetujuan.
-        <br>
-        Sisa waktu: <span class="text-danger fw-bold" id="countdown-{{ $p->id }}"></span>
-    </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            let sisa = {{ abs($selisihDetik) }}; // detik tersisa
-
-            function updateCountdown() {
-                if (sisa <= 0) {
-                    document.getElementById("countdown-{{ $p->id }}").innerText = "00:00";
-                    location.reload();
-                    return;
-                }
-
-                let menit = Math.floor(sisa / 60);
-                let detik = sisa % 60;
-
-                document.getElementById("countdown-{{ $p->id }}")
-                    .innerText = `${String(menit).padStart(2, '0')}:${String(detik).padStart(2, '0')}`;
-
-                sisa--;
-            }
-
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-        });
-    </script>
-
-            {{-- script countdown --}}
-        @else
-            <div class="alert alert-danger py-2 px-3 small mb-2">
-                <i class="fa-solid fa-clock-rotate-left me-1"></i>
-                Waktu persetujuan habis. Slot jadwal kembali tersedia.
-            </div>
-            <button onclick="location.reload()" class="btn btn-outline-danger btn-sm mb-2">
-                <i class="fa-solid fa-rotate me-1"></i> Reload Halaman
-            </button>
-        @endif
-
-    {{-- STATUS DISETUJUI --}}
-    @elseif($p->permintaanPerubahan->status === 'disetujui')
-        <div class="alert alert-success py-2 px-3 small mb-2">
-            <i class="fa-solid fa-check-circle me-1"></i> Perubahan telah disetujui dan diperbarui.
-        </div>
-
-    {{-- STATUS DITOLAK --}}
-    @elseif($p->permintaanPerubahan->status === 'ditolak')
-        <div class="alert alert-danger py-2 px-3 small mb-2">
-            <i class="fa-solid fa-xmark me-1"></i> Permintaan perubahan ditolak.
-        </div>
-
-    @endif
-
-@endif
 
                 {{-- Kartu tiket --}}
                 <div class="ticket shadow-sm border-0 rounded-4 overflow-hidden">
@@ -185,47 +116,13 @@
                                     <i class="fa-solid fa-xmark me-1"></i> Batalkan
                                 </button>
 
-    {{-- BELUM PERNAH AJUKAN --}}
-    @if(!$p->permintaanPerubahan)
-        <button class="btn btn-warning btn-sm px-3"
-                onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
-            <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Perubahan
-        </button>
-
-    {{-- MASIH MENUNGGU --}}
-    @elseif($p->permintaanPerubahan->status === 'menunggu')
-        <button class="btn btn-outline-primary btn-sm px-3"
-                onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
-            <i class="fa-solid fa-hourglass-half me-1"></i> Menunggu Persetujuan
-        </button>
-
-    {{-- DITOLAK ATAU DISETUJUI → BOLEH AJUKAN LAGI --}}
-    @else
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm px-3"
-                    onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
-                <i class="fa-solid fa-eye me-1"></i> Lihat Detail
-            </button>
-
-            <button class="btn btn-warning btn-sm px-3"
-                    onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
-                <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Lagi
-            </button>
-        </div>
-    @endif
-
-                                {{-- @if(!$p->permintaanPerubahan)
-                                    <button class="btn btn-outline-primary btn-sm px-3"
-                                            onclick="ajukanPerubahan({{ $p->id }}, {{ $p->lapangan->id }})">
-                                        <i class="fa-solid fa-arrows-rotate me-1"></i> Ajukan Perubahan
-                                    </button>
-                                @else
-                                    <button class="btn btn-outline-secondary btn-sm px-3"
-                                            onclick="lihatDetailPerubahan({{ $p->permintaanPerubahan->id }})">
-                                        <i class="fa-solid fa-eye me-1"></i> Lihat Detail Permintaan
-                                    </button>
-                                @endif --}}
-                            </div>
+{{-- Tombol pindah lapang --}}
+@if($p->status_scan !== 'sudah_scan')
+    <button class="btn btn-warning btn-sm px-3"
+            onclick="pindahLapang({{ $p->id }}, {{ $p->lapangan->id }})">
+        <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
+    </button>
+@endif                            </div>
                         </div>
                     </div>
                 </div>
@@ -238,15 +135,6 @@
 
 <script src="https://app.sandbox.midtrans.com/snap/snap.js"
         data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
-
-<script>
-window.jadwalAktifUser = @json($semuaPemesananUser->pluck('jadwal_id'));
-</script>
-
-<script>
-window.userOrders = @json($userOrders);
-
-</script>
 
 <script>
 // Countdown pembayaran
@@ -371,142 +259,157 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
         });
     });
 });
+</script>
 
-function ajukanPerubahan(pemesananId, lapanganId) {
+<script>
+window.jadwalAktifUser = @json($semuaPemesananUser->pluck('jadwal_id'));
+window.userOrders = @json($userOrders);
+/*
+  Logic utama:
+  - loadJam() mengembalikan objek jadwal yang berisi booking_status:
+    null/undefined/'' => available (tersedia)
+    'menunggu' => dibooking tapi belum bayar (pending_payment)
+    'dibayar' => paid
+  - jika user pilih jadwal available -> lakukan pindah langsung (PATCH)
+  - jika pilih jadwal pending -> lakukan ajukan permintaan (POST ke permintaan-perubahan)
+  - jika paid -> tidak bisa dipilih
+*/
+
+document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('#scanTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        const filter = this.dataset.filter;
+        document.querySelectorAll('.ticket-card').forEach(card => {
+            if (filter === 'all' || card.dataset.status === filter) card.style.display = 'block';
+            else card.style.display = 'none';
+        });
+    });
+});
+
+function pindahLapang(pemesananId, lapanganId) {
     window.selectedSection = null;
     window.selectedJadwal = null;
-    window.selectedJadwalBookingStatus = null;
 
     Swal.fire({
-        title: "Ajukan Perubahan Jadwal / Section",
+        title: "Pindah Lapang",
         width: "90%",
         html: `
             <div class="text-start">
-                <div class="modal-title-custom"><i class="fa-solid fa-arrows-rotate me-1"></i>Ajukan Perubahan Jadwal / Section</div>
-                <div class="mb-3"><label class="modal-label">Pilih Section</label><div id="sectionList" class="row g-2"></div></div>
+                <div class="modal-title-custom">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i>Pindah Lapang
+                </div>
+
+                <div class="mb-3">
+                    <label class="modal-label">Pilih Section</label>
+                    <div id="sectionList" class="row g-2"></div>
+                </div>
+
                 <div id="tanggalWrapper" class="mt-3" style="display:none">
                     <label class="modal-label">Pilih Tanggal</label>
                     <input type="date" id="filterTanggal" class="form-control rounded-3" style="max-width:200px;">
                 </div>
+
                 <div id="jadwalWrapper" class="mt-3" style="display:none">
                     <label class="modal-label">Pilih Jam</label>
                     <div id="jadwalList" class="row g-2"></div>
-                    <div id="jadwalHint" class="mt-2 small text-muted"></div>
                 </div>
-                <label class="modal-label mt-3">Alasan Pengajuan (opsional)</label>
-                <textarea id="alasan" class="form-control p-3" rows="3" placeholder="Contoh: Jadwal bentrok..."></textarea>
+
+                <div class="mt-3">
+                    <label class="modal-label">Alasan Pindah</label>
+                    <textarea id="alasanPindah" class="form-control" placeholder="Tulis alasan pindah..."></textarea>
+                </div>
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: "Lanjutkan",
+        confirmButtonText: "Pindahkan",
         confirmButtonColor: "#41A67E",
-        didOpen: () => {
-            fetch(`/sections/${lapanganId}`)
-            .then(res => res.json())
-            .then(sections => {
-                const container = document.getElementById("sectionList");
-                container.innerHTML = sections.map(s => `
-                    <div class="col-md-3">
-                        <div class="section-card card-select" data-id="${s.id}">
-                            <b>${s.nama_section}</b>
-                        </div>
-                    </div>
-                `).join('');
-
-                document.querySelectorAll(".section-card").forEach(card => {
-                    card.addEventListener('click', function() {
-                        document.querySelectorAll(".section-card").forEach(c=>c.classList.remove('active'));
-                        this.classList.add('active');
-                        window.selectedSection = this.dataset.id;
-                        window.selectedJadwal = null;
-                        window.selectedJadwalBookingStatus = null;
-                        document.getElementById("jadwalList").innerHTML = '';
-                        document.getElementById("jadwalWrapper").style.display = 'none';
-                        document.getElementById("tanggalWrapper").style.display = 'block';
-                    });
-                });
-            });
-
-            setTimeout(()=> {
-                const dateInput = document.getElementById("filterTanggal");
-                dateInput?.addEventListener('change', function(){
-                    if (window.selectedSection && this.value) loadJam(window.selectedSection, this.value);
-                });
-            }, 80);
-        },
         preConfirm: () => {
-            // jika belum pilih jadwal
+            const alasan = document.getElementById('alasanPindah').value.trim();
             if (!window.selectedSection || !window.selectedJadwal) {
-                Swal.showValidationMessage("Pilih section, tanggal, dan jadwal dahulu!");
+                Swal.showValidationMessage("Pilih section, tanggal, dan jam terlebih dahulu.");
+                return false;
+            }
+            if (!alasan) {
+                Swal.showValidationMessage("Tulis alasan pindah.");
                 return false;
             }
 
-            // Jika jadwal available -> kita akan pindah langsung (tanpa permintaan)
-            if (window.selectedJadwalBookingStatus === null || window.selectedJadwalBookingStatus === '' || window.selectedJadwalBookingStatus === 'available') {
-                // return marker agar then() meng-handle pindah langsung
-                return { action: 'pindah_langsung', section_baru_id: window.selectedSection, jadwal_baru_id: window.selectedJadwal, alasan: document.getElementById('alasan').value };
-            }
+            return {
+                section_baru_id: window.selectedSection,
+                jadwal_baru_id: window.selectedJadwal,
+                alasan: alasan
+            };
+        },
+        didOpen: () => {
+            // LOAD SECTION
+            fetch(`/sections/${lapanganId}`)
+            .then(res=>res.json())
+            .then(data=>{
+                document.getElementById("sectionList").innerHTML =
+                    data.map(s => `
+                        <div class="col-md-3">
+                            <div class="section-card card-select" data-id="${s.id}">
+                                <b>${s.nama_section}</b>
+                            </div>
+                        </div>
+                    `).join('');
 
-            // Jika jadwal pending -> buat permintaan perubahan (ajukan)
-            if (window.selectedJadwalBookingStatus === 'menunggu') {
-                return { action: 'ajukan', section_baru_id: window.selectedSection, jadwal_baru_id: window.selectedJadwal, alasan: document.getElementById('alasan').value };
-            }
+                document.querySelectorAll(".section-card").forEach(card => {
+                    card.onclick = function() {
+                        document.querySelectorAll(".section-card").forEach(c=>c.classList.remove("active"));
+                        this.classList.add("active");
 
-            // Jika dibayar -> jangan
-            Swal.showValidationMessage("Jadwal ini sudah dibayar dan tidak bisa diajukan.");
-            return false;
+                        window.selectedSection = this.dataset.id;
+                        window.selectedJadwal = null;
+
+                        document.getElementById("jadwalWrapper").style.display = 'none';
+                        document.getElementById("tanggalWrapper").style.display = 'block';
+                    };
+                });
+            });
+
+            // TANGGAL → LOAD JAM
+            setTimeout(()=>{
+                const tgl = document.getElementById("filterTanggal");
+                if (!tgl) return;
+                tgl.addEventListener('change', ()=> {
+                    if (window.selectedSection && tgl.value) loadJam(window.selectedSection, tgl.value);
+                });
+            }, 100);
         }
-    }).then(result => {
+    }).then(result=>{
         if (!result.isConfirmed) return;
 
-        const value = result.value;
+        Swal.fire({
+            title: "Memindahkan...",
+            allowOutsideClick: false,
+            didOpen: ()=> Swal.showLoading()
+        });
 
-        if (value.action === 'pindah_langsung') {
-            // panggil endpoint pindah langsung
-            Swal.fire({ title: 'Memindahkan...', didOpen: ()=>Swal.showLoading(), allowOutsideClick:false });
-            fetch(`/pemesanan/${pemesananId}/pindah`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ jadwal_baru_id: value.jadwal_baru_id, section_baru_id: value.section_baru_id })
-            }).then(async res => {
-                Swal.close();
-                if (!res.ok) {
-                    const err = await res.json().catch(()=>({message:'Gagal'}));
-                    return Swal.fire('Gagal', err.error || (err.message ?? 'Terjadi kesalahan'), 'error');
-                }
-                Swal.fire('Berhasil', 'Jadwal berhasil dipindahkan.', 'success').then(()=> location.reload());
-            }).catch(()=> { Swal.close(); Swal.fire('Gagal', 'Terjadi kesalahan koneksi.', 'error'); });
-            return;
-        }
+        fetch(`/pemesanan/${pemesananId}/pindah`, {
+            method: "PATCH",
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                jadwal_baru_id: result.value.jadwal_baru_id,
+                section_baru_id: result.value.section_baru_id,
+                alasan: result.value.alasan
+            })
+        }).then(async res=>{
+            if (!res.ok) {
+                const err = await res.json().catch(()=>({}));
+                return Swal.fire("Gagal", err.error ?? "Terjadi kesalahan", "error");
+            }
 
-        if (value.action === 'ajukan') {
-            // kirim permintaan perubahan (seperti sekarang)
-            fetch(`/permintaan-perubahan/${pemesananId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ section_baru_id: value.section_baru_id, jadwal_baru_id: value.jadwal_baru_id, alasan: value.alasan })
-            }).then(async res => {
-                if (!res.ok) {
-                    const err = await res.json().catch(()=>({error:'Gagal mengirim'}));
-                    return Swal.fire('Gagal', err.error || 'Gagal mengirim permintaan.', 'error');
-                }
-                Swal.fire('Terkirim', 'Permintaan dikirim, menunggu respons pemilik.', 'success').then(()=> location.reload());
-            }).catch(()=> Swal.fire('Gagal', 'Tidak dapat mengirim permintaan.', 'error'));
-            return;
-        }
+            Swal.fire("Berhasil", "Jadwal berhasil dipindahkan!", "success")
+                .then(()=> location.reload());
+        });
     });
 }
 
-// loadJam: ambil jadwal untuk section, filter per tanggal & beri info booking_status
-// ==============================
-// PERBAIKAN FINAL: loadJam()
-// ==============================
 function loadJam(sectionId, tanggal) {
     fetch(`/jadwal/section/${sectionId}`)
         .then(res => res.json())
@@ -518,71 +421,53 @@ function loadJam(sectionId, tanggal) {
                 return t === tanggal;
             });
 
-            document.getElementById("jadwalWrapper").style.display = "block";
             const container = document.getElementById("jadwalList");
+            container.innerHTML = "";
+            document.getElementById("jadwalWrapper").style.display = "block";
 
             if (filtered.length === 0) {
                 container.innerHTML = `<p class="text-muted">Tidak ada jadwal pada tanggal ini.</p>`;
                 return;
             }
 
-            container.innerHTML = filtered.map(j => {
-
+            filtered.forEach(j => {
                 let status = "available";
-                let isUser = false; // pakai variabel lokal biar aman
+                let isUser = false;
 
                 // ===============================
-                // CEK: JADWAL MILIK USER?
+                // CEK: JADWAL MILIK USER
                 // ===============================
                 if (window.jadwalAktifUser.includes(j.id)) {
-
                     const pay = window.userOrders[j.id] ?? null;
 
-                    // 🔥 Jika kadaluarsa → dianggap bukan user + available
                     if (pay === "kadaluarsa" || pay === null) {
                         status = "available";
                         isUser = false;
                     } else {
                         isUser = true;
-                       status =
-    pay === "menunggu" || pay === "pending" ? "menunggu" :
-    pay === "berhasil" ? "dibayar" :
-    "available";
-
+                        status = (pay === "menunggu" || pay === "pending") ? "menunggu" : "dibayar";
                     }
                 }
-
                 // ===============================
-                // JADWAL ORANG LAIN
+                // CEK: JADWAL ORANG LAIN
                 // ===============================
                 else {
-
-                    if (j.booking_status === "dibayar") {
-                        status = "dibayar";
-                    }
-                    else if (j.booking_status === "menunggu") {
-                        status = "menunggu";
-                    }
-                    else {
-                        status = j.tersedia ? "available" : "menunggu";
-                    }
+                    if (j.booking_status === "dibayar") status = "dibayar";
+                    else if (j.booking_status === "menunggu") status = "menunggu";
+                    else status = j.tersedia ? "available" : "menunggu";
                 }
 
-                // CSS CLASS
-                const cls =
-                    status === "menunggu" ? "pending" :
-                    status === "dibayar" ? "paid" :
-                    "available";
+                // ===============================
+                // CSS & DISABLE LOGIC
+                // ===============================
+                const cls = status === "menunggu" ? "pending" :
+                            status === "dibayar" ? "paid" : "available";
 
-                // ===============================
-                // DISABLE STYLE LOGIC — FIXED
-                // ===============================
-                const disabledStyle =
-                    (isUser && status !== "available")
-                        ? "pointer-events:none; opacity:0.85; background:#e8fff2; border-color:#41A67E;"
-                        : (status === "dibayar")
-                            ? "pointer-events:none; opacity:0.55;"
-                            : ""; // available → tidak ada disable
+                const disabledStyle = (isUser && status !== "available")
+                    ? "pointer-events:none; opacity:0.85; background:#e8fff2; border-color:#41A67E;"
+                    : (status === "dibayar" || status === "menunggu") // semua milik orang lain
+                        ? "pointer-events:none; opacity:0.55;"
+                        : ""; // available → aktif
 
                 // ===============================
                 // TEXT STATUS
@@ -591,43 +476,26 @@ function loadJam(sectionId, tanggal) {
 
                 if (isUser) {
                     const pay = window.userOrders[j.id];
-
-                    if (pay === "menunggu" || pay === "pending") {
-    statusText = `<b style="color:#41A67E">Jadwalmu Saat Ini (Belum Dibayar)</b>`;
-}
-
-                    else if (pay === "berhasil") {
-                        statusText = `<b style="color:#41A67E">Jadwalmu Saat Ini(Sudah Dibayar)</b>`;
-                    }
-                    else {
-                        statusText = "Tersedia"; // kadaluarsa
-                    }
+                    if (pay === "menunggu" || pay === "pending") statusText = `<b style="color:#41A67E">Jadwalmu (Belum Dibayar)</b>`;
+                    else if (pay === "berhasil") statusText = `<b style="color:#41A67E">Jadwalmu (Sudah Dibayar)</b>`;
                 } else {
-                    if (status === "menunggu")
-                        statusText = (j.status_pembayaran === "berhasil")
-                            ? "Sedang dibooking (sudah dibayar)"
-                            : "Sedang dibooking (belum bayar)";
-                    else if (status === "dibayar")
-                        statusText = "Sudah dibayar";
-                    else
-                        statusText = "Tersedia";
+                    if (status === "menunggu") statusText = "Sedang dibooking (belum bayar)";
+                    else if (status === "dibayar") statusText = "Sedang dibooking (sudah dibayar)";
                 }
 
-                return `
+                container.innerHTML += `
                     <div class="col-md-3">
                         <div class="jadwal-item ${cls}"
-                            data-id="${j.id}"
-                            data-booking="${status}"
-                            data-is-user="${isUser}"
-                            style="padding:10px;border-radius:8px;border:2px solid #eee;${disabledStyle}">
-                            
+                             data-id="${j.id}"
+                             data-booking="${status}"
+                             data-is-user="${isUser}"
+                             style="padding:10px;border-radius:8px;border:2px solid #eee;${disabledStyle}">
                             <b>${j.jam_mulai} - ${j.jam_selesai}</b>
                             <div class="small text-muted">${statusText}</div>
                         </div>
                     </div>
                 `;
-
-            }).join("");
+            });
 
             // ===============================
             // EVENT CLICK
@@ -636,9 +504,10 @@ function loadJam(sectionId, tanggal) {
                 const booking = item.dataset.booking;
                 const isUser = item.dataset.isUser === "true";
 
-                // 🔥 FIX: kadaluarsa sekarang dianggap isUser = false, jadi bisa klik
+                // User sendiri boleh klik jika status available (kadaluarsa dianggap available)
                 if (isUser && booking !== "available") return;
-                if (booking === "dibayar") return;
+                // Semua jadwal orang lain yang sedang menunggu/dibayar tidak bisa diklik
+                if (!isUser && (booking === "menunggu" || booking === "dibayar")) return;
 
                 item.addEventListener("click", function() {
                     document.querySelectorAll(".jadwal-item").forEach(x => x.style.borderColor = "#eee");
@@ -649,55 +518,6 @@ function loadJam(sectionId, tanggal) {
                 });
             });
         });
-}
-// lihat detail permintaan (tetap sama sedikit disesuaikan)
-function lihatDetailPerubahan(permintaanId) {
-    fetch(`/permintaan-perubahan/${permintaanId}`)
-        .then(res => res.json())
-        .then(data => {
-            const jadwalBaru = data.jadwal_baru ? `${new Date(data.jadwal_baru.tanggal).toLocaleDateString('id-ID')} (${data.jadwal_baru.jam_mulai} - ${data.jadwal_baru.jam_selesai})` : '-';
-            const expiresText = data.expires_at ? new Date(data.expires_at).toLocaleString('id-ID') : '-';
-            Swal.fire({
-                title: '<i class="fa-solid fa-arrows-rotate me-1 text-success"></i> Detail Permintaan Perubahan',
-                html: `
-                    <div class="text-start">
-                        <p><strong>Status:</strong> ${data.status === 'menunggu' ? '<span class="badge bg-warning text-dark">Menunggu</span>' : data.status === 'disetujui' ? '<span class="badge bg-success">Disetujui</span>' : '<span class="badge bg-danger">Ditolak</span>'}</p>
-                        <p><strong>Berlaku hingga:</strong> ${expiresText}</p>
-                        <p><strong>Section Baru:</strong> ${data.section_baru?.nama_section ?? '-'}</p>
-                        <p><strong>Jadwal Baru:</strong> ${jadwalBaru}</p>
-                        <p><strong>Alasan:</strong> ${data.alasan ?? '-'}</p>
-                        ${data.alasan_internal ? `<p class="text-muted"><strong>Catatan:</strong> ${data.alasan_internal}</p>` : ''}
-                    </div>
-                `,
-                showCancelButton: true,
-                cancelButtonText: 'Tutup',
-                showConfirmButton: data.status === 'menunggu',
-                confirmButtonText: 'Batalkan',
-                confirmButtonColor: '#d33'
-            }).then((result) => {
-                if (result.isConfirmed) batalkanPermintaan(data.id);
-            });
-        })
-        .catch(()=> Swal.fire('Gagal', 'Tidak dapat memuat detail.', 'error'));
-}
-
-function batalkanPermintaan(id) {
-    Swal.fire({
-        title: 'Batalkan Permintaan?',
-        text: 'Permintaan perubahan ini akan dihapus.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Batalkan',
-        confirmButtonColor: '#d33',
-        cancelButtonText: 'Tidak'
-    }).then(result => {
-        if (!result.isConfirmed) return;
-        fetch(`/permintaan-perubahan/${id}`, {
-            method: 'DELETE',
-            headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}
-        }).then(()=> Swal.fire('Dibatalkan', 'Permintaan telah dibatalkan.', 'success').then(()=> location.reload()))
-          .catch(()=> Swal.fire('Gagal', 'Terjadi kesalahan.', 'error'));
-    });
 }
 </script>
 @endsection
