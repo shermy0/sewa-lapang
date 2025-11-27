@@ -8,6 +8,7 @@ use App\Models\JadwalLapangan;
 use App\Models\Pemesanan;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -224,33 +225,30 @@ class PetugasController extends Controller
         return response()->json($jadwal);
     }
 
-    public function display()
+    public function penyewa()
     {
-        $petugas = Auth::user();
-        $pemilikId = $petugas->pemilik_id;
+        $penyewa = User::where('role', 'penyewa')->orderBy('created_at', 'desc')->get();
+        return view('petugas.penyewa', compact('penyewa'));
+    }
 
-        // Ambil semua lapangan milik pemilik petugas
-        $lapangan = Lapangan::where('pemilik_id', $pemilikId)
-            ->with('kategori')
-            ->get();
-
-        // Data antrean per section
-        $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
-
-        // Filter images for carousel
-        $carouselImages = collect();
-        foreach ($lapangan as $l) {
-            if (is_array($l->foto)) {
-                foreach ($l->foto as $f) $carouselImages->push($f);
-            } elseif (is_string($l->foto) && !empty($l->foto)) {
-                $carouselImages->push($l->foto);
-            }
-        }
-        
-        return view('petugas.display', [
-            'sectionQueues' => $sectionQueues,
-            'carouselImages' => $carouselImages,
-            'petugasName' => $petugas->name,
+    // Menyimpan penyewa baru
+    public function storePenyewa(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'nullable|string|min:6'
         ]);
+
+        $password = $request->password ?? 'password123';
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($password),
+            'role' => 'penyewa'
+        ]);
+
+        return redirect()->route('petugas.penyewa')->with('success', 'Penyewa berhasil ditambahkan!');
     }
 }

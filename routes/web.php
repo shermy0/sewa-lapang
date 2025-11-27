@@ -195,6 +195,8 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
     ->prefix('petugas')->name('petugas.')
     ->group(function () {
         Route::get('/', [PetugasController::class, 'index'])->name('index');
+        Route::get('/penyewa', [PetugasController::class, 'penyewa'])->name('penyewa');
+        Route::post('/penyewa', [PetugasController::class, 'storePenyewa'])->name('penyewa.store'); // simpan data
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
         Route::post('/payment/store', [PetugasController::class, 'store'])->name('payment.store');
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');

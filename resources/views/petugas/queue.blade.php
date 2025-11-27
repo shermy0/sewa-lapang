@@ -435,7 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h6 class="card-title mb-1">${l.nama}</h6>
           ${l.deskripsi?`<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>`:''}
           <div class="mt-1 d-flex justify-content-between">
-            <small>Harga Rata-rata:</small>
+            <small>Harga: </small>
             <small style="color:#41A67E;font-weight:600;">${l.hargaRataRata?`Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam`:'-'}</small>
           </div>
         </div>
