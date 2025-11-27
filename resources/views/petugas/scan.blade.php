@@ -49,14 +49,14 @@
                 <div class="small text-muted mb-1">Pilih mode scan</div>
                 <div class="btn-group" role="group" id="checkpointToggle">
                     <button type="button" class="btn btn-outline-success active" data-checkpoint="gor">
-                        Masuk GOR
+                        Masuk Arena
                     </button>
                     <button type="button" class="btn btn-outline-success" data-checkpoint="lapang">
                         Masuk Lapang
                     </button>
                 </div>
             </div>
-            <div class="small text-muted">Scan di pintu GOR dulu, lalu pintu lapang.</div>
+            <div class="small text-muted">Scan di pintu Arena dulu, lalu pintu Lapang.</div>
         </div>
 
         <!-- Scanner -->
@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             checkpointButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentCheckpoint = btn.dataset.checkpoint || 'gor';
-            updateStatus(`Siap memindai (${currentCheckpoint === 'gor' ? 'Masuk GOR' : 'Masuk Lapang'})`, "fa-circle-notch fa-spin");
+            updateStatus(`Siap memindai (${currentCheckpoint === 'gor' ? 'Masuk Arena' : 'Masuk Lapang'})`, "fa-circle-notch fa-spin");
         });
     });
 
@@ -114,11 +114,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     function renderResult(payload, statusFlag, message, isSuccess) {
         const statusLabel = {
             valid: { text: 'Valid', cls: 'bg-success' },
-            valid_lobby: { text: 'Scan GOR', cls: 'bg-info text-dark' },
+            valid_lobby: { text: 'Masuk Arena', cls: 'bg-info text-dark' },
             valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
             expired: { text: 'Expired', cls: 'bg-danger' },
             double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
-            double_scan_lobby: { text: 'Sudah Scan GOR', cls: 'bg-warning text-dark' },
+            double_scan_lobby: { text: 'Sudah Scan Arena', cls: 'bg-warning text-dark' },
             double_scan_lapang: { text: 'Sudah Scan Lapang', cls: 'bg-warning text-dark' },
             too_early: { text: 'Belum Waktunya', cls: 'bg-secondary' },
             unpaid: { text: 'Belum Dibayar', cls: 'bg-secondary' },
@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const scanStatus = payload.status_scan === 'sudah_scan'
             ? '<span class="badge bg-success">Sudah Scan Lapang</span>'
             : payload.status_scan === 'scan_lobby'
-                ? '<span class="badge bg-info text-dark">Sudah Scan GOR</span>'
+                ? '<span class="badge bg-info text-dark">Sudah Scan Arena</span>'
                 : '<span class="badge bg-warning text-dark">Belum Scan</span>';
 
         resultBox.innerHTML = `

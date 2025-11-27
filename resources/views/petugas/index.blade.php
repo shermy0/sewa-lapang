@@ -32,6 +32,20 @@
     .btn-pay{background:var(--accent);color:#fff;border:none}
     .tag-status{font-size:12px;padding:4px 8px;border-radius:8px;font-weight:600}
     .empty-state{border:1px dashed #cfd6e2;border-radius:14px;background:#fff;padding:32px;text-align:center;color:var(--muted)}
+    /* Queue styling */
+    .queue-wrapper{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+    .queue-card{border:1px solid #e5ebf3;border-radius:16px;padding:16px 18px;box-shadow:0 10px 30px rgba(0,0,0,.04);background:linear-gradient(180deg,#ffffff,#f9fbff)}
+    .queue-card .title{font-weight:700;margin-bottom:2px;font-size:15px}
+    .queue-card .subtitle{color:#6c757d;font-size:13px}
+    .queue-chip{background:#e8f5ee;color:#2f9f6f;border-radius:12px;padding:6px 12px;font-weight:700;font-size:12px}
+    .queue-list{margin:12px 0 0 0;padding:0;list-style:none}
+    .queue-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px dashed #e3e8f0}
+    .queue-item:first-child{border-top:none;padding-top:6px}
+    .queue-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#2f9f6f,#33b883);margin-top:6px;flex-shrink:0;box-shadow:0 0 0 4px rgba(47,159,111,.08)}
+    .queue-meta{font-size:13px;color:#6c757d}
+    .queue-status{font-size:12px;padding:6px 12px;border-radius:999px;font-weight:700;display:inline-block;min-width:90px;text-align:center}
+    .queue-code{font-size:12px;color:#8b95a5;margin-top:4px}
+    .queue-empty{padding:10px 0;color:#9aa5b1;font-size:13px}
     @media(max-width:991px){.cart{position:relative;height:auto;margin-top:18px}}
   </style>
 </head>
@@ -48,8 +62,14 @@
 
   <div class="d-flex align-items-center gap-3">
     <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-      Scan QR
+      Scan lobby
     </a>
+    <form method="POST" action="{{ route('logout') }}" class="mb-0">
+      @csrf
+      <button type="submit" class="btn btn-outline-light btn-sm fw-semibold">
+        Logout
+      </button>
+    </form>
     <div class="text-end me-2 d-none d-md-block">
       <small>Petugas: <strong>{{ $petugasName }}</strong></small>
     </div>
@@ -59,6 +79,73 @@
     </div>
   </div>
 </header>
+
+<section class="container-fluid mt-3">
+  @if(!empty($needsOwner))
+    <div class="alert alert-warning mb-3">
+      Akun petugas belum dikaitkan dengan pemilik. Minta pemilik membuatkan akun petugas dari menu <strong>Petugas</strong>.
+    </div>
+  @endif
+
+  <div class="card shadow-sm border-0" style="border-radius:14px">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <div class="text-uppercase text-muted small fw-semibold">Antrean per Section</div>
+          <h6 class="fw-bold mb-0">Urutan Penyewa</h6>
+        </div>
+        <span class="badge bg-primary bg-opacity-10 text-primary">Live</span>
+      </div>
+
+      @php
+        $statusClasses = [
+          'dibayar' => 'bg-success',
+          'menunggu' => 'bg-warning text-dark',
+          'kadaluarsa' => 'bg-secondary',
+          'batal' => 'bg-danger',
+        ];
+      @endphp
+
+      <div class="queue-wrapper">
+        @forelse($sectionQueues as $section)
+          <div class="queue-card">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="title">{{ $section['label'] }}</div>
+                <div class="subtitle">{{ $section['lapangan'] }}</div>
+              </div>
+              <span class="queue-chip">{{ $section['queue']->count() }} antrean</span>
+            </div>
+
+            @if($section['queue']->isEmpty())
+              <div class="queue-empty">Belum ada pemesanan pada section ini.</div>
+            @else
+              <ul class="queue-list">
+                @foreach($section['queue'] as $order)
+                  <li class="queue-item">
+                    <div class="queue-dot"></div>
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold">{{ $order['penyewa'] }}</div>
+                      <div class="queue-meta">{{ $order['tanggal'] }} • {{ $order['jam_mulai'] }} - {{ $order['jam_selesai'] }}</div>
+                    </div>
+                    <div class="text-end">
+                      <div class="queue-status {{ $statusClasses[$order['status']] ?? 'bg-secondary text-white' }}">
+                        {{ ucfirst($order['status']) }}
+                      </div>
+                      <div class="queue-code">{{ $order['kode_tiket'] }}</div>
+                    </div>
+                  </li>
+                @endforeach
+              </ul>
+            @endif
+          </div>
+        @empty
+          <div class="text-center text-muted">Belum ada data antrean.</div>
+        @endforelse
+      </div>
+    </div>
+  </div>
+</section>
 
 
 <main class="container-fluid mt-3">
@@ -80,8 +167,8 @@
                   <option value="booked">Dipesan</option>
               </select>
 
-              <select name="id_kategori" class="form-select form-select-sm" required>
-                  <option value="" disabled selected>Pilih Kategori</option>
+              <select id="filterCategory" name="id_kategori" class="form-select form-select-sm">
+                  <option value="">Pilih Kategori</option>
                   @foreach ($kategori as $kat)
                       <option value="{{ $kat->id }}">
                           {{ $kat->nama_kategori }}
@@ -149,7 +236,7 @@
 <script>
     const lapanganData = @json($lapangan);
     const petugasName = "{{ $petugasName }}";
-    const currentOwnerId = {{ $pemilikId }};
+    const currentOwnerId = @json($pemilikId);
 </script>
 
 <!-- JS -->
@@ -160,7 +247,8 @@
   let perPage = 9;
   let page = 1;
   let filterStatus = "all";
-  let filterOwner = currentOwnerId;
+  let filterOwner = currentOwnerId; // null/undefined => tampil semua pemilik
+  let filterCategory = "";
 
   document.addEventListener("DOMContentLoaded", () => {
     renderGrid();
@@ -178,16 +266,29 @@
     renderGrid();
   });
 
+  document.getElementById("filterCategory").addEventListener("change", e => {
+    filterCategory = e.target.value;
+    page = 1;
+    renderGrid();
+  });
+
   function renderGrid(){
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
 
     const q = document.getElementById("searchInput").value.toLowerCase();
 
-    let items = lapanganData.filter(l => l.pemilik_id == filterOwner);
+    let items = [...lapanganData];
+
+    if(filterOwner !== null && filterOwner !== undefined){
+      items = items.filter(l => l.pemilik_id == filterOwner);
+    }
 
     if(filterStatus !== "all")
       items = items.filter(l => l.status === filterStatus);
+
+    if(filterCategory)
+      items = items.filter(l => String(l.kategori_id) === String(filterCategory));
 
     if(q)
       items = items.filter(l => l.nama.toLowerCase().includes(q));
@@ -218,7 +319,7 @@
       col.innerHTML = `
         <div class="card lapangan-card" data-id="${l.id}">
           <div class="position-relative">
-            <img class="lapangan-img" 
+            <img class="lapangan-img"
                  src="${l.foto ?? 'https://via.placeholder.com/640x400/2f9f6f/ffffff?text=Lapangan'}">
             <span class="position-absolute top-0 start-0 m-2 px-3 py-1 rounded-pill bg-light text-dark small fw-semibold">
               ${l.kategori ?? 'Lapangan'}
