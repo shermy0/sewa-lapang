@@ -3,132 +3,7 @@
 @section('title', 'Petugas Kasir')
 
 @section('content')
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SEWALAP - Kasir</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <style>
-    :root {
-      --accent: #41A67E;
-      --bg: #f5f7fb;
-      --card-hover: rgba(0, 0, 0, 0.08);
-    }
-
-    body {
-      background: var(--bg);
-      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-      margin: 0;
-      padding: 0;
-    }
-
-    .topbar {
-      background: var(--accent);
-      color: #fff;
-      padding: 12px 20px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    .brand {
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-
-    .lapangan-card {
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .lapangan-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 20px var(--card-hover);
-    }
-
-    /* GAMBAR */
-    .lapangan-img,
-    .card .carousel-inner,
-    .card .carousel-item {
-      width: 100%;
-      height: 220px; /* tinggi konsisten */
-    }
-
-    .lapangan-img {
-      object-fit: cover;
-    }
-
-    /* Carousel image */
-    .card .carousel-inner img {
-      width: 100%;
-      height: 220px; /* sama dengan lapangan-img */
-      object-fit: cover;
-    }
-
-    .cart {
-      position: sticky;
-      top: 20px;
-      max-height: calc(100vh - 40px);
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-      padding: 15px;
-      overflow-y: auto;
-    }
-
-    .cart h6 {
-      font-weight: 600;
-    }
-
-    .btn-pay {
-      background: var(--accent);
-      color: #fff;
-      font-weight: 600;
-    }
-
-    input#searchInput {
-      border-radius: 20px;
-      max-width: 200px;
-    }
-
-    select#filterKategori {
-      max-width: 180px;
-    }
-
-    @media (max-width: 991px) {
-      .cart {
-        position: relative;
-        height: auto;
-        max-height: none;
-        margin-top: 15px;
-      }
-
-      .lapangan-img,
-      .card .carousel-inner,
-      .card .carousel-item,
-      .card .carousel-inner img {
-        height: 180px; /* lebih kecil di mobile */
-      }
-    }
-
-    .card .text-truncate {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  </style>
-</head>
 <body>
-
 <main class="container-fluid mt-3">
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
@@ -281,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h6 class="card-title mb-1">${l.nama}</h6>
           ${l.deskripsi?`<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>`:''}
           <div class="mt-1 d-flex justify-content-between">
-            <small>Harga Rata-rata:</small>
+            <small>Harga: </small>
             <small style="color:#41A67E;font-weight:600;">${l.hargaRataRata?`Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam`:'-'}</small>
           </div>
         </div>

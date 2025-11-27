@@ -1,26 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEWALAP</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SEWALAP - Kasir</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <style>
-        .topbar {
-            background: #ffffff;
-            padding: 10px 20px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        body {
-            background: #f5f6fa;
-        }
-    </style>
+  <style>
+    :root {
+      --accent: #41A67E;
+      --bg: #f5f7fb;
+      --card-hover: rgba(0, 0, 0, 0.08);
+    }
+
+    body {
+      background: var(--bg);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      margin: 0;
+      padding: 0;
+    }
+
+    .topbar {
+      background: var(--accent);
+      color: #fff;
+      padding: 12px 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .lapangan-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .lapangan-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px var(--card-hover);
+    }
+
+    .lapangan-img {
+      height: 140px;
+      width: 300px; 
+      object-fit: cover;
+      width: 100%;
+    }
+
+    .cart {
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .cart h6 {
+      font-weight: 600;
+    }
+
+    .btn-pay {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    input#searchInput {
+      border-radius: 20px;
+      max-width: 200px;
+    }
+
+    select#filterKategori {
+      max-width: 180px;
+    }
+
+    @media (max-width: 991px) {
+      .cart {
+        position: relative;
+        height: auto;
+        max-height: none;
+        margin-top: 15px;
+      }
+      .lapangan-img {
+        height: 120px;
+      }
+    }
+
+    .card .carousel-inner img {
+      height: 140px;
+      object-fit: cover;
+    }
+
+    .card .text-truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
 </head>
-
 <body>
 
     {{-- ===================== --}}
@@ -38,9 +126,9 @@
                 <i class="fa-solid fa-qrcode me-1"></i> Scan QR
             </a>
 
-            {{-- Tombol Scan QR --}}
-            <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-qrcode me-1"></i> Penyewa
+            {{-- Tombol Tambah Penyewa --}}
+            <a href="{{ route('petugas.penyewa') }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="fa-solid fa-user-plus me-1"></i> Tambah Penyewa
             </a>
 
             {{-- Nama Petugas --}}

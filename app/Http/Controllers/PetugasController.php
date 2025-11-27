@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Lapangan;
 use App\Models\Kategori;
 use Illuminate\Http\Request;
+use App\Models\User; 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -129,5 +130,32 @@ class PetugasController extends Controller
             ->get();
 
         return response()->json($jadwal);
+    }
+
+    public function penyewa()
+    {
+        $penyewa = User::where('role', 'penyewa')->orderBy('created_at', 'desc')->get();
+        return view('petugas.penyewa', compact('penyewa'));
+    }
+
+    // Menyimpan penyewa baru
+    public function storePenyewa(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'nullable|string|min:6'
+        ]);
+
+        $password = $request->password ?? 'password123';
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($password),
+            'role' => 'penyewa'
+        ]);
+
+        return redirect()->route('petugas.penyewa')->with('success', 'Penyewa berhasil ditambahkan!');
     }
 }
