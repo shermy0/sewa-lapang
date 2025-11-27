@@ -98,10 +98,26 @@
                             </a>
 {{-- Tombol pindah lapang --}}
 @if($p->status_scan !== 'sudah_scan')
+@php
+    $jadwalAktifText = '-';
+    if($jadwalAktif){
+        $tanggalFormat = \Carbon\Carbon::parse($jadwalAktif->tanggal)->translatedFormat('l, d F Y');
+        $jadwalAktifText = $tanggalFormat . ' | ' . $jadwalAktif->jam_mulai . ' - ' . $jadwalAktif->jam_selesai;
+    }
+@endphp
+
 <button class="btn btn-warning btn-sm px-3"
-        onclick="pindahLapang({{ $p->id }}, {{ $p->lapangan->id }}, '{{ $p->lapangan->nama_lapangan }}', '{{ $sectionAktif?->nama_section ?? '-' }}', '{{ $jadwalAktif?->jam_mulai.' - '.$jadwalAktif?->jam_selesai ?? '-' }}', {{ $jadwalAktif?->id ?? 'null' }})">
+        onclick="pindahLapang(
+            {{ $p->id }}, 
+            {{ $p->lapangan->id }}, 
+            '{{ $p->lapangan->nama_lapangan }}', 
+            '{{ $sectionAktif?->nama_section ?? '-' }}', 
+            '{{ $jadwalAktifText }}', 
+            {{ $jadwalAktif?->id ?? 'null' }}
+        )">
     <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
 </button>
+
 
 @endif
                         </div>
@@ -134,6 +150,7 @@ document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
 function pindahLapang(pemesananId, lapanganId, namaLapangan = '', namaSection = '', jadwalAktifText = '', jadwalAktifId = null) {
     window.selectedSection = null;
     window.selectedJadwal = null;
+    let currentTanggal = null; // simpan tanggal yang dipilih
 
     Swal.fire({
         title: "Pindah Lapang",
@@ -151,7 +168,7 @@ function pindahLapang(pemesananId, lapanganId, namaLapangan = '', namaSection = 
                 </div>
 
                 <div class="mb-3">
-                    <label class="modal-label">Pilih Section Baru</label>
+                    <label class="modal-label">Pilih Lapang Baru</label>
                     <div id="sectionList" class="row g-2"></div>
                 </div>
 
@@ -192,6 +209,9 @@ function pindahLapang(pemesananId, lapanganId, namaLapangan = '', namaSection = 
             };
         },
         didOpen: () => {
+            const tanggalInput = document.getElementById("filterTanggal");
+
+            // load section
             fetch(`/sections/${lapanganId}`)
             .then(res => res.json())
             .then(data => {
@@ -212,19 +232,24 @@ function pindahLapang(pemesananId, lapanganId, namaLapangan = '', namaSection = 
                         window.selectedSection = this.dataset.id;
                         window.selectedJadwal = null;
 
-                        document.getElementById("jadwalWrapper").style.display = 'none';
+                        // show tanggal wrapper
                         document.getElementById("tanggalWrapper").style.display = 'block';
+
+                        // kalau tanggal sudah ada, reload jam
+                        if (currentTanggal) {
+                            loadJam(window.selectedSection, currentTanggal, jadwalAktifId);
+                        }
                     };
                 });
             });
 
-            setTimeout(()=>{
-                const tgl = document.getElementById("filterTanggal");
-                if (!tgl) return;
-                tgl.addEventListener('change', ()=> {
-                    if (window.selectedSection && tgl.value) loadJam(window.selectedSection, tgl.value, jadwalAktifId);
-                });
-            }, 100);
+            // event change tanggal
+            tanggalInput.addEventListener('change', () => {
+                if (window.selectedSection && tanggalInput.value) {
+                    currentTanggal = tanggalInput.value; // simpan tanggal
+                    loadJam(window.selectedSection, currentTanggal, jadwalAktifId);
+                }
+            });
         }
     }).then(result => {
         if (result.isConfirmed && result.value) {
@@ -272,6 +297,7 @@ function pindahLapang(pemesananId, lapanganId, namaLapangan = '', namaSection = 
         }
     });
 }
+
 
 function loadJam(sectionId, tanggal, currentJadwalId = null) {
     fetch(`/jadwal/section/${sectionId}`)
