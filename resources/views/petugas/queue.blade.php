@@ -261,11 +261,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
     
-    if(!penyewaId) { 
-        alert("Silakan pilih penyewa terlebih dahulu!"); 
-        penyewaInput.focus();
-        return; 
-    }
+    if(!penyewa_id){
+    Swal.fire({
+        icon: "warning",
+        title: "Penyewa Belum Dipilih",
+        text: "Silakan pilih penyewa terlebih dahulu!",
+    });
+    return;
+  }
     if(cart.length===0){ 
         alert("Keranjang kosong!"); 
         return; 

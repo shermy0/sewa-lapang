@@ -111,7 +111,7 @@ class PetugasController extends Controller
             ->join('users as u', 'p.penyewa_id', '=', 'u.id')
             ->join('kategori as k', 'l.id_kategori', '=', 'k.id')
             ->whereIn('l.id', $lapanganIds)
-            ->whereIn('p.status', ['menunggu', 'dibayar'])
+            ->whereIn('p.status', ['dibayar'])
             ->where(function ($q) use ($today, $nowTime) {
                 $q->whereDate('j.tanggal', '>', $today)
                   ->orWhere(function ($q2) use ($today, $nowTime) {
@@ -284,7 +284,7 @@ class PetugasController extends Controller
                     'penyewa_id' => $validated['penyewa_id'],
                     'lapangan_id' => $lapanganId,
                     'jadwal_id' => $jadwal->id,
-                    'status' => 'menunggu',
+                    'status' => 'dibayar',
                     'kode_tiket' => $this->generateTicketCode(),
                     'status_scan' => 'belum_scan',
                 ]);
@@ -297,7 +297,7 @@ class PetugasController extends Controller
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'midtrans',
                     'jumlah' => $amount,
-                    'status' => 'pending',
+                    'status' => 'berhasil',
                     'order_id' => $orderId,
                     'payment_url' => null,
                 ]);
