@@ -112,16 +112,43 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <ul class="list-group">
-            <li class="list-group-item">
-              <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
-              <label for="payCash">Cash</label>
+          <div class="border rounded p-2 mb-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Total yang harus dibayar</span>
+              <span class="fs-5 fw-bold text-success" id="paymentTotal">Rp 0</span>
+            </div>
+          </div>
+
+          <ul class="list-group mb-3">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
+                <label for="payCash" class="fw-semibold mb-0">Cash</label>
+                <div class="small text-muted">Bayar tunai di kasir</div>
+              </div>
+              <i class="fa-solid fa-money-bill-wave text-success"></i>
             </li>
-            <li class="list-group-item">
-              <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
-              <label for="payMidtrans">Midtrans</label>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
+                <label for="payMidtrans" class="fw-semibold mb-0">Midtrans</label>
+                <div class="small text-muted">Bayar via payment gateway</div>
+              </div>
+              <i class="fa-solid fa-credit-card text-primary"></i>
             </li>
           </ul>
+
+          <div id="cashSection" class="border rounded p-3 bg-white">
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1">Uang diterima</label>
+              <input type="number" min="0" class="form-control" id="cashReceived" placeholder="Masukkan nominal">
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Kembalian</span>
+              <span class="fw-bold" id="cashChange">Rp 0</span>
+            </div>
+            <div class="small text-muted mt-1" id="cashHint">Pastikan uang diterima ≥ total.</div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -261,6 +288,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======== CART ========
+  function getCartTotal(){
+    return cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+  }
+
   function addToCart(item){
     const exist = cart.find(c => 
       c.id === item.id && 
@@ -309,28 +340,79 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateTotals(){
-    const subtotal = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+    const subtotal = getCartTotal();
     document.getElementById("subtotal").innerText = "Rp " + subtotal.toLocaleString('id-ID');
     document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
   }
 
   // ======== PEMBAYARAN ========
+  const paymentTotalEl = document.getElementById('paymentTotal');
+  const cashSection = document.getElementById('cashSection');
+  const cashReceivedEl = document.getElementById('cashReceived');
+  const cashChangeEl = document.getElementById('cashChange');
+  const cashHintEl = document.getElementById('cashHint');
+
+  const swalWarn = (msg) => Swal.fire('Perhatian', msg, 'warning');
+  const swalError = (msg) => Swal.fire('Error', msg, 'error');
+  const swalInfo = (msg) => Swal.fire('Info', msg, 'info');
+  const swalSuccess = (msg) => Swal.fire('Berhasil', msg, 'success');
+
+  function renderCashSection(){
+    const total = getCartTotal();
+    if(paymentTotalEl) paymentTotalEl.textContent = "Rp " + total.toLocaleString('id-ID');
+    if(!cashReceivedEl) return;
+    const cash = Number(cashReceivedEl.value || 0);
+    const change = cash - total;
+    cashChangeEl.textContent = "Rp " + Math.max(change,0).toLocaleString('id-ID');
+    if(change < 0){
+      cashHintEl.textContent = "Uang kurang Rp " + Math.abs(change).toLocaleString('id-ID');
+      cashHintEl.classList.remove('text-muted');
+      cashHintEl.classList.add('text-danger');
+    } else {
+      cashHintEl.textContent = "Pastikan uang diterima ≥ total.";
+      cashHintEl.classList.remove('text-danger');
+      cashHintEl.classList.add('text-muted');
+    }
+  }
+
+  document.querySelectorAll('input[name=\"paymentMethod\"]').forEach(r => {
+    r.addEventListener('change', () => {
+      if(cashSection){
+        cashSection.style.display = r.value === 'cash' && r.checked ? 'block' : 'none';
+      }
+    });
+  });
+
+  if(cashReceivedEl){
+    cashReceivedEl.addEventListener('input', renderCashSection);
+    cashReceivedEl.addEventListener('change', renderCashSection);
+  }
+
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const radioCash = document.getElementById('payCash');
+    const radioMidtrans = document.getElementById('payMidtrans');
     
     if(!penyewaId) { 
-      alert("Silakan pilih penyewa terlebih dahulu!"); 
+      swalWarn("Silakan pilih penyewa terlebih dahulu!");
       penyewaInput.focus();
       return; 
     }
     if(cart.length === 0){ 
-      alert("Keranjang kosong!"); 
+      swalWarn("Keranjang kosong!");
       return; 
     }
 
     const paymentModalEl = document.getElementById('paymentModal');
     const paymentModal = new bootstrap.Modal(paymentModalEl);
+    if(cashReceivedEl){
+      if(radioCash){ radioCash.checked = true; }
+      if(radioMidtrans){ radioMidtrans.checked = false; }
+      cashSection.style.display = 'block';
+      cashReceivedEl.value = getCartTotal();
+      renderCashSection();
+    }
     paymentModal.show();
   });
 
@@ -338,14 +420,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const total = getCartTotal();
     
     if(!penyewaId) { 
-      alert("Silakan pilih penyewa terlebih dahulu!"); 
+      swalWarn("Silakan pilih penyewa terlebih dahulu!");
       return; 
     }
     if(cart.length === 0){ 
-      alert("Keranjang kosong!"); 
+      swalWarn("Keranjang kosong!");
       return; 
+    }
+    if(method === 'cash'){
+      const cash = Number(cashReceivedEl?.value || 0);
+      if(cash < total){
+        swalWarn("Uang diterima kurang dari total.");
+        return;
+      }
     }
 
     // Prepare data
@@ -355,9 +445,8 @@ document.addEventListener("DOMContentLoaded", () => {
       harga: i.harga,
       durasi: i.durasi
     }));
+    const cartSnapshot = cart.map(i => ({...i}));
     
-    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
-
     const payload = {
       penyewa_id: penyewaId,
       items: itemsForServer,
@@ -388,7 +477,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
 
       if(method === 'cash'){
-        alert("Pemesanan Cash Berhasil!");
+        swalSuccess("Pemesanan cash berhasil!");
         cart = [];
         renderCart();
         const paymentModalEl = document.getElementById('paymentModal');
@@ -412,31 +501,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 body: JSON.stringify({ order_ids: data.orders })
               }).then(() => {
-                alert("Pembayaran Berhasil!");
+                swalSuccess("Pembayaran berhasil!");
                 cart = [];
                 renderCart();
                 if(typeof refreshJadwal === "function") refreshJadwal();
               });
             },
             onPending: function(result){
-              alert("Menunggu Pembayaran...");
+              swalInfo("Menunggu Pembayaran...");
               cart = [];
               renderCart();
             },
             onError: function(result){
-              alert("Pembayaran Gagal!");
+              swalError("Pembayaran Gagal!");
             },
             onClose: function(){
-              alert('Anda menutup popup tanpa menyelesaikan pembayaran');
+              swalWarn('Anda menutup popup tanpa menyelesaikan pembayaran');
             }
           });
         } else {
-          alert("Token pembayaran tidak ditemukan");
+          swalError("Token pembayaran tidak ditemukan");
         }
       }
     } catch(err) {
       console.error(err);
-      alert("Terjadi kesalahan: " + err.message);
+      swalError("Terjadi kesalahan: " + err.message);
     }
   });
 
@@ -508,7 +597,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pesanBtn.onclick = function() {
       const checkedSlots = document.querySelectorAll('.slot-checkbox:checked');
       if (checkedSlots.length === 0) {
-        alert('Pilih setidaknya satu jadwal untuk dipesan!');
+        swalWarn('Pilih setidaknya satu jadwal untuk dipesan!');
         return;
       }
 
@@ -594,36 +683,33 @@ document.addEventListener("DOMContentLoaded", () => {
         const col = document.createElement('div');
         col.className = 'col-md-4';
 
-        let statusClass = "", statusText = "", isAvailable = false;
-        
-        if (j.booking_status === "dibayar") { 
-          statusClass = "bg-secondary text-white"; 
-          statusText = "Sudah Dibayar"; 
-        } else if (j.booking_status === "menunggu") { 
-          statusClass = "bg-warning text-dark"; 
-          statusText = "Sedang Dibooking"; 
+        let statusClass="", statusText="";
+        if(j.booking_status==="dibayar"){
+          statusClass="bg-success text-white";
+          statusText="Sudah Dibayar";
+        } else if(j.booking_status==="menunggu"){
+          statusClass="bg-warning text-dark";
+          statusText="Sedang Dibooking";
+        } else if(j.booking_status==="tidak_tersedia"){
+          statusClass="bg-secondary text-white"; // Grey for unavailable
+          statusText="Tidak Tersedia";
         } else {
-          statusClass = "bg-light text-dark border";
-          isAvailable = true;
-          // Format tanggal untuk ditampilkan
+          statusClass="bg-light text-dark";
           const tanggalObj = new Date(j.tanggal);
-          statusText = tanggalObj.toLocaleDateString('id-ID', { 
-            day: '2-digit', 
-            month: 'short', 
-            year: 'numeric' 
-          });
+          statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
         }
 
         const card = document.createElement('div');
         card.className = `card p-2 text-center ${statusClass}`;
-        card.style.cursor = isAvailable ? 'pointer' : 'default';
+        // Only clickable if available
+        card.style.cursor = (j.booking_status==="tersedia" || j.booking_status===undefined) ? 'pointer' : 'default';
         card.style.borderRadius = '8px';
         card.style.minHeight = '120px';
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
         card.style.justifyContent = 'center';
 
-        if (isAvailable) {
+        if(j.booking_status!=="dibayar" && j.booking_status!=="menunggu" && j.booking_status!=="tidak_tersedia"){
           card.innerHTML = `
             <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
             <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>

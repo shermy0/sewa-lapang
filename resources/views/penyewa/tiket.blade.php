@@ -486,7 +486,7 @@ function loadJam(sectionId, tanggal) {
                             data-booking="${status}"
                             data-is-user="${isUser}"
                             style="padding:10px;border-radius:8px;border:2px solid #eee;${disabledStyle}">
-                            
+
                             <b>${j.jam_mulai} - ${j.jam_selesai}</b>
                             <div class="small text-muted">${statusText}</div>
                         </div>
@@ -566,4 +566,4 @@ function batalkanPermintaan(id) {
     });
 }
 </script>
-@endsection
+@endsection 

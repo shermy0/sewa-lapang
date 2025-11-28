@@ -406,7 +406,7 @@ class PetugasController extends Controller
 
         // Format data sesuai JS
         $jadwalFormatted = $jadwal->map(function($j){
-            $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'menunggu');
+            $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'tidak_tersedia');
 
             return [
                 'id' => $j->id,
