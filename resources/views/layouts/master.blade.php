@@ -188,5 +188,29 @@
 
     @stack('scripts')
 
+    @if(session('success') || session('error'))
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        @if(session('success'))
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: @json(session('success')),
+            timer: 2500,
+            showConfirmButton: false
+          });
+        @endif
+        @if(session('error'))
+          Swal.fire({
+            icon: 'error',
+            title: 'Terjadi Kesalahan',
+            text: @json(session('error')),
+            timer: 3000,
+            showConfirmButton: false
+          });
+        @endif
+      });
+    </script>
+    @endif
 </body>
 </html>

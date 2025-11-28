@@ -409,12 +409,10 @@
     function updateCountdown() {
         const timerEl = document.getElementById('countdownTimer');
         if (!timerEl) return;
-
         const endTimeStr = timerEl.dataset.end; // "HH:MM"
         const dateStr = timerEl.dataset.date;   // "YYYY-MM-DD"
 
         if (!endTimeStr || !dateStr) return;
-
         const now = new Date();
         const endTime = new Date(`${dateStr}T${endTimeStr}:00`);
 

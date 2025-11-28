@@ -4,15 +4,78 @@
 
 @section('content')
 <div class="container mt-4">
-    <h1>Daftar Tiket</h1>
-    @if(!empty($tiket))
-        <ul>
-            @foreach($tiket as $t)
-                <li>{{ $t->nama ?? 'Tiket kosong' }}</li>
-            @endforeach
-        </ul>
-    @else
-        <p class="text-muted">Belum ada tiket.</p>
-    @endif
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="mb-0">Daftar Tiket</h1>
+        <span class="text-muted small">{{ $tiket->count() }} tiket</span>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Kode Tiket</th>
+                            <th>Penyewa</th>
+                            <th>Lapangan/Section</th>
+                            <th>Tanggal</th>
+                            <th>Jam</th>
+                            <th>Status Pesanan</th>
+                            <th>Status Bayar</th>
+                            <th>Status Scan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($tiket as $t)
+                            @php
+                                $tanggalMain = optional($t->jadwal)->tanggal
+                                    ? \Carbon\Carbon::parse($t->jadwal->tanggal)->format('d M Y')
+                                    : '-';
+                                $jamMain = optional($t->jadwal)->jam_mulai
+                                    ? substr($t->jadwal->jam_mulai, 0, 5) . ' - ' . substr($t->jadwal->jam_selesai, 0, 5)
+                                    : '-';
+                                $statusClass = match($t->status) {
+                                    'dibayar' => 'success',
+                                    'menunggu' => 'warning',
+                                    'kadaluarsa' => 'secondary',
+                                    default => 'secondary',
+                                };
+                                $bayarStatus = $t->pembayaran->status ?? '-';
+                                $bayarClass = match($bayarStatus) {
+                                    'berhasil' => 'success',
+                                    'pending' => 'warning',
+                                    'gagal' => 'danger',
+                                    default => 'secondary',
+                                };
+                                $scanStatus = $t->status_scan ?? 'belum_scan';
+                                $scanClass = match($scanStatus) {
+                                    'sudah_scan' => 'success',
+                                    'scan_lobby' => 'info text-dark',
+                                    default => 'secondary',
+                                };
+                            @endphp
+                            <tr>
+                                <td class="fw-semibold">{{ $t->kode_tiket }}</td>
+                                <td>{{ $t->penyewa->name ?? '-' }}</td>
+                                <td>
+                                    <div class="fw-semibold">{{ $t->lapangan->nama_lapangan ?? '-' }}</div>
+                                    <div class="text-muted small">{{ $t->jadwal->section->nama_section ?? '-' }}</div>
+                                </td>
+                                <td>{{ $tanggalMain }}</td>
+                                <td>{{ $jamMain }}</td>
+                                <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
+                                <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
+                                <td><span class="badge bg-{{ $scanClass }}">{{ str_replace('_', ' ', strtoupper($scanStatus)) }}</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">Belum ada tiket.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

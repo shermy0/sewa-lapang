@@ -25,14 +25,14 @@
     <!-- INPUT NAMA PENYEWA -->
     <div class="mb-3 position-relative">
       <label class="fw-semibold mb-1">Nama Penyewa</label>
-      <input 
-        type="text" 
-        id="searchPenyewa" 
-        class="form-control" 
+      <input
+        type="text"
+        id="searchPenyewa"
+        class="form-control"
         placeholder="Cari nama penyewa..."
         autocomplete="off"
         required>
-      <ul id="penyewaResults" class="list-group position-absolute w-100" 
+      <ul id="penyewaResults" class="list-group position-absolute w-100"
           style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
     </div>
 
@@ -189,8 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderGridPagination(totalPages){
     const pg = document.getElementById("gridPagination");
-    if(!pg) return; 
-    
+    if(!pg) return;
+
     pg.innerHTML="";
     const createPageItem = (num, active=false, disabled=false) => {
       const li = document.createElement("li");
@@ -260,14 +260,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
-    
-    if(!penyewaId) { 
-        Swal.fire('Perhatian', "Silakan pilih penyewa terlebih dahulu!", 'warning').then(()=>penyewaInput.focus());
-        return; 
+
+    if(!penyewaId) {
+        alert("Silakan pilih penyewa terlebih dahulu!");
+        penyewaInput.focus();
+        return;
     }
-    if(cart.length===0){ 
-        Swal.fire('Perhatian', "Keranjang kosong!", 'warning');
-        return; 
+    if(cart.length===0){
+        alert("Keranjang kosong!");
+        return;
     }
 
     const paymentModalEl = document.getElementById('paymentModal');
@@ -280,19 +281,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
-    
+
     // Validation already done before opening modal, but good to keep as safety
-    if(!penyewaId) { Swal.fire('Perhatian', "Silakan pilih penyewa terlebih dahulu!", 'warning'); return; }
-    if(cart.length===0){ Swal.fire('Perhatian', "Keranjang kosong!", 'warning'); return; }
+    if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
+    if(cart.length===0){ alert("Keranjang kosong!"); return; }
 
     // Prepare data
     const itemsForServer = cart.map(i => ({
-        id: i.lapangan_id || i.id, 
+        id: i.lapangan_id || i.id,
         jadwal_id: i.jadwal_id,
         harga: i.harga,
         durasi: i.durasi
     }));
-    
+
     const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
 
     const payload = {
@@ -312,27 +313,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const res = await fetch(url, {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json", 
+            headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+                "X-CSRF-TOKEN": "{{ csrf_token() }}"
             },
             body: JSON.stringify(payload)
         });
 
         const data = await res.json();
-        
+
         if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
 
         if(method === 'cash'){
-            Swal.fire('Berhasil', "Pemesanan Cash Berhasil!", 'success');
+            alert("Pemesanan Cash Berhasil!");
             cart = [];
             renderCart();
             // Hide modal manually since we created a new instance
             const paymentModalEl = document.getElementById('paymentModal');
             const modal = bootstrap.Modal.getInstance(paymentModalEl);
             if(modal) modal.hide();
-            
+
             if(typeof refreshJadwal === "function") refreshJadwal();
         } else {
             // Midtrans
@@ -352,31 +353,32 @@ document.addEventListener("DOMContentLoaded", () => {
                             },
                             body: JSON.stringify({ order_ids: data.orders })
                         }).then(() => {
-                            Swal.fire('Berhasil', "Pembayaran Berhasil!", 'success');
+                            alert("Pembayaran Berhasil!");
                             cart = [];
                             renderCart();
                             if(typeof refreshJadwal === "function") refreshJadwal();
                         });
                     },
                     onPending: function(result){
-                        Swal.fire('Menunggu', "Menunggu Pembayaran...", 'info');
+                        alert("Menunggu Pembayaran...");
                         cart = [];
                         renderCart();
                     },
                     onError: function(result){
-                        Swal.fire('Gagal', "Pembayaran Gagal!", 'error');
+                        alert("Pembayaran Gagal!");
                     },
                     onClose: function(){
-                        Swal.fire('Batal', 'Anda menutup popup tanpa menyelesaikan pembayaran', 'warning');
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
                     }
                 });
             } else {
-                Swal.fire('Error', "Token pembayaran tidak ditemukan", 'error');
+                alert("Token pembayaran tidak ditemukan");
             }
+        }
 
     } catch(err) {
         console.error(err);
-        Swal.fire('Error', "Terjadi kesalahan: " + err.message, 'error');
+        alert("Terjadi kesalahan: " + err.message);
     }
   });
 
@@ -414,13 +416,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fetch('{{ url("petugas/api/jadwal") }}/' + lapangan.id)
       .then(res=>res.json())
-      .then(data=>{ 
+      .then(data=>{
         jadwalData=data || [];
-        renderPage(1); 
+        renderPage(1);
       })
-      .catch(err=>{ 
-        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>'; 
-        console.error(err); 
+      .catch(err=>{
+        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>';
+        console.error(err);
         jadwalData = [];
       });
 
@@ -452,12 +454,12 @@ document.addEventListener("DOMContentLoaded", () => {
           col.className = 'col-md-4';
 
           let statusClass="", statusText="";
-          if(j.booking_status==="dibayar"){ 
-            statusClass="bg-success text-white"; 
-            statusText="Sudah Dibayar"; 
-          } else if(j.booking_status==="menunggu"){ 
-            statusClass="bg-warning text-dark"; 
-            statusText="Sedang Dibooking"; 
+          if(j.booking_status==="dibayar"){
+            statusClass="bg-success text-white";
+            statusText="Sudah Dibayar";
+          } else if(j.booking_status==="menunggu"){
+            statusClass="bg-warning text-dark";
+            statusText="Sedang Dibooking";
           } else {
             statusClass="bg-light text-dark";
             const tanggalObj = new Date(j.tanggal);
@@ -554,16 +556,16 @@ document.addEventListener("DOMContentLoaded", () => {
   penyewaInput.addEventListener("input", function () {
       let q = this.value;
       // Clear ID when user types to force selection
-      this.removeAttribute('data-id'); 
-      
+      this.removeAttribute('data-id');
+
       if(q.length<1){ list.style.display="none"; return; }
 
       fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(q))
         .then(res=>res.json())
         .then(data=>{
           list.innerHTML="";
-          
-          if(data.length===0){ 
+
+          if(data.length===0){
               let item = document.createElement("li");
               item.className="list-group-item text-muted small";
               item.textContent = "Penyewa tidak ditemukan";
@@ -574,10 +576,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 item.className="list-group-item list-group-item-action";
                 item.style.cursor = "pointer";
                 item.textContent = p.name;
-                item.onclick = ()=>{ 
-                  penyewaInput.value=p.name; 
-                  penyewaInput.dataset.id=p.id; 
-                  list.style.display="none"; 
+                item.onclick = ()=>{
+                  penyewaInput.value=p.name;
+                  penyewaInput.dataset.id=p.id;
+                  list.style.display="none";
                 };
                 list.appendChild(item);
               });
