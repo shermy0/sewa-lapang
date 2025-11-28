@@ -310,7 +310,7 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
     const newFilterTanggal = document.getElementById('filterTanggal');
     const newFilterJamMulai = document.getElementById('filterJamMulai');
 
-    fetch('{{ url("petugas/api/jadwal") }}/' + lapangan.id)
+    fetch(`/petugas/api/jadwal/${lapangan.id}`)
       .then(res=>res.json())
       .then(data=>{ 
         jadwalData=data || [];
@@ -490,18 +490,18 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
     }));
 
     try {
-        const res = await fetch("{{ route('petugas.store.midtrans') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({
-                penyewa_id: penyewaId,
-                items: itemsForServer
-            })
-        });
+        const res = await fetch("{{ route('petugas.store.midtrans') }}", { 
+          method: "POST",
+          headers: { 
+              "Content-Type": "application/json",
+              "X-CSRF-TOKEN": "{{ csrf_token() }}"
+          },
+          body: JSON.stringify({
+              penyewa_id: penyewaId,
+              items: itemsForServer
+          })
+      });
+
 
         const data = await res.json();
         if(!data.snap_token) throw new Error("Gagal mendapatkan Snap token");

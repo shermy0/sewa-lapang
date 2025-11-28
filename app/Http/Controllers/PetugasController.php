@@ -14,6 +14,7 @@ use Midtrans\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Models\JadwalLapangan;
 
 class PetugasController extends Controller
 {
@@ -90,11 +91,14 @@ class PetugasController extends Controller
     $request->validate([
         'penyewa_id' => 'required|exists:users,id',
         'items' => 'required|array|min:1',
-        'items.*.id' => 'required|exists:lapangan,id',
-        'items.*.jadwal_id' => 'required|exists:jadwal_lapangan,id', 
+        'items.*.lapangan_id' => 'required|exists:lapangan,id',
+        'items.*.jadwal_id' => 'required|exists:jadwal_lapangan,id',
         'items.*.harga' => 'required|numeric',
-        'total' => 'required|numeric',
-    ]);    
+    ]);
+
+    $item = $request->items[0]; // ambil item pertama
+    $lapangan = Lapangan::findOrFail($item['lapangan_id']);
+    $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);    
 
     try {
         foreach($request->items as $item){
@@ -223,4 +227,86 @@ class PetugasController extends Controller
     
         return response()->json($data);
     }    
+
+    public function storeMidtrans(Request $request)
+    {
+        try {
+            \Log::info('📦 Request ke getSnapToken', $request->all());
+
+            $item = $request->items[0]; // ambil item pertama
+
+            $lapangan = Lapangan::findOrFail($item['lapangan_id']);
+            $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);            
+
+            if (!$jadwal->tersedia) {
+                return response()->json(['error' => 'Jadwal sudah dipesan!'], 400);
+            }
+
+            // 🟢 CEK apakah user sudah pernah pesan jadwal ini
+            $existing = Pemesanan::where('penyewa_id', Auth::id())
+                ->where('jadwal_id', $jadwal->id)
+                ->whereIn('status', ['menunggu', 'dibayar'])
+                ->first();
+                // 🔒 LOCK JADWAL: Cegah orang lain pilih jadwal yang sedang menunggu pembayaran
+    $pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
+        ->where('penyewa_id', '!=', Auth::id()) // orang lain
+        ->where('status', 'menunggu') // BELUM dibayar, tapi pending
+        ->exists();
+
+    if ($pendingFromOtherUser) {
+        return response()->json([
+            'error' => 'Jadwal ini sedang menunggu pembayaran oleh penyewa lain.',
+        ], 409);
+    }
+
+
+    if ($existing) {
+        return response()->json([
+            'error' => 'Kamu sudah memesan jadwal ini.',
+            'redirect' => route('penyewa.pembayaran')
+        ], 409);
+    }
+
+
+            // 🟢 Buat pemesanan baru
+            $pemesanan = Pemesanan::create([
+                'penyewa_id' => Auth::id(),
+                'lapangan_id' => $lapangan->id,
+                'jadwal_id' => $jadwal->id,
+                'status' => 'menunggu',
+            ]);
+
+            $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+            $orderId = $this->generateOrderId($pemesanan);
+
+            try {
+                Config::$serverKey = config('midtrans.server_key');
+                Config::$isProduction = config('midtrans.is_production', false);
+            
+                $snapToken = Snap::getSnapToken([
+                    'transaction_details' => [
+                        'order_id' => $orderId,
+                        'gross_amount' => $hargaSewa,
+                    ],
+                    'customer_details' => [
+                        'first_name' => Auth::user()->name,
+                        'email' => Auth::user()->email,
+                    ],
+                ]);
+            
+            } catch (\Exception $e) {
+                \Log::error('🔥 Midtrans Error: ' . $e->getMessage(), [
+                    'order_id' => $orderId,
+                    'gross_amount' => $hargaSewa,
+                    'server_key' => config('midtrans.server_key'),
+                ]);
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+            
+
+        } catch (\Exception $e) {
+            \Log::error('🔥 ERROR getSnapToken: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
