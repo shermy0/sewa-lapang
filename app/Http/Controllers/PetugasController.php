@@ -263,7 +263,7 @@ class PetugasController extends Controller
     }
     
 
-    public function storeMidtrans(Request $request)
+public function storeMidtrans(Request $request)
     {
         $validated = $request->validate([
             'penyewa_id' => 'required|integer',
@@ -298,7 +298,7 @@ class PetugasController extends Controller
                     'penyewa_id' => $validated['penyewa_id'],
                     'lapangan_id' => $lapanganId,
                     'jadwal_id' => $jadwal->id,
-                    'status' => 'menunggu',
+                    'status' => 'dibayar',
                     'kode_tiket' => $this->generateTicketCode(),
                     'status_scan' => 'belum_scan',
                 ]);
@@ -311,7 +311,7 @@ class PetugasController extends Controller
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'midtrans',
                     'jumlah' => $amount,
-                    'status' => 'pending',
+                    'status' => 'berhasil',
                     'order_id' => $orderId,
                     'payment_url' => null,
                 ]);
