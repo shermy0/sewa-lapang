@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>SEWALAP - Kasir</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -122,15 +123,9 @@
 
         <div class="d-flex align-items-center gap-3">
 
-<<<<<<< HEAD
-            {{-- Tombol Dashboard / Kasir --}}
-            <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-cash-register me-1"></i> Kasir
-=======
             {{-- Tombol Kasir --}}
             <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-money-bill-wave me-1"></i> Kasir
->>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c
+                <i class="fa-solid fa-cash-register me-1"></i> Kasir
             </a>
 
             {{-- Tombol Scan QR --}}

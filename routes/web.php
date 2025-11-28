@@ -209,9 +209,6 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
 
         // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
-<<<<<<< HEAD
-        Route::post('/payment/store', [PetugasController::class, 'store'])->name('payment.store');
-=======
 
         // Payment cash (langsung simpan)
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
@@ -219,7 +216,6 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         // Payment Midtrans (redirect ke midtrans)
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
         // Scan tiket
->>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
         Route::get('/display', [PetugasController::class, 'display'])->name('display');
@@ -230,13 +226,9 @@ Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
     Route::get('/kelolapetugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
     Route::post('/kelolapetugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
 
-      // PERSETUJUAN PEMILIK
+    // PERSETUJUAN PEMILIK
     Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
     Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
-
-        // PERSETUJUAN PEMILIK
-Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
-Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');

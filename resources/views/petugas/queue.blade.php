@@ -57,7 +57,7 @@
     .status-bar {
         border-top: 1px solid rgba(0,0,0,0.05);
     }
-    
+
     /* Queue Section Styling */
     .queue-wrapper {
         display: flex;
@@ -200,7 +200,6 @@
 @endpush
 
 @section('content')
-<<<<<<< HEAD:resources/views/petugas/queue.blade.php
 <div class="container-fluid py-3">
   @if(!empty($needsOwner))
     <div class="alert alert-warning mb-3">
@@ -224,6 +223,7 @@
           'menunggu' => 'bg-warning text-dark',
           'kadaluarsa' => 'bg-secondary',
           'batal' => 'bg-danger',
+          'sedang_main' => 'bg-info',
         ];
       @endphp
 
@@ -256,7 +256,10 @@
                     </div>
                     <div class="status-bar {{ $statusClasses[$order['status']] ?? 'bg-secondary' }} text-white px-3 py-1 d-flex justify-content-between align-items-center" style="font-size: 0.8rem;">
                         <span class="fw-bold text-uppercase">{{ ucfirst($order['status']) }}</span>
-                        <i class="fa-solid fa-check-circle opacity-50"></i>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold">Rp {{ number_format($order['harga_sewa'] ?? 0, 0, ',', '.') }}</span>
+                            <i class="fa-solid fa-check-circle opacity-50"></i>
+                        </div>
                     </div>
                   </div>
                 @endforeach
@@ -271,16 +274,10 @@
   </div>
 </div>
 
-
-=======
-<body>
-<meta name="csrf-token" content="{{ csrf_token() }}">
->>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c:resources/views/petugas/index.blade.php
 <main class="container-fluid mt-3">
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
-<<<<<<< HEAD:resources/views/petugas/queue.blade.php
 
       <div class="toolbar-card mb-3">
         <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 justify-content-between">
@@ -311,17 +308,6 @@
           <div class="chip" onclick="document.getElementById('filterStatus').value='booked';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Sedang dipesan</div>
           <div class="chip" onclick="document.getElementById('filterStatus').value='all';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Reset filter</div>
         </div>
-=======
-      <div class="d-flex justify-content-between mb-3">
-        <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
-           placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
-        <select id="filterKategori" name="id_kategori" class="form-select form-select-sm" style="max-width:150px;" required>
-            <option value="all" selected>Semua Kategori</option>
-            @foreach ($kategori as $kat)
-                <option value="{{ $kat->id }}">{{ $kat->nama_kategori }}</option>
-            @endforeach
-        </select>
->>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c:resources/views/petugas/index.blade.php
       </div>
       <div id="grid" class="row g-3"></div>
       <div class="d-flex justify-content-between align-items-center mt-3">
@@ -336,14 +322,14 @@
     <!-- INPUT NAMA PENYEWA -->
     <div class="mb-3">
       <label class="fw-semibold mb-1">Nama Penyewa</label>
-      <input 
-        type="text" 
-        id="searchPenyewa" 
-        class="form-control" 
+      <input
+        type="text"
+        id="searchPenyewa"
+        class="form-control"
         placeholder="Cari nama penyewa..."
         autocomplete="off"
         required>
-      <ul id="penyewaResults" class="list-group position-absolute w-100" 
+      <ul id="penyewaResults" class="list-group position-absolute w-100"
           style="z-index: 999; display: none;"></ul>
     </div>
 
@@ -446,54 +432,6 @@
 
 @push('scripts')
 <script>
-    function submitPembayaran(cart, metode) {
-        const total = cart.reduce((sum, item) => sum + item.harga * item.durasi, 0);
-
-        const pemesananData = {
-            metode: metode,
-            total: total,
-            items: cart
-        };
-
-        fetch(petugasStoreUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify(pemesananData)
-        })
-        .then(res => {
-            if(!res.ok) throw new Error('Network response was not ok');
-            return res.json();
-        })
-        .then(data => {
-            if(data.success){
-                alert(`Pembayaran berhasil! Total: Rp ${total.toLocaleString('id-ID')}`);
-                // reset cart atau redirect jika perlu
-            } else {
-                alert('Terjadi kesalahan: ' + (data.message || 'Silakan coba lagi.'));
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Terjadi error saat mengirim data.');
-        });
-    }
-
-    // Contoh pemanggilan
-    document.getElementById('btnBayar').addEventListener('click', function() {
-        const cart = JSON.parse(localStorage.getItem('cart')) || [];
-        submitPembayaran(cart, 'cash');
-    });
-</script>
-
-<script>
-const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-let url = method === 'cash' 
-            ? '{{ route("petugas.store.cash") }}' 
-            : '{{ route("petugas.store.midtrans") }}';
-
 const lapanganData = @json($lapangan);
 let cart = [];
 let perPage = 9;
@@ -510,8 +448,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusFilter = document.getElementById("filterStatus").value;
 
     let items = lapanganData.map(l => ({ ...l, foto: l.foto || [], hargaRataRata: l.hargaRataRata, kategori_nama: l.kategori_nama || 'Tidak ada'}));
-    
-    if(filterKategori!=="all") items = items.filter(l=>l.id_kategori==filterKategori);
+
+    if(filterKategori!=="all") items = items.filter(l=>l.kategori_id==filterKategori);
     if(statusFilter!=="all") items = items.filter(l=>l.status===statusFilter);
     if(q) items = items.filter(l=>l.nama.toLowerCase().includes(q));
 
@@ -655,13 +593,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if(!res.ok) throw new Error('Network response not ok');
         return res.json();
       })
-      .then(data=>{ 
+      .then(data=>{
         jadwalData=data || [];
-        renderPage(1); 
+        renderPage(1);
       })
-      .catch(err=>{ 
-        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>'; 
-        console.error(err); 
+      .catch(err=>{
+        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>';
+        console.error(err);
         jadwalData = [];
       });
 
@@ -807,8 +745,7 @@ document.addEventListener("DOMContentLoaded", () => {
     page = 1;
     renderGrid();
   });
-<<<<<<< HEAD:resources/views/petugas/queue.blade.php
-  
+
   document.getElementById("filterStatus").addEventListener("change", e => {
     page = 1;
     renderGrid();
@@ -818,9 +755,6 @@ document.addEventListener("DOMContentLoaded", () => {
     page = 1;
     renderGrid();
   });
-=======
-  document.getElementById("searchInput").addEventListener("input", () => { page = 1; renderGrid(); });
->>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c:resources/views/petugas/index.blade.php
 
   // ======== PEMBAYARAN ========
   const payBtn = document.getElementById("payBtn");
@@ -838,41 +772,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-<<<<<<< HEAD:resources/views/petugas/queue.blade.php
-      const transaksiData = {
-          kasir: "{{ $petugasName }}",
-          metode: method,
-          total: cart.reduce((s,i)=>s+i.harga*i.durasi,0),
-          items: cart
-      };fetch('{{ route("petugas.payment.store") }}', {
-          
-          method:'POST',
-          headers:{
-              'Content-Type':'application/json',
-              'X-CSRF-TOKEN':'{{ csrf_token() }}'
-          },
-          body: JSON.stringify(transaksiData)
-      })
-      .then(res => res.json())
-      .then(data => {
-          if(data.success){
-              alert(`Pembayaran berhasil! Total: Rp ${transaksiData.total.toLocaleString('id-ID')}`);
-              cart = [];
-              renderCart();
-              if(typeof refreshJadwal === 'function') refreshJadwal();
-          } else {
-              alert('Gagal menyimpan transaksi!');
-          }
-      })
-      .catch(err => {
-          console.error(err);
-          alert('Terjadi kesalahan server!');
-      });
-  });
-=======
-    if(cart.length===0){ 
-        alert("Keranjang kosong!"); 
-        return; 
+    if(cart.length===0){
+        alert("Keranjang kosong!");
+        return;
     }
 
     paymentModal.show();
@@ -900,9 +802,9 @@ confirmPaymentBtn.addEventListener('click', ()=>{
 
     fetch(url, {
         method:'POST',
-        headers:{ 
-            'Content-Type':'application/json', 
-            'X-CSRF-TOKEN':'{{ csrf_token() }}' 
+        headers:{
+            'Content-Type':'application/json',
+            'X-CSRF-TOKEN':'{{ csrf_token() }}'
         },
         body: JSON.stringify(pemesananData)
     })
@@ -920,7 +822,6 @@ confirmPaymentBtn.addEventListener('click', ()=>{
     })
     .catch(err => { console.error(err); alert('Terjadi kesalahan server!'); });
 });
->>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c:resources/views/petugas/index.blade.php
 
   // ======== INIT ========
   renderGrid();

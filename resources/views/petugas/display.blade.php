@@ -54,10 +54,10 @@
 
     .main-content {
       flex: 1;
-      padding: 20px;
+      padding: 20px 20px 70px; /* beri ruang supaya tidak tertutup footer */
       display: flex;
       gap: 20px;
-      height: calc(100vh - 120px); /* Adjust based on header/footer */
+      height: calc(100vh - 120px);
     }
 
     /* Left Panel: Active Queue */
@@ -96,7 +96,7 @@
       background: #f8f9fc;
     }
     .active-queue-number {
-      font-size: 6rem;
+      font-size: 4.5rem;
       font-weight: 800;
       color: #2c3e50;
       line-height: 1;
@@ -136,8 +136,9 @@
 
     /* Bottom Panel: Queue Grid */
     .queue-grid-container {
-      height: 220px; /* Fixed height for bottom row */
+      height: 250px; /* sedikit lebih tinggi supaya isi tidak terpotong */
       margin-top: auto;
+      padding-bottom: 12px; /* supaya footer tidak memotong konten */
     }
     .queue-grid {
       display: flex;
@@ -147,7 +148,8 @@
       padding-bottom: 10px;
     }
     .queue-item-card {
-      flex: 0 0 200px;
+      flex: 0 0 220px;
+      min-height: 190px;
       background: white;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
@@ -157,9 +159,9 @@
       border-top: 5px solid; /* Color set dynamically */
     }
     .queue-item-header {
-      padding: 10px;
+      padding: 10px 12px 6px;
       text-align: center;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 0.9rem;
       background: #f8f9fc;
       border-bottom: 1px solid #eee;
@@ -170,11 +172,28 @@
     .queue-item-body {
       flex: 1;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      font-size: 2.5rem;
+      gap: 6px;
+      background: #f8f9fc;
+      padding: 6px 10px;
+    }
+    .queue-item-code {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #2c3e50;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+      word-break: break-word;
+      text-align: center;
+    }
+    .queue-item-status {
+      font-size: 0.8rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       font-weight: 700;
-      color: #333;
     }
     .queue-item-footer {
         font-size: 0.8rem;
@@ -265,14 +284,27 @@
                 <div class="active-queue-label">{{ $activeQueue['penyewa'] }}</div>
 
                 <!-- Countdown Timer -->
+                @if($activeQueue['status'] === 'sedang_main')
+                    @php
+                        $now = \Carbon\Carbon::now();
+                        $start = \Carbon\Carbon::parse($activeQueue['tanggal'] . ' ' . $activeQueue['jam_mulai']);
+                        $isPlaying = $now->gte($start);
+
+                        $topLabel = $isPlaying ? 'SEDANG BERMAIN' : 'JADWAL BOOKING';
+                        $bottomLabel = $isPlaying ? 'SISA WAKTU MAIN' : 'DIMULAI DALAM';
+                        $targetTime = $isPlaying ? $activeQueue['jam_selesai'] : $activeQueue['jam_mulai'];
+                    @endphp
                 <div class="mt-4 text-center">
-                    <div class="small text-muted text-uppercase fw-bold mb-1">Sisa Waktu Main</div>
+                    <div class="small text-muted text-uppercase fw-bold mb-1">{{ $topLabel }}</div>
+                    <div class="h3 fw-bold text-dark mb-2">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
+                    <div class="small text-muted text-uppercase fw-bold mb-1">{{ $bottomLabel }}</div>
                     <div id="countdownTimer" class="display-4 fw-bold text-danger"
-                         data-end="{{ $activeQueue['jam_selesai'] }}"
+                         data-end="{{ $targetTime }}"
                          data-date="{{ \Carbon\Carbon::parse($activeQueue['tanggal'])->format('Y-m-d') }}">
                         --:--
                     </div>
                 </div>
+                @endif
             @else
                 <div class="active-queue-number">-</div>
                 <div class="active-queue-label">Belum ada antrian</div>
@@ -310,14 +342,23 @@
                 @foreach($sectionQueues as $index => $section)
                     @php
                         $currentQueue = $section['queue']->first();
+                        $statusLabel = $currentQueue ? strtoupper($currentQueue['status'] ?? '-') : '-';
+                        $jamRange = $currentQueue ? ($currentQueue['jam_mulai'] . ' - ' . $currentQueue['jam_selesai']) : '';
                     @endphp
                     <div class="queue-item-card color-{{ $index % 5 }}">
-                        <div class="queue-item-header">{{ $section['label'] }}</div>
+                        <div class="queue-item-header">
+                            <div class="fw-bold">{{ $section['label'] }}</div>
+                            <div class="small text-muted">{{ $currentQueue['nama_lapangan'] ?? 'Lapangan' }}</div>
+                        </div>
                         <div class="queue-item-body">
-                            {{ $currentQueue ? $currentQueue['kode_tiket'] : '-' }}
+                            <div class="queue-item-code">{{ $currentQueue ? $currentQueue['kode_tiket'] : '-' }}</div>
+                            <div class="queue-item-status">{{ $currentQueue ? $statusLabel : 'Menunggu' }}</div>
                         </div>
                         <div class="queue-item-footer">
                              {{ $currentQueue ? $currentQueue['penyewa'] : 'Kosong' }}
+                             @if($jamRange)
+                                <div class="text-muted">{{ $jamRange }}</div>
+                             @endif
                         </div>
                     </div>
                 @endforeach
