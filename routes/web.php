@@ -194,11 +194,32 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware(['auth', 'verified', 'role:petugas'])
     ->prefix('petugas')->name('petugas.')
     ->group(function () {
+
+        // Dashboard petugas
         Route::get('/', [PetugasController::class, 'index'])->name('index');
+        Route::post('/store', [PetugasController::class, 'store'])->name('petugas.store');
+
+        // Penyewa
         Route::get('/penyewa', [PetugasController::class, 'penyewa'])->name('penyewa');
-        Route::post('/penyewa', [PetugasController::class, 'storePenyewa'])->name('penyewa.store'); // simpan data
+        Route::post('/penyewa/store', [PetugasController::class, 'storePenyewa'])->name('penyewa.store');
+        Route::delete('/penyewa/{id}', [PetugasController::class, 'destroyPenyewa'])->name('penyewa.destroy');
+
+        // Search penyewa (AJAX)
+        Route::get('/penyewa/search', [PetugasController::class, 'searchPenyewa'])->name('penyewa.search');
+
+        // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
+<<<<<<< HEAD
         Route::post('/payment/store', [PetugasController::class, 'store'])->name('payment.store');
+=======
+
+        // Payment cash (langsung simpan)
+        Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
+
+        // Payment Midtrans (redirect ke midtrans)
+        Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
+        // Scan tiket
+>>>>>>> 8199335fcb8fe5374666589d32bfc8f28c10279c
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
         Route::get('/display', [PetugasController::class, 'display'])->name('display');

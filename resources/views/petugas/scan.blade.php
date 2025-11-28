@@ -18,12 +18,7 @@
 
 @section('content')
 <div class="container mt-4">
-    <div class="d-flex align-items-center gap-3 mb-4">
-        <a href="{{ route('petugas.index') }}" class="btn btn-secondary btn-sm">
-            <i class="fa-solid fa-arrow-left me-1"></i> Kembali
-        </a>
-        <h2 class="fw-bold mb-0 text-success"><i class="fas fa-qrcode me-2"></i>Scan Tiket QR</h2>
-    </div>
+    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode me-2"></i>Scan Tiket QR</h2>
 
     <div class="scan-wrapper">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">

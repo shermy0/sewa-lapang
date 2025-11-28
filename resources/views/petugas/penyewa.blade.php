@@ -40,10 +40,6 @@
                 <label>Email</label>
                 <input type="email" name="email" class="form-control" required value="{{ old('email') }}">
             </div>
-            <div class="mb-3">
-                <label>Password <small class="text-muted">(opsional, default: password123)</small></label>
-                <input type="text" name="password" class="form-control" value="{{ old('password') }}">
-            </div>
             <button type="submit" class="btn btn-primary">Tambah Penyewa</button>
         </form>
     </div>
@@ -57,7 +53,7 @@
                     <th>No</th>
                     <th>Nama</th>
                     <th>Email</th>
-                    <th>Dibuat</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -66,11 +62,19 @@
                         <td>{{ $index + 1 }}</td>
                         <td>{{ $p->name }}</td>
                         <td>{{ $p->email }}</td>
-                        <td>{{ $p->created_at ? $p->created_at->format('d-m-Y H:i') : '-' }}</td>
+                        <td>
+                            <form action="{{ route('petugas.penyewa.destroy', $p->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus penyewa ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fa fa-trash"></i> Hapus
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center">Belum ada penyewa</td>
+                        <td colspan="5" class="text-center">Belum ada penyewa</td>
                     </tr>
                 @endforelse
             </tbody>

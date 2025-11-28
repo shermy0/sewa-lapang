@@ -114,4 +114,16 @@ public function kategori()
     return $this->hasMany(Kategori::class, 'pemilik_id');
 }
 
+    // Relasi ke pemilik
+    public function pemilik()
+    {
+        return $this->belongsTo(User::class, 'pemilik_id');
+    }
+
+    // Relasi ke penyewa (jika user ini pemilik)
+    public function penyewa()
+    {
+        return $this->hasMany(User::class, 'pemilik_id')
+                    ->where('role', 'penyewa');
+    }
 }
