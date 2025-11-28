@@ -451,7 +451,7 @@ public function riwayatBatal()
         ->whereIn('status', ['batal', 'kadaluarsa', 'di-scan'])
         ->latest()
         ->get();
-        
+
 
     return view('penyewa.riwayat', compact('dibatalkan'));
 }
@@ -705,7 +705,7 @@ public function updateSuccess(Request $request, $id)
 
         private function generateShortTicketCode()
     {
-        $prefix = 'LPN'; // bisa diganti misal "LPN" untuk lapangan
+        $prefix = 'TKC'; // bisa diganti misal "LPN" untuk lapangan
         $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         return $prefix . $random; // contoh hasil: TK7F3C9A
     }

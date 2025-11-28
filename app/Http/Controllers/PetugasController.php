@@ -27,12 +27,24 @@ class PetugasController extends Controller
         $petugasName = $petugas->name;
         $pemilikId = $petugas->pemilik_id;
 
-        // Ambil semua lapangan milik pemilik petugas
-        $lapangan = Lapangan::where('pemilik_id', $pemilikId)
+        // Ambil semua lapangan milik pemilik petugas.
+        // Jika petugas belum di-link ke pemilik (pemilik_id null), fallback ke semua lapangan supaya tidak kosong.
+        $lapangan = Lapangan::query()
             ->with('kategori')
+            ->when($pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
             ->get();
 
-        // Ambil kategori hanya yang punya lapangan milik petugas
+        // Fallback jika kosong: tampilkan semua lapangan supaya grid tidak blank.
+        if ($lapangan->isEmpty()) {
+            $lapangan = Lapangan::with('kategori')->get();
+        }
+
+        // Fallback: jika tidak ada pemilik_id di user tetapi lapangan ada, pakai pemilik_id pertama untuk filter antrean.
+        if (! $pemilikId && $lapangan->isNotEmpty()) {
+            $pemilikId = $lapangan->first()->pemilik_id;
+        }
+
+        // Ambil kategori berdasarkan lapangan yang tersedia
         $kategori = Kategori::whereIn('id', $lapangan->pluck('id_kategori')->unique())
             ->orderBy('nama_kategori')
             ->get();
@@ -85,7 +97,8 @@ class PetugasController extends Controller
 
         return view('petugas.queue', [
             'kategori' => $kategori,
-            'lapangan' => $lapanganData,
+            // Reindex to avoid JSON becoming an object when keys are non-sequential
+            'lapangan' => $lapanganData->values(),
             'petugasName' => $petugasName,
             'sectionQueues' => $sectionQueues,
             'pemilikId' => $pemilikId,
@@ -413,9 +426,18 @@ class PetugasController extends Controller
         $petugas = Auth::user();
         $pemilikId = $petugas->pemilik_id;
 
-        $lapangan = Lapangan::where('pemilik_id', $pemilikId)
+        $lapangan = Lapangan::query()
             ->with('kategori')
+            ->when($pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
             ->get();
+
+        if ($lapangan->isEmpty()) {
+            $lapangan = Lapangan::with('kategori')->get();
+        }
+
+        if (! $pemilikId && $lapangan->isNotEmpty()) {
+            $pemilikId = $lapangan->first()->pemilik_id;
+        }
 
         $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
 
@@ -431,6 +453,35 @@ class PetugasController extends Controller
         return view('petugas.display', [
             'sectionQueues' => $sectionQueues,
             'carouselImages' => $carouselImages,
+            'petugasName' => $petugas->name,
+        ]);
+    }
+
+    /**
+     * List tiket yang sudah dibuat oleh petugas (dibatasi ke lapangan milik pemilik terkait).
+     */
+    public function tiket()
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        $tiket = Pemesanan::with([
+                'penyewa',
+                'lapangan',
+                'jadwal.section',
+                'pembayaran',
+            ])
+            ->when($pemilikId, function ($q) use ($pemilikId) {
+                $q->whereHas('lapangan', function ($l) use ($pemilikId) {
+                    $l->where('pemilik_id', $pemilikId);
+                });
+            })
+            ->latest()
+            ->limit(200)
+            ->get();
+
+        return view('petugas.tiket', [
+            'tiket' => $tiket,
             'petugasName' => $petugas->name,
         ]);
     }
