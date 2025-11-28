@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Lapangan;
 use App\Models\Kategori;
+use App\Models\Pemesanan;
 use Illuminate\Http\Request;
 use App\Models\User; 
 use Carbon\Carbon;
+use Midtrans\Snap;
+use App\Models\Pembayaran;
+use Midtrans\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -68,6 +72,13 @@ class PetugasController extends Controller
         ]);
     }
 
+    public function tiket()
+    {
+        // Bisa kirim data tiket kalau perlu
+        $tiket = []; // Contoh, bisa diganti query dari DB
+        return view('petugas.tiket', compact('tiket'));
+    }
+
     public function create()
     {
         $kategori = Kategori::orderBy('nama_kategori')->get();
@@ -77,58 +88,41 @@ class PetugasController extends Controller
     public function storeCash(Request $request)
 {
     $request->validate([
-        'penyewa_id' => 'required|integer',
-        'total' => 'required|numeric',
+        'penyewa_id' => 'required|exists:users,id',
         'items' => 'required|array|min:1',
-        'kasir' => 'required|string',
-    ]);
+        'items.*.id' => 'required|exists:lapangan,id',
+        'items.*.jadwal_id' => 'required|exists:jadwal_lapangan,id', 
+        'items.*.harga' => 'required|numeric',
+        'total' => 'required|numeric',
+    ]);    
 
     try {
-        $data = $request->all();
+        foreach($request->items as $item){
+            $kodeTiket = 'TKT-' . strtoupper(uniqid());
 
-        $pemesanan = Pemesanan::create([
-            'kasir' => $data['kasir'],
-            'penyewa_id' => $data['penyewa_id'],
-            'metode' => 'cash',
-            'total' => $data['total']
-        ]);
-
-        foreach($data['items'] as $item){
-            PemesananItem::create([
-                'pemesanan_id' => $pemesanan->id,
+            Pemesanan::create([
+                'penyewa_id'  => $request->penyewa_id,
                 'lapangan_id' => $item['id'],
-                'jadwal_id' => $item['jadwal_id'],
-                'harga' => $item['harga'],
-                'durasi' => $item['durasi']
+                'jadwal_id'   => $item['jadwal_id'],
+                'status'      => 'dibayar',
+                'kode_tiket'  => $kodeTiket,
+                'status_scan' => 'belum_scan',
+                'waktu_scan'  => null
             ]);
         }
 
-        return response()->json(['success'=>true]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Pemesanan cash berhasil!',
+        ]);
 
-    } catch(\Exception $e){
-        \Log::error($e->getMessage());
-        return response()->json(['success'=>false,'message'=>$e->getMessage()]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ]);
     }
 }
-
-public function storeMidtrans(Request $request)
-{
-    // Kirim ke Midtrans (payment gateway) dulu
-    // Contoh: generate Snap token, redirect, dll
-    $request->validate([
-        'penyewa_id' => 'required|integer',
-        'total' => 'required|numeric',
-        'items' => 'required|array|min:1',
-        'kasir' => 'required|string',
-    ]);
-
-    // TODO: Integrasi Midtrans
-    return response()->json([
-        'success' => true,
-        'redirect_url' => '/midtrans/payment-page' // misal nanti redirect ke page midtrans
-    ]);
-}
-
 
     public function getJadwalLapangan($lapanganId)
     {

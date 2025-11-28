@@ -137,8 +137,8 @@
             </a>
 
             {{-- Tombol Tiket --}}
-            <a href="{{ route('petugas.penyewa') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-user-plus me-1"></i> Tiket
+            <a href="{{ route('petugas.tiket') }}" class="btn btn-light btn-sm fw-semibold">
+                <i class="fa-solid fa-ticket-simple me-1"></i> Tiket
             </a>
 
             {{-- Nama Petugas --}}
