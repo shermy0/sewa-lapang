@@ -40,7 +40,7 @@ class PemesananController extends Controller
 
     private function generateShortTicketCode()
     {
-        $prefix = 'LPN';
+        $prefix = 'TK';
         $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         return $prefix . $random;
     }

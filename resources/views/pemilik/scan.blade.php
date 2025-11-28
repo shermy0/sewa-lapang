@@ -107,9 +107,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         }[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
 
         const scanStatus = payload.status_scan === 'sudah_scan'
-            ? '<span class="badge bg-success">Sudah Scan Lapang</span>'
+            ? '<span class="badge bg-success">Masuk Lapang</span>'
             : payload.status_scan === 'scan_lobby'
-                ? '<span class="badge bg-info text-dark">Sudah Scan Arena</span>'
+                ? '<span class="badge bg-info text-dark">Masuk Arena</span>'
                 : '<span class="badge bg-warning text-dark">Belum Scan</span>';
 
         resultBox.innerHTML = `
