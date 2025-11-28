@@ -58,17 +58,28 @@ Route::get('/', function () {
 });
 
 Route::middleware('guest')->group(function () {
+
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
 
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
-    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
+    // Forgot password
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])
+        ->name('password.request');
+
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+        ->name('password.email');
+
+    // Reset form + update password 100% satu controller
+    Route::get('/reset-password/{token}', [ForgotPasswordController::class, 'showResetForm'])
+        ->name('password.reset');
+
+    Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])
+        ->name('password.update');
 });
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/verify-email', function (Request $request) {
@@ -183,11 +194,33 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware(['auth', 'verified', 'role:petugas'])
     ->prefix('petugas')->name('petugas.')
     ->group(function () {
+
+        // Dashboard petugas
         Route::get('/', [PetugasController::class, 'index'])->name('index');
+        Route::post('/store', [PetugasController::class, 'store'])->name('petugas.store');
+
+        // Penyewa
+        Route::get('/penyewa', [PetugasController::class, 'penyewa'])->name('penyewa');
+        Route::post('/penyewa/store', [PetugasController::class, 'storePenyewa'])->name('penyewa.store');
+        Route::delete('/penyewa/{id}', [PetugasController::class, 'destroyPenyewa'])->name('penyewa.destroy');
+
+        // Tiket
+        Route::get('/tiket', [PetugasController::class, 'tiket'])->name('tiket');
+                
+        // Search penyewa (AJAX)
+        Route::get('/penyewa/search', [PetugasController::class, 'searchPenyewa'])->name('penyewa.search');
+
+        // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
-        Route::post('/payment/store', [PetugasController::class, 'store'])->name('payment.store');
+
+        Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
+        Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
+    Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
+
+        // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
+        Route::get('/display', [PetugasController::class, 'display'])->name('display');
     });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
@@ -195,13 +228,9 @@ Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
     Route::get('/kelolapetugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
     Route::post('/kelolapetugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
 
-      // PERSETUJUAN PEMILIK
+    // PERSETUJUAN PEMILIK
     Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
     Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
-
-        // PERSETUJUAN PEMILIK
-Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
-Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');

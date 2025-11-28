@@ -1,47 +1,24 @@
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Scan Tiket • Petugas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link rel="icon" href="{{ asset('images/logo-sewalap.svg') }}" type="image/svg+xml">
-    <style>
-        body { background:#f5f7fb; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
-        .topbar { background:#41A67E; color:#fff; padding:14px 18px; }
-        .brand { font-weight:700; letter-spacing:.4px; }
-        .scan-wrapper { max-width: 900px; margin: 30px auto; }
-        #qr-reader { width: 100%; max-width: 640px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(25,135,84,.2); }
-        .scanner-status { margin-top: 15px; text-align: center; background:#198754; padding:10px 20px; color:white; font-weight:600; border-radius:25px; }
-        #result-box { background:#fff; padding:25px; border-radius:16px; margin-top:25px; box-shadow:0 4px 15px rgba(0,0,0,.1); }
-        #result-box h5 { color:#198754; margin-bottom:15px; font-weight:700; }
-        .success-result, .error-result { border-radius:12px; padding:20px; margin-top:12px; }
-        .success-result { background:#d4edda; border-left:6px solid #28a745; }
-        .error-result { background:#f8d7da; border-left:6px solid #dc3545; }
-        .badge { padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
-    </style>
-</head>
-<body>
+@extends('layouts.master')
 
-<header class="topbar d-flex align-items-center justify-content-between">
-    <div class="d-flex align-items-center gap-3">
-        <div class="brand">SEWA-LAPANG • Petugas Kasir</div>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm">Kembali ke POS</a>
-        <div class="text-end me-2 d-none d-md-block">
-            <small>Petugas: <strong>{{ auth()->user()->name ?? '-' }}</strong></small>
-        </div>
-        <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
-             style="width:36px;height:36px">
-            {{ substr(auth()->user()->name ?? 'P', 0, 1) }}
-        </div>
-    </div>
-</header>
+@section('title', 'Scan Tiket')
 
-<div class="container py-4">
-    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode"></i> Scan Tiket QR</h2>
+@push('styles')
+<style>
+    .scan-wrapper { max-width: 900px; margin: 0 auto; }
+    #qr-reader { width: 100%; max-width: 640px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(25,135,84,.2); }
+    .scanner-status { margin-top: 15px; text-align: center; background:#198754; padding:10px 20px; color:white; font-weight:600; border-radius:25px; }
+    #result-box { background:#fff; padding:25px; border-radius:16px; margin-top:25px; box-shadow:0 4px 15px rgba(0,0,0,.1); }
+    #result-box h5 { color:#198754; margin-bottom:15px; font-weight:700; }
+    .success-result, .error-result { border-radius:12px; padding:20px; margin-top:12px; }
+    .success-result { background:#d4edda; border-left:6px solid #28a745; }
+    .error-result { background:#f8d7da; border-left:6px solid #dc3545; }
+    .badge { padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
+</style>
+@endpush
+
+@section('content')
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode me-2"></i>Scan Tiket QR</h2>
 
     <div class="scan-wrapper">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -75,7 +52,9 @@
         </div>
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <!-- Library scanner -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -274,5 +253,4 @@ document.addEventListener("DOMContentLoaded", async function () {
     updateStatus("Siap Memindai", "fa-circle-notch fa-spin");
 });
 </script>
-</body>
-</html>
+@endpush
