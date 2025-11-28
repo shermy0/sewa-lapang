@@ -185,6 +185,67 @@ class PemesananController extends Controller
         }
     }
 
+    public function getSnapTokenAgain(Pemesanan $pemesanan)
+{
+    try {
+        $lapangan = $pemesanan->lapangan;
+        $jadwal = $pemesanan->jadwal;
+        $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+
+        if ($hargaSewa <= 0) {
+            return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+        }
+
+        if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
+            \Log::error('⚠ MIDTRANS belum dikonfigurasi saat getSnapTokenAgain');
+            return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
+        }
+
+        // buat order_id unik tiap generate token
+        $uniqueOrderId = $this->generateOrderId($pemesanan);
+
+        $snapToken = Snap::getSnapToken([
+            'transaction_details' => [
+                'order_id' => $uniqueOrderId,
+                'gross_amount' => $hargaSewa,
+            ],
+            'customer_details' => [
+                'first_name' => Auth::user()->name,
+                'email' => Auth::user()->email,
+            ],
+        ]);
+
+        // pastikan pembayaran ada
+        $pembayaran = $pemesanan->pembayaran;
+        if(!$pembayaran){
+            $pembayaran = Pembayaran::create([
+                'pemesanan_id' => $pemesanan->id,
+                'metode' => 'midtrans',
+                'jumlah' => $hargaSewa,
+                'status' => 'pending',
+                'order_id' => $uniqueOrderId,
+                'snap_token' => $snapToken,
+            ]);
+        } else {
+            $pembayaran->update([
+                'snap_token' => $snapToken,
+                'status' => 'pending',
+                'order_id' => $uniqueOrderId,
+                'jumlah' => $hargaSewa,
+            ]);
+        }
+
+        return response()->json([
+            'snap_token' => $snapToken,
+            'pemesanan_id' => $pemesanan->id
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
     public function getSectionsByLapangan($lapangan_id)
 {
     $lapangan = \App\Models\Lapangan::with('sections')->findOrFail($lapangan_id);

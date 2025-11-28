@@ -118,10 +118,29 @@
 
 {{-- Tombol pindah lapang --}}
 @if($p->status_scan !== 'sudah_scan')
-    <button class="btn btn-warning btn-sm px-3"
-            onclick="pindahLapang({{ $p->id }}, {{ $p->lapangan->id }})">
-        <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
-    </button>
+@php
+    $jadwalAktifText = '-';
+    $jadwalAktifId = null;
+
+    if($p->jadwal){
+        $tanggalFormat = \Carbon\Carbon::parse($p->jadwal->tanggal)->translatedFormat('l, d F Y');
+        $jadwalAktifText = $tanggalFormat . ' | ' . $p->jadwal->jam_mulai . ' - ' . $p->jadwal->jam_selesai;
+        $jadwalAktifId = $p->jadwal->id;
+    }
+@endphp
+
+<button class="btn btn-warning btn-sm px-3"
+        onclick="pindahLapang(
+            {{ $p->id }},
+            {{ $p->lapangan->id }},
+            '{{ $p->lapangan->nama_lapangan }}',
+            '{{ $section?->nama_section ?? '-' }}',
+            '{{ $jadwalAktifText }}',
+            {{ $jadwalAktifId ?? 'null' }}
+        )">
+    <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
+</button>
+
 @endif                            </div>
                         </div>
                     </div>
@@ -275,21 +294,11 @@ window.userOrders = @json($userOrders);
   - jika paid -> tidak bisa dipilih
 */
 
-document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
-    tab.addEventListener('click', function() {
-        document.querySelectorAll('#scanTabs .nav-link').forEach(btn => btn.classList.remove('active'));
-        this.classList.add('active');
-        const filter = this.dataset.filter;
-        document.querySelectorAll('.ticket-card').forEach(card => {
-            if (filter === 'all' || card.dataset.status === filter) card.style.display = 'block';
-            else card.style.display = 'none';
-        });
-    });
-});
 
-function pindahLapang(pemesananId, lapanganId) {
+function pindahLapang(pemesananId, lapanganId, namaLapangan = '', namaSection = '', jadwalAktifText = '', jadwalAktifId = null) {
     window.selectedSection = null;
     window.selectedJadwal = null;
+    let currentTanggal = null; // simpan tanggal yang dipilih
 
     Swal.fire({
         title: "Pindah Lapang",
@@ -300,8 +309,14 @@ function pindahLapang(pemesananId, lapanganId) {
                     <i class="fa-solid fa-arrows-rotate me-1"></i>Pindah Lapang
                 </div>
 
+                <div class="mb-3 p-2 border rounded-2 bg-light">
+                    <p class="mb-1"><strong>Arena:</strong> ${namaLapangan}</p>
+                    <p class="mb-1"><strong>Lapang Saat Ini:</strong> ${namaSection}</p>
+                    <p class="mb-0"><strong>Jadwal Saat Ini:</strong> ${jadwalAktifText}</p>
+                </div>
+
                 <div class="mb-3">
-                    <label class="modal-label">Pilih Section</label>
+                    <label class="modal-label">Pilih Lapang Baru</label>
                     <div id="sectionList" class="row g-2"></div>
                 </div>
 
@@ -342,10 +357,12 @@ function pindahLapang(pemesananId, lapanganId) {
             };
         },
         didOpen: () => {
-            // LOAD SECTION
+            const tanggalInput = document.getElementById("filterTanggal");
+
+            // load section
             fetch(`/sections/${lapanganId}`)
-            .then(res=>res.json())
-            .then(data=>{
+            .then(res => res.json())
+            .then(data => {
                 document.getElementById("sectionList").innerHTML =
                     data.map(s => `
                         <div class="col-md-3">
@@ -363,64 +380,78 @@ function pindahLapang(pemesananId, lapanganId) {
                         window.selectedSection = this.dataset.id;
                         window.selectedJadwal = null;
 
-                        document.getElementById("jadwalWrapper").style.display = 'none';
+                        // show tanggal wrapper
                         document.getElementById("tanggalWrapper").style.display = 'block';
+
+                        // kalau tanggal sudah ada, reload jam
+                        if (currentTanggal) {
+                            loadJam(window.selectedSection, currentTanggal, jadwalAktifId);
+                        }
                     };
                 });
             });
 
-            // TANGGAL → LOAD JAM
-            setTimeout(()=>{
-                const tgl = document.getElementById("filterTanggal");
-                if (!tgl) return;
-                tgl.addEventListener('change', ()=> {
-                    if (window.selectedSection && tgl.value) loadJam(window.selectedSection, tgl.value);
-                });
-            }, 100);
+            // event change tanggal
+            tanggalInput.addEventListener('change', () => {
+                if (window.selectedSection && tanggalInput.value) {
+                    currentTanggal = tanggalInput.value; // simpan tanggal
+                    loadJam(window.selectedSection, currentTanggal, jadwalAktifId);
+                }
+            });
         }
-    }).then(result=>{
-        if (!result.isConfirmed) return;
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            const payload = result.value;
 
-        Swal.fire({
-            title: "Memindahkan...",
-            allowOutsideClick: false,
-            didOpen: ()=> Swal.showLoading()
-        });
+            Swal.fire({
+                title: 'Memproses...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
 
-        fetch(`/pemesanan/${pemesananId}/pindah`, {
-            method: "PATCH",
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                jadwal_baru_id: result.value.jadwal_baru_id,
-                section_baru_id: result.value.section_baru_id,
-                alasan: result.value.alasan
+            fetch(`/pemesanan/${pemesananId}/pindah`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(payload)
             })
-        }).then(async res=>{
-            if (!res.ok) {
-                const err = await res.json().catch(()=>({}));
-                return Swal.fire("Gagal", err.error ?? "Terjadi kesalahan", "error");
-            }
-
-            Swal.fire("Berhasil", "Jadwal berhasil dipindahkan!", "success")
-                .then(()=> location.reload());
-        });
+            .then(res => res.json())
+            .then(resp => {
+                Swal.close();
+                if (resp.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Pindah lapang berhasil disimpan.'
+                    }).then(()=> location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: resp.message || 'Terjadi kesalahan.'
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Tidak bisa menghubungi server.'
+                });
+            });
+        }
     });
 }
 
-function loadJam(sectionId, tanggal) {
+
+function loadJam(sectionId, tanggal, currentJadwalId = null) {
     fetch(`/jadwal/section/${sectionId}`)
         .then(res => res.json())
         .then(jadwals => {
-
-            const filtered = jadwals.filter(j => {
-                if (!j.tanggal) return false;
-                const t = j.tanggal.split('T')[0].split(' ')[0];
-                return t === tanggal;
-            });
-
+            const filtered = jadwals.filter(j => j.tanggal.split('T')[0] === tanggal);
             const container = document.getElementById("jadwalList");
             container.innerHTML = "";
             document.getElementById("jadwalWrapper").style.display = "block";
@@ -434,50 +465,42 @@ function loadJam(sectionId, tanggal) {
                 let status = "available";
                 let isUser = false;
 
-                // ===============================
-                // CEK: JADWAL MILIK USER
-                // ===============================
                 if (window.jadwalAktifUser.includes(j.id)) {
                     const pay = window.userOrders[j.id] ?? null;
-
                     if (pay === "kadaluarsa" || pay === null) {
                         status = "available";
-                        isUser = false;
                     } else {
                         isUser = true;
                         status = (pay === "menunggu" || pay === "pending") ? "menunggu" : "dibayar";
                     }
-                }
-                // ===============================
-                // CEK: JADWAL ORANG LAIN
-                // ===============================
-                else {
+                } else {
                     if (j.booking_status === "dibayar") status = "dibayar";
                     else if (j.booking_status === "menunggu") status = "menunggu";
                     else status = j.tersedia ? "available" : "menunggu";
                 }
 
-                // ===============================
-                // CSS & DISABLE LOGIC
-                // ===============================
-                const cls = status === "menunggu" ? "pending" :
-                            status === "dibayar" ? "paid" : "available";
+                let bgColor = "";
+                let extraContent = "";
+                let borderStyle = "2px solid #eee";
+
+                if (isUser && status === "menunggu") bgColor = "#FFF3CD";
+                else if (isUser && status === "dibayar") bgColor = "#D1E7DD";
+                if (j.id == currentJadwalId) {
+                    borderStyle = "3px dashed #41A67E";
+                    extraContent = `<div class="jadwal-highlight-icon">🔹</div>`;
+                }
 
                 const disabledStyle = (isUser && status !== "available")
-                    ? "pointer-events:none; opacity:0.85; background:#e8fff2; border-color:#41A67E;"
-                    : (status === "dibayar" || status === "menunggu") // semua milik orang lain
-                        ? "pointer-events:none; opacity:0.55;"
-                        : ""; // available → aktif
+                    ? `pointer-events:none; opacity:0.85; background:${bgColor || '#e8fff2'}; border:${borderStyle}; position:relative;`
+                    : (status === "dibayar" || status === "menunggu")
+                        ? `pointer-events:none; opacity:0.55; background:${bgColor || '#f8f9fa'}; border:${borderStyle}; position:relative;`
+                        : `background:${bgColor || '#fff'}; border:${borderStyle}; position:relative;`;
 
-                // ===============================
-                // TEXT STATUS
-                // ===============================
                 let statusText = "Tersedia";
-
                 if (isUser) {
                     const pay = window.userOrders[j.id];
-                    if (pay === "menunggu" || pay === "pending") statusText = `<b style="color:#41A67E">Jadwalmu (Belum Dibayar)</b>`;
-                    else if (pay === "berhasil") statusText = `<b style="color:#41A67E">Jadwalmu (Sudah Dibayar)</b>`;
+                    if (pay === "menunggu" || pay === "pending") statusText = `<b style="color:#856404">Jadwalmu (Belum Dibayar)</b>`;
+                    else if (pay === "berhasil") statusText = `<b style="color:#0F5132">Jadwalmu (Sudah Dibayar)</b>`;
                 } else {
                     if (status === "menunggu") statusText = "Sedang dibooking (belum bayar)";
                     else if (status === "dibayar") statusText = "Sedang dibooking (sudah dibayar)";
@@ -485,34 +508,29 @@ function loadJam(sectionId, tanggal) {
 
                 container.innerHTML += `
                     <div class="col-md-3">
-                        <div class="jadwal-item ${cls}"
+                        <div class="jadwal-item"
                              data-id="${j.id}"
                              data-booking="${status}"
                              data-is-user="${isUser}"
-                             style="padding:10px;border-radius:8px;border:2px solid #eee;${disabledStyle}">
+                             style="padding:10px; border-radius:8px; ${disabledStyle}">
                             <b>${j.jam_mulai} - ${j.jam_selesai}</b>
                             <div class="small text-muted">${statusText}</div>
+                            ${extraContent}
                         </div>
                     </div>
                 `;
             });
 
-            // ===============================
-            // EVENT CLICK
-            // ===============================
             document.querySelectorAll(".jadwal-item").forEach(item => {
                 const booking = item.dataset.booking;
                 const isUser = item.dataset.isUser === "true";
 
-                // User sendiri boleh klik jika status available (kadaluarsa dianggap available)
                 if (isUser && booking !== "available") return;
-                // Semua jadwal orang lain yang sedang menunggu/dibayar tidak bisa diklik
                 if (!isUser && (booking === "menunggu" || booking === "dibayar")) return;
 
                 item.addEventListener("click", function() {
                     document.querySelectorAll(".jadwal-item").forEach(x => x.style.borderColor = "#eee");
                     this.style.borderColor = "#41A67E";
-
                     window.selectedJadwal = this.dataset.id;
                     window.selectedJadwalBookingStatus = this.dataset.booking;
                 });
