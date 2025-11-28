@@ -410,10 +410,11 @@
       </div>
       <div class="modal-body">
         <ul class="list-group">
+          <!--
           <li class="list-group-item">
             <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
             <label for="payCash">Cash</label>
-          </li>
+          </li>-->
           <li class="list-group-item">
             <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
             <label for="payMidtrans">Midtrans</label>
@@ -536,10 +537,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button>
         `;
 
-        // tombol hapus
         li.querySelector('.btn-remove').addEventListener('click', ()=>{
-            cart.splice(index, 1); // hapus dari cart
-            renderCart(); // re-render cart
+            cart.splice(index, 1);
+            renderCart();
         });
 
         list.appendChild(li);
@@ -548,7 +548,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("cartCount").innerText = cart.length + " item";
     updateTotals();
-}
+  }
 
   function updateTotals(){
     const subtotal = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
@@ -556,7 +556,31 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
   }
 
-  // ======== MODAL JADWAL ========
+  document.getElementById('payBtn').addEventListener('click', function () {
+    const paymentModalEl = document.getElementById('paymentModal');
+    const paymentModal = new bootstrap.Modal(paymentModalEl);
+    paymentModal.show();
+});
+
+// tombol konfirmasi di dalam modal
+document.getElementById('confirmPaymentBtn').addEventListener('click', function() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const penyewaId = document.getElementById('searchPenyewa').dataset.id;
+    if(!penyewaId) { 
+        alert("Silakan pilih penyewa terlebih dahulu!"); 
+        return; 
+    }
+    if(cart.length===0){ 
+        alert("Keranjang kosong!"); 
+        return; 
+    }
+
+    const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
+    alert(`Metode: ${method}\nPenyewa: ${document.getElementById('searchPenyewa').value}\nTotal: Rp ${total.toLocaleString('id-ID')}`);
+});
+
+
+  // ======== MODAL JADWAL & CART HANDLING ========
   let jadwalData = [];
   let currentPage = 1;
   const rowsPerPage = 6;
@@ -570,7 +594,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const filterJamMulai = document.getElementById('filterJamMulai');
     const resetBtn = document.getElementById('resetFilters');
     const summaryEl = document.getElementById('paginationSummary');
-    const paginationEl = document.getElementById('jadwalPagination');
     const pesanBtn = document.getElementById('pesanBtn');
 
     document.getElementById('jadwalModalLabel').innerText = lapangan.nama;
@@ -579,7 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     modal.show();
 
-    // bersihkan listener lama supaya tidak menumpuk
     resetBtn.replaceWith(resetBtn.cloneNode(true));
     filterTanggal.replaceWith(filterTanggal.cloneNode(true));
     filterJamMulai.replaceWith(filterJamMulai.cloneNode(true));
@@ -674,27 +696,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       summaryEl.textContent = filtered.length===0 ? 'Jadwal tidak tersedia' :
         `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, filtered.length)} dari ${filtered.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
-
-      // Pagination
-      paginationEl.innerHTML='';
-      const createPageItem=(num,active=false,disabled=false)=>{
-        const li=document.createElement('li');
-        li.className='page-item '+(active?'active':'')+(disabled?' disabled':'');
-        li.innerHTML=`<a href="#" class="page-link">${num}</a>`;
-        if(!disabled && !active){
-          li.querySelector('a').addEventListener('click',e=>{
-            e.preventDefault(); currentPage=num; renderPage(currentPage);
-          });
-        }
-        return li;
-      }
-
-      paginationEl.appendChild(createPageItem('«',false,currentPage===1));
-      for(let i=1;i<=totalPages;i++) paginationEl.appendChild(createPageItem(i,i===currentPage));
-      paginationEl.appendChild(createPageItem('»',false,currentPage===totalPages));
     }
 
-    // Event Filter
     newFilterTanggal.addEventListener('change',()=>renderPage(1));
     newFilterJamMulai.addEventListener('change',()=>renderPage(1));
     newResetBtn.addEventListener('click',()=>{
@@ -702,35 +705,33 @@ document.addEventListener("DOMContentLoaded", () => {
       renderPage(1);
     });
 
-    // Pesan slot
     pesanBtn.onclick = ()=>{
       const grid = content.querySelector('.row');
       if(!grid) return;
 
       const checkedSlots = grid.querySelectorAll('.slot-checkbox:checked');
-      checkedSlots.forEach(chk=>{
-        const card = chk.closest('.card');
-        const jam = card.querySelector('div').textContent.split(' - ')[0];
-        const hargaText = card.querySelector('.fw-bold').textContent.replace(/Rp\s|[.]/g,'');
-        const tanggal = card.querySelector('label').textContent;
+      checkedSlots.forEach(chk => {
+          const card = chk.closest('.card');
+          const jam = card.querySelector('div').textContent.split(' - ')[0];
+          const hargaText = card.querySelector('.fw-bold').textContent.replace(/Rp\s|[.]/g,'');
+          const tanggal = card.querySelector('label').textContent;
 
-        const jadwal_id = chk.dataset.jadwalId; // HARUS ADA
-        addToCart({
-            id: lapangan.id,
-            nama: lapangan.nama,
-            harga: parseInt(hargaText),
-            jam_mulai: jam,
-            tanggal: tanggal,
-            durasi: 1,
-            jadwal_id: chk.dataset.jadwalId // HARUS ADA
-        });
+          // ✅ pastikan chk.dataset.jadwalId berisi ID yang valid di DB
+          addToCart({
+              lapangan_id: lapangan.id,
+              nama: lapangan.nama,
+              harga: parseInt(hargaText),
+              jam_mulai: jam,
+              tanggal: tanggal,
+              durasi: 1,
+              jadwal_id: parseInt(chk.dataset.jadwalId)
+          });
       });
 
       modal.hide();
       renderCart();
     };
 
-    // refresh jadwal
     window.refreshJadwal = function(){
       fetch(`/petugas/api/jadwal/${lapangan.id}`)
         .then(res => res.json())
@@ -766,7 +767,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaInput = document.getElementById("searchPenyewa");
     const penyewaId = penyewaInput.dataset.id;
 
-    if(!penyewaInput.value || !penyewaId){ // cek apakah ada nama dan id penyewa
+    if(!penyewaInput.value || !penyewaId){ 
         alert("Silakan pilih nama penyewa terlebih dahulu!");
         penyewaInput.focus();
         return;
@@ -778,64 +779,105 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     paymentModal.show();
-});
+  });
 
-confirmPaymentBtn.addEventListener('click', ()=>{
+  confirmPaymentBtn.addEventListener('click', async ()=>{
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    if(cart.length===0){ alert("Keranjang kosong!"); return; }
-
     const penyewaInput = document.getElementById("searchPenyewa");
     const penyewaId = penyewaInput.dataset.id;
+    
+    if(cart.length===0){ alert("Keranjang kosong!"); return; }
     if(!penyewaId){ alert("Silakan pilih penyewa terlebih dahulu!"); return; }
 
-    paymentModal.hide();
+    // Prepare data
+    const itemsForServer = cart.map(i => ({
+        id: i.lapangan_id || i.id, 
+        jadwal_id: i.jadwal_id,
+        harga: i.harga,
+        durasi: i.durasi
+    }));
+    
+    // Calculate total
+    const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
 
-    const pemesananData = {
-        kasir: "{{ $petugasName }}",
+    const payload = {
         penyewa_id: penyewaId,
-        total: cart.reduce((s,i)=>s+i.harga*i.durasi,0),
-        items: cart
+        items: itemsForServer,
+        total: total,
+        kasir: '{{ Auth::user()->name }}'
     };
 
-    // pilih url berdasarkan metode
-    let url = method==='cash' ? '{{ route("petugas.store.cash") }}' : '{{ route("petugas.store.midtrans") }}';
+    try {
+        let url = '';
+        if(method === 'cash') {
+            url = "{{ route('petugas.store.cash') }}";
+        } else {
+            url = "{{ route('petugas.store.midtrans') }}";
+        }
 
-    fetch(url, {
-        method:'POST',
-        headers:{
-            'Content-Type':'application/json',
-            'X-CSRF-TOKEN':'{{ csrf_token() }}'
-        },
-        body: JSON.stringify(pemesananData)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success){
-            if(method==='cash'){
-                alert(`Pembayaran berhasil! Total: Rp ${pemesananData.total.toLocaleString('id-ID')}`);
-                cart = []; renderCart();
-                if(typeof refreshJadwal==='function') refreshJadwal();
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        
+        if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+
+        if(method === 'cash'){
+            alert("Pemesanan Cash Berhasil!");
+            cart = [];
+            renderCart();
+            paymentModal.hide();
+            if(typeof refreshJadwal === "function") refreshJadwal();
+        } else {
+            // Midtrans
+            paymentModal.hide();
+            if(data.snap_token){
+                snap.pay(data.snap_token, {
+                    onSuccess: function(result){
+                        alert("Pembayaran Berhasil!");
+                        cart = [];
+                        renderCart();
+                        if(typeof refreshJadwal === "function") refreshJadwal();
+                    },
+                    onPending: function(result){
+                        alert("Menunggu Pembayaran...");
+                        cart = [];
+                        renderCart();
+                    },
+                    onError: function(result){
+                        alert("Pembayaran Gagal!");
+                    },
+                    onClose: function(){
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
+                    }
+                });
             } else {
-                window.location.href = data.redirect_url;
+                alert("Token pembayaran tidak ditemukan");
             }
-        } else alert('Gagal menyimpan pemesanan!');
-    })
-    .catch(err => { console.error(err); alert('Terjadi kesalahan server!'); });
-});
+        }
 
-  // ======== INIT ========
-  renderGrid();
-  renderCart();
+    } catch(err) {
+        console.error(err);
+        alert("Terjadi kesalahan: " + err.message);
+    }
+  });
 
-  // ======== NAMA PENYEWA ========
-  const input = document.getElementById("searchPenyewa");
+  // ======== SEARCH PENYEWA ========
+  const penyewaInput = document.getElementById("searchPenyewa");
   const list = document.getElementById("penyewaResults");
 
-  input.addEventListener("input", function () {
+  penyewaInput.addEventListener("input", function () {
       let q = this.value;
       if(q.length<2){ list.style.display="none"; return; }
 
-      fetch(`/petugas/penyewa/search?q=` + q)
+      fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(q))
         .then(res=>res.json())
         .then(data=>{
           list.innerHTML="";
@@ -845,14 +887,22 @@ confirmPaymentBtn.addEventListener('click', ()=>{
             let item = document.createElement("li");
             item.className="list-group-item list-group-item-action";
             item.textContent = p.name;
-            item.onclick = ()=>{ input.value=p.name; input.dataset.id=p.id; list.style.display="none"; };
+            item.onclick = ()=>{ 
+              penyewaInput.value=p.name; 
+              penyewaInput.dataset.id=p.id; 
+              list.style.display="none"; 
+            };
             list.appendChild(item);
           });
           list.style.display="block";
         });
   });
 
+  // ======== INIT ========
+  renderGrid();
+  renderCart();
 });
 </script>
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 
 @endpush

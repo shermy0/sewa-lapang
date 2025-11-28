@@ -11,6 +11,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use App\Models\User; 
 use Carbon\Carbon;
+use Midtrans\Snap;
+use Midtrans\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -233,6 +235,7 @@ class PetugasController extends Controller
             return response()->json([
                 'success' => true,
                 'pemesanan_ids' => $createdIds,
+                'message' => 'Pemesanan cash berhasil!',
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -240,7 +243,7 @@ class PetugasController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan pembayaran cash.',
+                'message' => 'Gagal menyimpan pembayaran cash: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -251,13 +254,14 @@ class PetugasController extends Controller
             'penyewa_id' => 'required|integer',
             'total' => 'required|numeric',
             'items' => 'required|array|min:1',
-            'kasir' => 'required|string',
+            // 'kasir' => 'required|string', // Optional
         ]);
 
         DB::beginTransaction();
 
         try {
             $orderIds = [];
+            $grossAmount = 0;
 
             foreach ($validated['items'] as $item) {
                 if (empty($item['jadwal_id'])) {
@@ -285,11 +289,13 @@ class PetugasController extends Controller
                 ]);
 
                 $orderId = 'MID-' . strtoupper(Str::random(10));
+                $amount = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
+                $grossAmount += $amount;
 
                 Pembayaran::create([
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'midtrans',
-                    'jumlah' => ($item['harga'] ?? 0) * ($item['durasi'] ?? 1),
+                    'jumlah' => $amount,
                     'status' => 'pending',
                     'order_id' => $orderId,
                     'payment_url' => null,
@@ -299,10 +305,45 @@ class PetugasController extends Controller
                 $orderIds[] = $orderId;
             }
 
+            // Config Midtrans
+            Config::$serverKey = config('midtrans.server_key');
+            Config::$isProduction = config('midtrans.is_production');
+            Config::$isSanitized = true;
+            Config::$is3ds = true;
+
+            // Create Snap Token (using the first order ID or a group ID?)
+            // For simplicity, let's use a group ID or just the first one.
+            // Midtrans expects unique order_id. If we have multiple items, we might need a parent transaction or treat them individually.
+            // But here we are returning a single snap token for the whole cart?
+            // Midtrans Snap is usually 1 transaction.
+            // If we want to pay for multiple items at once, we should group them under one 'order_id' sent to Midtrans.
+            // But our DB structure has 1 Pembayaran per Pemesanan.
+            // To fix this properly: Create a "Transaction" record that groups multiple "Pemesanan".
+            // For now, let's assume we create ONE Midtrans transaction for the TOTAL amount, and link it to the first Pemesanan (or all of them if we had a pivot).
+            // Hack: Use the first orderId for Midtrans, but we need to track status for all.
+            
+            // BETTER APPROACH for this specific codebase state:
+            // Just generate one Snap Token for the total amount.
+            $transactionId = 'TRX-' . time();
+            
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $transactionId,
+                    'gross_amount' => $grossAmount,
+                ],
+                'customer_details' => [
+                    'first_name' => User::find($validated['penyewa_id'])->name,
+                    'email' => User::find($validated['penyewa_id'])->email,
+                ],
+            ];
+
+            $snapToken = Snap::getSnapToken($params);
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
+                'snap_token' => $snapToken,
                 'redirect_url' => route('petugas.index'),
                 'orders' => $orderIds,
             ]);
@@ -312,7 +353,7 @@ class PetugasController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memproses pembayaran midtrans.',
+                'message' => 'Gagal memproses pembayaran midtrans: ' . $e->getMessage(),
             ], 500);
         }
     }
