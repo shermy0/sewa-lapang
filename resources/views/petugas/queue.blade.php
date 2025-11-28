@@ -285,6 +285,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Validation already done before opening modal, but good to keep as safety
     if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
     if(cart.length===0){ alert("Keranjang kosong!"); return; }
+    if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
+    if(cart.length===0){ alert("Keranjang kosong!"); return; }
 
     // Prepare data
     const itemsForServer = cart.map(i => ({
@@ -327,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if(method === 'cash'){
             alert("Pemesanan Cash Berhasil!");
+            alert("Pemesanan Cash Berhasil!");
             cart = [];
             renderCart();
             // Hide modal manually since we created a new instance
@@ -354,6 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             body: JSON.stringify({ order_ids: data.orders })
                         }).then(() => {
                             alert("Pembayaran Berhasil!");
+                            alert("Pembayaran Berhasil!");
                             cart = [];
                             renderCart();
                             if(typeof refreshJadwal === "function") refreshJadwal();
@@ -361,13 +365,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     onPending: function(result){
                         alert("Menunggu Pembayaran...");
+                        alert("Menunggu Pembayaran...");
                         cart = [];
                         renderCart();
                     },
                     onError: function(result){
                         alert("Pembayaran Gagal!");
+                        alert("Pembayaran Gagal!");
                     },
                     onClose: function(){
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
                         alert('Anda menutup popup tanpa menyelesaikan pembayaran');
                     }
                 });
@@ -375,9 +382,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Token pembayaran tidak ditemukan");
             }
         }
+                alert("Token pembayaran tidak ditemukan");
+            }
+        }
 
     } catch(err) {
         console.error(err);
+        alert("Terjadi kesalahan: " + err.message);
         alert("Terjadi kesalahan: " + err.message);
     }
   });
