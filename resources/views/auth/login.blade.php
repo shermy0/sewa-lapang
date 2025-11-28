@@ -18,7 +18,7 @@
                         {{ session('status') }}
                     </div>
                 @endif
-                <form method="POST" action="{{ url('/login') }}" class="space-y-4">
+                <form method="POST" action="{{ route('login') }}" class="space-y-4">
                     @csrf
 
                     <div>
@@ -84,3 +84,15 @@
         </div>
     </body>
 </html>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if(session('status'))
+<script>
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: '{{ session("status") }}',
+        confirmButtonText: 'OK'
+    });
+</script>
+@endif

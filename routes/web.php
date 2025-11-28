@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\ProfileController;
@@ -56,12 +58,28 @@ Route::get('/', function () {
 });
 
 Route::middleware('guest')->group(function () {
+
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
 
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+    // Forgot password
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])
+        ->name('password.request');
+
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+        ->name('password.email');
+
+    // Reset form + update password 100% satu controller
+    Route::get('/reset-password/{token}', [ForgotPasswordController::class, 'showResetForm'])
+        ->name('password.reset');
+
+    Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])
+        ->name('password.update');
 });
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/verify-email', function (Request $request) {
@@ -122,7 +140,7 @@ Route::patch('/pemesanan/{pemesanan}/pindah', [PemesananController::class, 'pind
     Route::post('/pemesanan/store', [PemesananController::class, 'store'])->name('pemesanan.store');
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
-Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection']);        
+Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection']);
     Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
@@ -201,6 +219,7 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
+        Route::get('/display', [PetugasController::class, 'display'])->name('display');
     });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
@@ -208,13 +227,9 @@ Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
     Route::get('/kelolapetugas', [PemilikPetugasController::class, 'index'])->name('pemilik.petugas');
     Route::post('/kelolapetugas', [PemilikPetugasController::class, 'store'])->name('pemilik.petugas.store');
 
-      // PERSETUJUAN PEMILIK
+    // PERSETUJUAN PEMILIK
     Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
     Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
-
-        // PERSETUJUAN PEMILIK
-Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan.index');
-Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/dashboard/pemilik', [PemilikDashboardController::class, 'index'])->name('dashboard.pemilik');
     Route::get('/favorit/pemilik', [FavoritController::class, 'index'])->name('pemilik.favorit');
     Route::get('/pemilik/pemesanan', [PemilikPemesananController::class, 'index'])->name('pemilik.pemesanan.index');

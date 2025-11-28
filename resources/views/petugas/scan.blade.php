@@ -1,13 +1,10 @@
-@extends('layouts.sidebar')
+@extends('layouts.master')
 
 @section('title', 'Scan Tiket')
 
-@section('content')
-<link rel="stylesheet" href="{{ asset('css/pemilik.css') }}">
-
-<!-- ========== CSS UI (dipersingkat tapi tetap sama tampilannya) ========== -->
+@push('styles')
 <style>
-    .scan-wrapper { max-width: 900px; margin: auto; }
+    .scan-wrapper { max-width: 900px; margin: 0 auto; }
     #qr-reader { width: 100%; max-width: 640px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(25,135,84,.2); }
     .scanner-status { margin-top: 15px; text-align: center; background:#198754; padding:10px 20px; color:white; font-weight:600; border-radius:25px; }
     #result-box { background:#fff; padding:25px; border-radius:16px; margin-top:25px; box-shadow:0 4px 15px rgba(0,0,0,.1); }
@@ -17,9 +14,11 @@
     .error-result { background:#f8d7da; border-left:6px solid #dc3545; }
     .badge { padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
 </style>
+@endpush
 
-<div class="container py-4">
-    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode"></i> Scan Tiket QR</h2>
+@section('content')
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode me-2"></i>Scan Tiket QR</h2>
 
     <div class="scan-wrapper">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -37,7 +36,7 @@
             <div class="small text-muted">Scan di pintu Arena dulu, lalu pintu Lapang.</div>
         </div>
 
-        <!-- Scanner `-->
+        <!-- Scanner -->
         <div id="qr-reader"></div>
 
         <div class="scanner-status">
@@ -51,13 +50,13 @@
                 <i class="fas fa-camera me-2"></i> Arahkan kamera ke QR code tiket...
             </div>
         </div>
-
     </div>
 </div>
+@endsection
 
-<!-- Library scanner tercepat -->
+@push('scripts')
+<!-- Library scanner -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", async function () {
 
@@ -92,19 +91,28 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     function renderResult(payload, statusFlag, message, isSuccess) {
-        const statusLabel = {
-            valid: { text: 'Valid', cls: 'bg-success' },
-            valid_lobby: { text: 'Masuk Arena', cls: 'bg-info text-dark' },
-            valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
-            expired: { text: 'Expired', cls: 'bg-danger' },
-            double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
-            double_scan_lobby: { text: 'Sudah Scan Arena', cls: 'bg-warning text-dark' },
-            double_scan_lapang: { text: 'Sudah Scan Lapang', cls: 'bg-warning text-dark' },
-            too_early: { text: 'Belum Waktunya', cls: 'bg-secondary' },
-            unpaid: { text: 'Belum Dibayar', cls: 'bg-secondary' },
-            not_found: { text: 'Tidak Ditemukan', cls: 'bg-secondary' },
-            invalid: { text: 'Tidak Valid', cls: 'bg-secondary' },
-        }[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
+        const statusLabel = (() => {
+            const map = {
+                valid_lobby: { text: 'Scan Arena', cls: 'bg-info text-dark' },
+                valid_lapang: { text: 'Scan Lapang', cls: 'bg-success' },
+                expired: { text: 'Expired', cls: 'bg-danger' },
+                double_scan: { text: 'Double Scan', cls: 'bg-warning text-dark' },
+                double_scan_lobby: { text: 'Sudah Scan Arena', cls: 'bg-warning text-dark' },
+                double_scan_lapang: { text: 'Sudah Scan Lapang', cls: 'bg-warning text-dark' },
+                too_early: { text: 'Belum Waktunya', cls: 'bg-secondary' },
+                unpaid: { text: 'Belum Dibayar', cls: 'bg-secondary' },
+                not_found: { text: 'Tidak Ditemukan', cls: 'bg-secondary' },
+                invalid: { text: 'Tidak Valid', cls: 'bg-secondary' },
+            };
+
+            if (statusFlag === 'valid') {
+                return currentCheckpoint === 'gor'
+                    ? map.valid_lobby
+                    : map.valid_lapang;
+            }
+
+            return map[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
+        })();
 
         const scanStatus = payload.status_scan === 'sudah_scan'
             ? '<span class="badge bg-success">Sudah Scan Lapang</span>'
@@ -245,5 +253,4 @@ document.addEventListener("DOMContentLoaded", async function () {
     updateStatus("Siap Memindai", "fa-circle-notch fa-spin");
 });
 </script>
-
-@endsection
+@endpush

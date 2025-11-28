@@ -13,7 +13,7 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 class ResetPasswordController extends Controller
 {
     /**
-     * Display the password reset view.
+     * Show reset password form
      */
     public function showResetForm(Request $request, string $token = null)
     {
@@ -24,16 +24,22 @@ class ResetPasswordController extends Controller
     }
 
     /**
-     * Handle an incoming new password submission.
+     * Handle reset password
      */
     public function reset(Request $request)
     {
+        // Validasi input
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', PasswordRule::min(8)],
+            'password' => [
+                'required',
+                'confirmed',
+                PasswordRule::min(8)
+            ],
         ]);
 
+        // Proses reset password
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
@@ -46,12 +52,18 @@ class ResetPasswordController extends Controller
             }
         );
 
+        // Jika berhasil reset password
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+
+            // Bahasa Indonesia
+            return redirect()
+                ->route('login')
+                ->with('status', 'Kata sandi Anda berhasil diubah Silakan login.');
         }
 
+        // Jika gagal
         return back()->withErrors([
-            'email' => __($status),
+            'email' => 'Token tidak valid atau email tidak ditemukan.',
         ]);
     }
 }

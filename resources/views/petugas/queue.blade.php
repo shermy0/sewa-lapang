@@ -3,9 +3,6 @@
 @section('title', 'Petugas Kasir')
 
 @section('content')
-<body>
-<meta name="csrf-token" content="{{ csrf_token() }}">
-<main class="container-fluid mt-3">
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
@@ -26,7 +23,7 @@
   <div class="cart">
 
     <!-- INPUT NAMA PENYEWA -->
-    <div class="mb-3">
+    <div class="mb-3 position-relative">
       <label class="fw-semibold mb-1">Nama Penyewa</label>
       <input 
         type="text" 
@@ -36,7 +33,7 @@
         autocomplete="off"
         required>
       <ul id="penyewaResults" class="list-group position-absolute w-100" 
-          style="z-index: 999; display: none;"></ul>
+          style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
     </div>
 
     <div class="d-flex justify-content-between mb-2">
@@ -62,7 +59,7 @@
 </div>
 
   </div>
-</main>
+
 
 <!-- MODAL JADWAL -->
 <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
@@ -116,11 +113,10 @@
       </div>
       <div class="modal-body">
         <ul class="list-group">
-          <!--
           <li class="list-group-item">
             <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
             <label for="payCash">Cash</label>
-          </li>-->
+          </li>
           <li class="list-group-item">
             <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
             <label for="payMidtrans">Midtrans</label>
@@ -135,6 +131,10 @@
   </div>
 </div>
 
+@endsection
+
+@push('scripts')
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 const lapanganData = @json($lapangan);
 let cart = [];
@@ -189,7 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderGridPagination(totalPages){
     const pg = document.getElementById("gridPagination");
-    if(!pg) return;
+    if(!pg) return; 
+    
     pg.innerHTML="";
     const createPageItem = (num, active=false, disabled=false) => {
       const li = document.createElement("li");
@@ -257,17 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById('payBtn').addEventListener('click', function () {
-    const paymentModalEl = document.getElementById('paymentModal');
-    const paymentModal = new bootstrap.Modal(paymentModalEl);
-    paymentModal.show();
-});
-
-// tombol konfirmasi di dalam modal
-document.getElementById('confirmPaymentBtn').addEventListener('click', function() {
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    const penyewaId = document.getElementById('searchPenyewa').dataset.id;
+    const penyewaInput = document.getElementById('searchPenyewa');
+    const penyewaId = penyewaInput.dataset.id;
+    
     if(!penyewaId) { 
         alert("Silakan pilih penyewa terlebih dahulu!"); 
+        penyewaInput.focus();
         return; 
     }
     if(cart.length===0){ 
@@ -275,9 +271,106 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
         return; 
     }
 
+    const paymentModalEl = document.getElementById('paymentModal');
+    const paymentModal = new bootstrap.Modal(paymentModalEl);
+    paymentModal.show();
+  });
+
+  // tombol konfirmasi di dalam modal
+  document.getElementById('confirmPaymentBtn').addEventListener('click', async function() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const penyewaInput = document.getElementById('searchPenyewa');
+    const penyewaId = penyewaInput.dataset.id;
+    
+    // Validation already done before opening modal, but good to keep as safety
+    if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
+    if(cart.length===0){ alert("Keranjang kosong!"); return; }
+
+    // Prepare data
+    const itemsForServer = cart.map(i => ({
+        id: i.lapangan_id || i.id, 
+        jadwal_id: i.jadwal_id,
+        harga: i.harga,
+        durasi: i.durasi
+    }));
+    
     const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
-    alert(`Metode: ${method}\nPenyewa: ${document.getElementById('searchPenyewa').value}\nTotal: Rp ${total.toLocaleString('id-ID')}`);
-});
+
+    const payload = {
+        penyewa_id: penyewaId,
+        items: itemsForServer,
+        total: total,
+        kasir: '{{ Auth::user()->name }}'
+    };
+
+    try {
+        let url = '';
+        if(method === 'cash') {
+            url = "{{ route('petugas.store.cash') }}";
+        } else {
+            url = "{{ route('petugas.store.midtrans') }}";
+        }
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        
+        if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+
+        if(method === 'cash'){
+            alert("Pemesanan Cash Berhasil!");
+            cart = [];
+            renderCart();
+            // Hide modal manually since we created a new instance
+            const paymentModalEl = document.getElementById('paymentModal');
+            const modal = bootstrap.Modal.getInstance(paymentModalEl);
+            if(modal) modal.hide();
+            
+            if(typeof refreshJadwal === "function") refreshJadwal();
+        } else {
+            // Midtrans
+            const paymentModalEl = document.getElementById('paymentModal');
+            const modal = bootstrap.Modal.getInstance(paymentModalEl);
+            if(modal) modal.hide();
+
+            if(data.snap_token){
+                snap.pay(data.snap_token, {
+                    onSuccess: function(result){
+                        alert("Pembayaran Berhasil!");
+                        cart = [];
+                        renderCart();
+                        if(typeof refreshJadwal === "function") refreshJadwal();
+                    },
+                    onPending: function(result){
+                        alert("Menunggu Pembayaran...");
+                        cart = [];
+                        renderCart();
+                    },
+                    onError: function(result){
+                        alert("Pembayaran Gagal!");
+                    },
+                    onClose: function(){
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
+                    }
+                });
+            } else {
+                alert("Token pembayaran tidak ditemukan");
+            }
+        }
+
+    } catch(err) {
+        console.error(err);
+        alert("Terjadi kesalahan: " + err.message);
+    }
+  });
 
 
   // ======== MODAL JADWAL & CART HANDLING ========
@@ -302,6 +395,7 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
 
     modal.show();
 
+    // Clone to remove old event listeners
     resetBtn.replaceWith(resetBtn.cloneNode(true));
     filterTanggal.replaceWith(filterTanggal.cloneNode(true));
     filterJamMulai.replaceWith(filterJamMulai.cloneNode(true));
@@ -310,7 +404,7 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
     const newFilterTanggal = document.getElementById('filterTanggal');
     const newFilterJamMulai = document.getElementById('filterJamMulai');
 
-    fetch(`/petugas/api/jadwal/${lapangan.id}`)
+    fetch('{{ url("petugas/api/jadwal") }}/' + lapangan.id)
       .then(res=>res.json())
       .then(data=>{ 
         jadwalData=data || [];
@@ -451,159 +545,50 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
 
   penyewaInput.addEventListener("input", function () {
       let q = this.value;
-      if(q.length<2){ list.style.display="none"; return; }
+      // Clear ID when user types to force selection
+      this.removeAttribute('data-id'); 
+      
+      if(q.length<1){ list.style.display="none"; return; }
 
       fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(q))
         .then(res=>res.json())
         .then(data=>{
           list.innerHTML="";
-          if(data.length===0){ list.style.display="none"; return; }
-
-          data.forEach(p=>{
-            let item = document.createElement("li");
-            item.className="list-group-item list-group-item-action";
-            item.textContent = p.name;
-            item.onclick = ()=>{ 
-              penyewaInput.value=p.name; 
-              penyewaInput.dataset.id=p.id; 
-              list.style.display="none"; 
-            };
-            list.appendChild(item);
-          });
+          
+          if(data.length===0){ 
+              let item = document.createElement("li");
+              item.className="list-group-item text-muted small";
+              item.textContent = "Penyewa tidak ditemukan";
+              list.appendChild(item);
+          } else {
+              data.forEach(p=>{
+                let item = document.createElement("li");
+                item.className="list-group-item list-group-item-action";
+                item.style.cursor = "pointer";
+                item.textContent = p.name;
+                item.onclick = ()=>{ 
+                  penyewaInput.value=p.name; 
+                  penyewaInput.dataset.id=p.id; 
+                  list.style.display="none"; 
+                };
+                list.appendChild(item);
+              });
+          }
           list.style.display="block";
-        });
+        })
+        .catch(err => console.error(err));
   });
 
-  // ======== PAYMENT MODAL ========
-  document.getElementById("confirmPaymentBtn").addEventListener("click", async () => {
-    const penyewaInput = document.getElementById("searchPenyewa");
-    const penyewaId = penyewaInput.dataset.id;
-
-    if(!penyewaId){ alert("Pilih penyewa dulu!"); return; }
-    if(cart.length===0){ alert("Keranjang kosong!"); return; }
-
-    const itemsForServer = cart.map(i => ({
-        lapangan_id: i.lapangan_id,
-        jadwal_id: i.jadwal_id,
-        harga: i.harga,
-        durasi: i.durasi
-    }));
-
-    try {
-        const res = await fetch("{{ route('petugas.store.midtrans') }}", { 
-          method: "POST",
-          headers: { 
-              "Content-Type": "application/json",
-              "X-CSRF-TOKEN": "{{ csrf_token() }}"
-          },
-          body: JSON.stringify({
-              penyewa_id: penyewaId,
-              items: itemsForServer
-          })
-      });
-
-
-        const data = await res.json();
-        if(!data.snap_token) throw new Error("Gagal mendapatkan Snap token");
-
-        // Panggil Snap popup
-        snap.pay(data.snap_token, {
-            onSuccess: function(result){
-                alert("Pembayaran berhasil!");
-                cart = [];
-                renderCart();
-                if(typeof refreshJadwal==="function") refreshJadwal();
-            },
-            onPending: function(result){
-                alert("Menunggu pembayaran...");
-                cart = [];
-                renderCart();
-            },
-            onError: function(result){
-                alert("Pembayaran gagal!");
-            }
-        });
-
-    } catch(err){
-        console.error(err);
-        alert("Terjadi error: " + err.message);
-    }
-});
-
-
+  // Hide dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+      if (!penyewaInput.contains(e.target) && !list.contains(e.target)) {
+          list.style.display = 'none';
+      }
+  });
 
   // ======== INIT ========
   renderGrid();
   renderCart();
 });
 </script>
-<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
-
-<script>
-document.getElementById("confirmPaymentBtn").addEventListener("click", async () => {
-    const penyewaInput = document.getElementById("searchPenyewa");
-    const penyewaId = penyewaInput.dataset.id;
-
-    if (!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
-    if (cart.length === 0) { alert("Keranjang kosong!"); return; }
-
-    const itemsForServer = cart.map(i => ({
-        lapangan_id: i.lapangan_id,
-        jadwal_id: i.jadwal_id,
-        harga: i.harga,
-        durasi: i.durasi
-    }));
-
-    const total = itemsForServer.reduce((sum, i) => sum + i.harga * i.durasi, 0);
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-
-    if (method !== "midtrans") {
-        alert("Metode selain Midtrans belum diimplementasikan");
-        return;
-    }
-
-    try {
-        const res = await fetch("{{ route('petugas.store.midtrans') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({
-                penyewa_id: penyewaId,
-                items: itemsForServer
-            })
-        });
-
-        const data = await res.json();
-
-        if (!data.snap_token) throw new Error("Gagal mendapatkan token Midtrans");
-
-        snap.pay(data.snap_token, {
-            onSuccess: function(result){
-                alert("Pembayaran berhasil!");
-                cart = [];
-                renderCart();
-                if(typeof refreshJadwal === "function") refreshJadwal();
-            },
-            onPending: function(result){
-                alert("Menunggu pembayaran...");
-                window.location.reload();
-            },
-            onError: function(result){
-                alert("Pembayaran gagal!");
-            }
-        });
-
-    } catch(err) {
-        console.error(err);
-        alert("Terjadi error: " + err.message);
-    }
-});
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-@endsection
+@endpush

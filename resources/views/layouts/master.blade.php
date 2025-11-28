@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>SEWALAP - Kasir</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -27,6 +28,9 @@
       color: #fff;
       padding: 12px 20px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 1020;
     }
 
     .brand {
@@ -50,14 +54,14 @@
 
     .lapangan-img {
       height: 140px;
-      width: 300px; 
+      width: 300px;
       object-fit: cover;
       width: 100%;
     }
 
     .cart {
       position: sticky;
-      top: 20px;
+      top: 90px;
       max-height: calc(100vh - 40px);
       background: #fff;
       border-radius: 10px;
@@ -108,6 +112,7 @@
       text-overflow: ellipsis;
     }
   </style>
+  @stack('styles')
 </head>
 <body>
 
@@ -116,19 +121,23 @@
     {{-- ===================== --}}
     <header class="topbar d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
-            <div class="brand fw-bold fs-5">SEWALAP</div>
+            <a href="{{ route('petugas.index') }}" class="brand fw-bold fs-5 text-decoration-none text-white">SEWALAP</a>
         </div>
 
         <div class="d-flex align-items-center gap-3">
 
             {{-- Tombol Kasir --}}
             <a href="{{ route('petugas.index') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-money-bill-wave me-1"></i> Kasir
+                <i class="fa-solid fa-cash-register me-1"></i> Kasir
             </a>
 
             {{-- Tombol Scan QR --}}
             <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="fa-solid fa-qrcode me-1"></i> Scan QR
+            </a>
+            
+             <a href="{{ route('petugas.display') }}" target="_blank" class="btn btn-light btn-sm fw-semibold">
+                <i class="fa-solid fa-tv me-1"></i> Layar Antrian
             </a>
 
             {{-- Tombol Tambah Penyewa --}}
@@ -166,7 +175,7 @@
     {{-- ===================== --}}
     {{--       CONTENT         --}}
     {{-- ===================== --}}
-    <main class="container py-4">
+    <main class="container-fluid py-4">
         @yield('content')
     </main>
 
