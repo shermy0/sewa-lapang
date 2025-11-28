@@ -2,335 +2,38 @@
 
 @section('title', 'Petugas Kasir')
 
-@push('styles')
-  <style>
-    :root{
-      --accent:#2f9f6f;
-      --accent-dark:#27855d;
-      --muted:#9aa5b1;
-      --bg:#f5f7fb;
-    }
-
-    /* Override Master Layout Topbar */
-    .topbar {
-        background: var(--accent) !important;
-        color: #fff !important;
-        border-bottom: none !important;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    .topbar .brand {
-        color: #fff !important;
-    }
-    .topbar small {
-        color: rgba(255,255,255,0.9) !important;
-    }
-
-    /* Custom Scrollbar for Queue */
-    .queue-wrapper::-webkit-scrollbar {
-        height: 6px;
-    }
-    .queue-wrapper::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-    .queue-wrapper::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 10px;
-    }
-    .queue-wrapper::-webkit-scrollbar-thumb:hover {
-        background: #bbb;
-    }
-
-    /* Order List Item */
-    .queue-item-card {
-        background: #fff;
-        border: 1px solid #e3e6f0;
-        border-radius: 10px;
-        overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .queue-item-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-        border-color: var(--accent);
-    }
-    .status-bar {
-        border-top: 1px solid rgba(0,0,0,0.05);
-    }
-
-    /* Queue Section Styling */
-    .queue-wrapper {
-        display: flex;
-        gap: 15px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        scroll-behavior: smooth;
-    }
-    .queue-card {
-        background: #f8f9fc;
-        border-radius: 12px;
-        padding: 15px;
-        border: 1px solid #e3e6f0;
-        min-width: 320px;
-        flex-shrink: 0;
-        margin-bottom: 0; /* Remove bottom margin */
-    }
-    .queue-card .title {
-        font-weight: 700;
-        color: #2c3e50;
-        font-size: 1rem;
-    }
-    .queue-card .subtitle {
-        font-size: 0.8rem;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-    }
-    .queue-chip {
-        background: #fff;
-        border: 1px solid #e3e6f0;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--accent);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-    }
-
-    .lapangan-card {
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .lapangan-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 8px 20px var(--card-hover);
-    }
-
-    /* GAMBAR */
-    .lapangan-img,
-    .card .carousel-inner,
-    .card .carousel-item {
-      width: 100%;
-      height: 160px; /* Sedikit diperkecil agar lebih compact */
-    }
-
-    .lapangan-img {
-      object-fit: cover;
-    }
-
-    /* Carousel image */
-    .card .carousel-inner img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-    }
-
-    /* Filter Chips */
-    .chip {
-        display: inline-block;
-        padding: 6px 14px;
-        border-radius: 20px;
-        background: #fff;
-        border: 1px solid #e3e6f0;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--muted);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .chip:hover {
-        background: #f8f9fc;
-        color: var(--accent);
-        border-color: var(--accent);
-    }
-    .chip.active {
-        background: var(--accent);
-        color: #fff;
-        border-color: var(--accent);
-    }
-
-    /* Cart Styling */
-    .cart {
-        background: #fff;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: 1px solid #e3e6f0;
-        position: sticky;
-        top: 20px;
-    }
-    .cart h6 {
-        font-weight: 700;
-        color: #2c3e50;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-size: 0.9rem;
-    }
-    .btn-pay {
-        background: var(--accent);
-        color: #fff;
-        font-weight: 700;
-        padding: 12px;
-        border-radius: 8px;
-        border: none;
-        transition: all 0.2s;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .btn-pay:hover {
-        background: var(--accent-dark);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(47, 159, 111, 0.3);
-    }
-
-    .card .text-truncate {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  </style>
-@endpush
-
 @section('content')
-<div class="container-fluid py-3">
-  @if(!empty($needsOwner))
-    <div class="alert alert-warning mb-3">
-      Akun petugas belum dikaitkan dengan pemilik. Minta pemilik membuatkan akun petugas dari menu <strong>Petugas</strong>.
-    </div>
-  @endif
-
-  <div class="card shadow-sm border-0" style="border-radius:14px">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <div class="text-uppercase text-muted small fw-semibold">Antrean per Section</div>
-          <h6 class="fw-bold mb-0">Urutan Penyewa</h6>
-        </div>
-        <span class="badge bg-primary bg-opacity-10 text-primary">Live</span>
-      </div>
-
-      @php
-        $statusClasses = [
-          'dibayar' => 'bg-success',
-          'menunggu' => 'bg-warning text-dark',
-          'kadaluarsa' => 'bg-secondary',
-          'batal' => 'bg-danger',
-          'sedang_main' => 'bg-info',
-        ];
-      @endphp
-
-      <div class="queue-wrapper">
-        @forelse($sectionQueues as $section)
-          <div class="queue-card">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <div class="title">{{ $section['label'] }}</div>
-                <div class="subtitle">{{ $section['lapangan'] }}</div>
-              </div>
-              <span class="queue-chip">{{ $section['queue']->count() }} antrean</span>
-            </div>
-
-            @if($section['queue']->isEmpty())
-              <div class="queue-empty mt-3 text-muted small">Belum ada pemesanan pada section ini.</div>
-            @else
-              <div class="d-flex flex-column gap-2 mt-3">
-                @foreach($section['queue'] as $order)
-                  <div class="queue-item-card shadow-sm">
-                    <div class="p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <h6 class="fw-bold mb-0 text-dark" style="font-size: 1rem;">{{ $order['penyewa'] }}</h6>
-                            <small class="text-muted fw-semibold" style="font-size: 0.75rem;">{{ $order['kode_tiket'] }}</small>
-                        </div>
-                        <div class="d-flex align-items-center text-muted small">
-                            <i class="fa-regular fa-calendar me-2"></i>
-                            <span>{{ $order['tanggal'] }} • {{ $order['jam_mulai'] }} - {{ $order['jam_selesai'] }}</span>
-                        </div>
-                    </div>
-                    <div class="status-bar {{ $statusClasses[$order['status']] ?? 'bg-secondary' }} text-white px-3 py-1 d-flex justify-content-between align-items-center" style="font-size: 0.8rem;">
-                        <span class="fw-bold text-uppercase">{{ ucfirst($order['status']) }}</span>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-bold">Rp {{ number_format($order['harga_sewa'] ?? 0, 0, ',', '.') }}</span>
-                            <i class="fa-solid fa-check-circle opacity-50"></i>
-                        </div>
-                    </div>
-                  </div>
-                @endforeach
-              </div>
-            @endif
-          </div>
-        @empty
-          <div class="text-center text-muted">Belum ada data antrean.</div>
-        @endforelse
-      </div>
-    </div>
-  </div>
-</div>
-
-<main class="container-fluid mt-3">
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
-
-      <div class="toolbar-card mb-3">
-        <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 justify-content-between">
-          <div class="d-flex align-items-center gap-2">
-            <span class="fw-semibold text-muted small text-uppercase">Pilih Lapangan</span>
-            <span class="badge bg-success bg-opacity-10 text-success">Realtime</span>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-              <input id="searchInput" class="form-control form-control-sm" placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
-              <select id="filterStatus" class="form-select form-select-sm" style="width: auto;">
-                  <option value="all">Semua Status</option>
-                  <option value="available">Tersedia</option>
-                  <option value="booked">Dipesan</option>
-              </select>
-
-              <select id="filterKategori" name="id_kategori" class="form-select form-select-sm" style="width: auto;">
-                  <option value="all">Pilih Kategori</option>
-                  @foreach ($kategori as $kat)
-                      <option value="{{ $kat->id }}">
-                          {{ $kat->nama_kategori }}
-                      </option>
-                  @endforeach
-              </select>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <div class="chip" onclick="document.getElementById('filterStatus').value='available';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Tersedia</div>
-          <div class="chip" onclick="document.getElementById('filterStatus').value='booked';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Sedang dipesan</div>
-          <div class="chip" onclick="document.getElementById('filterStatus').value='all';document.getElementById('filterStatus').dispatchEvent(new Event('change'));">Reset filter</div>
-        </div>
+      <div class="d-flex justify-content-between mb-3">
+        <input id="searchInput" class="form-control form-control-sm d-none d-md-block"
+           placeholder="Cari Lapangan" style="border-radius:20px;max-width:200px;">
+        <select id="filterKategori" name="id_kategori" class="form-select form-select-sm" style="max-width:150px;" required>
+            <option value="all" selected>Semua Kategori</option>
+            @foreach ($kategori as $kat)
+                <option value="{{ $kat->id }}">{{ $kat->nama_kategori }}</option>
+            @endforeach
+        </select>
       </div>
       <div id="grid" class="row g-3"></div>
-      <div class="d-flex justify-content-between align-items-center mt-3">
-         <div id="gridPaginationSummary"></div>
-         <ul id="gridPagination" class="pagination pagination-sm mb-0"></ul>
-      </div>
     </div>
 
     <div class="col-lg-4">
   <div class="cart">
 
     <!-- INPUT NAMA PENYEWA -->
-    <div class="mb-3">
+    <div class="mb-3 position-relative">
       <label class="fw-semibold mb-1">Nama Penyewa</label>
-      <input
-        type="text"
-        id="searchPenyewa"
-        class="form-control"
+      <input 
+        type="text" 
+        id="searchPenyewa" 
+        class="form-control" 
         placeholder="Cari nama penyewa..."
         autocomplete="off"
         required>
-      <ul id="penyewaResults" class="list-group position-absolute w-100"
-          style="z-index: 999; display: none;"></ul>
+      <ul id="penyewaResults" class="list-group position-absolute w-100" 
+          style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
     </div>
 
     <div class="d-flex justify-content-between mb-2">
@@ -356,7 +59,7 @@
 </div>
 
   </div>
-</main>
+
 
 <!-- MODAL JADWAL -->
 <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
@@ -410,11 +113,10 @@
       </div>
       <div class="modal-body">
         <ul class="list-group">
-          <!--
           <li class="list-group-item">
             <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
             <label for="payCash">Cash</label>
-          </li>-->
+          </li>
           <li class="list-group-item">
             <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
             <label for="payMidtrans">Midtrans</label>
@@ -432,6 +134,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 const lapanganData = @json($lapangan);
 let cart = [];
@@ -446,12 +149,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
     const q = document.getElementById("searchInput").value.toLowerCase();
-    const statusFilter = document.getElementById("filterStatus").value;
 
     let items = lapanganData.map(l => ({ ...l, foto: l.foto || [], hargaRataRata: l.hargaRataRata, kategori_nama: l.kategori_nama || 'Tidak ada'}));
-
-    if(filterKategori!=="all") items = items.filter(l=>l.kategori_id==filterKategori);
-    if(statusFilter!=="all") items = items.filter(l=>l.status===statusFilter);
+    if(filterKategori!=="all") items = items.filter(l=>l.id_kategori==filterKategori);
     if(q) items = items.filter(l=>l.nama.toLowerCase().includes(q));
 
     const totalPages = Math.ceil(items.length/perPage) || 1;
@@ -474,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h6 class="card-title mb-1">${l.nama}</h6>
           ${l.deskripsi?`<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>`:''}
           <div class="mt-1 d-flex justify-content-between">
-            <small>Harga Rata-rata:</small>
+            <small>Harga: </small>
             <small style="color:#41A67E;font-weight:600;">${l.hargaRataRata?`Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam`:'-'}</small>
           </div>
         </div>
@@ -489,7 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderGridPagination(totalPages){
     const pg = document.getElementById("gridPagination");
-    if(!pg) return;
+    if(!pg) return; 
+    
     pg.innerHTML="";
     const createPageItem = (num, active=false, disabled=false) => {
       const li = document.createElement("li");
@@ -557,17 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById('payBtn').addEventListener('click', function () {
-    const paymentModalEl = document.getElementById('paymentModal');
-    const paymentModal = new bootstrap.Modal(paymentModalEl);
-    paymentModal.show();
-});
-
-// tombol konfirmasi di dalam modal
-document.getElementById('confirmPaymentBtn').addEventListener('click', function() {
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    const penyewaId = document.getElementById('searchPenyewa').dataset.id;
+    const penyewaInput = document.getElementById('searchPenyewa');
+    const penyewaId = penyewaInput.dataset.id;
+    
     if(!penyewaId) { 
         alert("Silakan pilih penyewa terlebih dahulu!"); 
+        penyewaInput.focus();
         return; 
     }
     if(cart.length===0){ 
@@ -575,9 +271,106 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
         return; 
     }
 
+    const paymentModalEl = document.getElementById('paymentModal');
+    const paymentModal = new bootstrap.Modal(paymentModalEl);
+    paymentModal.show();
+  });
+
+  // tombol konfirmasi di dalam modal
+  document.getElementById('confirmPaymentBtn').addEventListener('click', async function() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const penyewaInput = document.getElementById('searchPenyewa');
+    const penyewaId = penyewaInput.dataset.id;
+    
+    // Validation already done before opening modal, but good to keep as safety
+    if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
+    if(cart.length===0){ alert("Keranjang kosong!"); return; }
+
+    // Prepare data
+    const itemsForServer = cart.map(i => ({
+        id: i.lapangan_id || i.id, 
+        jadwal_id: i.jadwal_id,
+        harga: i.harga,
+        durasi: i.durasi
+    }));
+    
     const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
-    alert(`Metode: ${method}\nPenyewa: ${document.getElementById('searchPenyewa').value}\nTotal: Rp ${total.toLocaleString('id-ID')}`);
-});
+
+    const payload = {
+        penyewa_id: penyewaId,
+        items: itemsForServer,
+        total: total,
+        kasir: '{{ Auth::user()->name }}'
+    };
+
+    try {
+        let url = '';
+        if(method === 'cash') {
+            url = "{{ route('petugas.store.cash') }}";
+        } else {
+            url = "{{ route('petugas.store.midtrans') }}";
+        }
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        
+        if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+
+        if(method === 'cash'){
+            alert("Pemesanan Cash Berhasil!");
+            cart = [];
+            renderCart();
+            // Hide modal manually since we created a new instance
+            const paymentModalEl = document.getElementById('paymentModal');
+            const modal = bootstrap.Modal.getInstance(paymentModalEl);
+            if(modal) modal.hide();
+            
+            if(typeof refreshJadwal === "function") refreshJadwal();
+        } else {
+            // Midtrans
+            const paymentModalEl = document.getElementById('paymentModal');
+            const modal = bootstrap.Modal.getInstance(paymentModalEl);
+            if(modal) modal.hide();
+
+            if(data.snap_token){
+                snap.pay(data.snap_token, {
+                    onSuccess: function(result){
+                        alert("Pembayaran Berhasil!");
+                        cart = [];
+                        renderCart();
+                        if(typeof refreshJadwal === "function") refreshJadwal();
+                    },
+                    onPending: function(result){
+                        alert("Menunggu Pembayaran...");
+                        cart = [];
+                        renderCart();
+                    },
+                    onError: function(result){
+                        alert("Pembayaran Gagal!");
+                    },
+                    onClose: function(){
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
+                    }
+                });
+            } else {
+                alert("Token pembayaran tidak ditemukan");
+            }
+        }
+
+    } catch(err) {
+        console.error(err);
+        alert("Terjadi kesalahan: " + err.message);
+    }
+  });
 
 
   // ======== MODAL JADWAL & CART HANDLING ========
@@ -602,6 +395,7 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
 
     modal.show();
 
+    // Clone to remove old event listeners
     resetBtn.replaceWith(resetBtn.cloneNode(true));
     filterTanggal.replaceWith(filterTanggal.cloneNode(true));
     filterJamMulai.replaceWith(filterJamMulai.cloneNode(true));
@@ -611,17 +405,14 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
     const newFilterJamMulai = document.getElementById('filterJamMulai');
 
     fetch('{{ url("petugas/api/jadwal") }}/' + lapangan.id)
-      .then(res=>{
-        if(!res.ok) throw new Error('Network response not ok');
-        return res.json();
-      })
-      .then(data=>{
+      .then(res=>res.json())
+      .then(data=>{ 
         jadwalData=data || [];
-        renderPage(1);
+        renderPage(1); 
       })
-      .catch(err=>{
-        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>';
-        console.error(err);
+      .catch(err=>{ 
+        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>'; 
+        console.error(err); 
         jadwalData = [];
       });
 
@@ -653,12 +444,12 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
           col.className = 'col-md-4';
 
           let statusClass="", statusText="";
-          if(j.booking_status==="dibayar"){
-            statusClass="bg-success text-white";
-            statusText="Sudah Dibayar";
-          } else if(j.booking_status==="menunggu"){
-            statusClass="bg-warning text-dark";
-            statusText="Sedang Dibooking";
+          if(j.booking_status==="dibayar"){ 
+            statusClass="bg-success text-white"; 
+            statusText="Sudah Dibayar"; 
+          } else if(j.booking_status==="menunggu"){ 
+            statusClass="bg-warning text-dark"; 
+            statusText="Sedang Dibooking"; 
           } else {
             statusClass="bg-light text-dark";
             const tanggalObj = new Date(j.tanggal);
@@ -746,128 +537,7 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
     page = 1;
     renderGrid();
   });
-
-  document.getElementById("filterStatus").addEventListener("change", e => {
-    page = 1;
-    renderGrid();
-  });
-
-  document.getElementById("searchInput").addEventListener("input", () => {
-    page = 1;
-    renderGrid();
-  });
-
-  // ======== PEMBAYARAN ========
-  const payBtn = document.getElementById("payBtn");
-  const paymentModalEl = document.getElementById('paymentModal');
-  const paymentModal = new bootstrap.Modal(paymentModalEl);
-  const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
-
-  payBtn.addEventListener('click', ()=>{
-    const penyewaInput = document.getElementById("searchPenyewa");
-    const penyewaId = penyewaInput.dataset.id;
-
-    if(!penyewaInput.value || !penyewaId){ 
-        alert("Silakan pilih nama penyewa terlebih dahulu!");
-        penyewaInput.focus();
-        return;
-    }
-
-    if(cart.length===0){
-        alert("Keranjang kosong!");
-        return;
-    }
-
-    paymentModal.show();
-  });
-
-  confirmPaymentBtn.addEventListener('click', async ()=>{
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    const penyewaInput = document.getElementById("searchPenyewa");
-    const penyewaId = penyewaInput.dataset.id;
-    
-    if(cart.length===0){ alert("Keranjang kosong!"); return; }
-    if(!penyewaId){ alert("Silakan pilih penyewa terlebih dahulu!"); return; }
-
-    // Prepare data
-    const itemsForServer = cart.map(i => ({
-        id: i.lapangan_id || i.id, 
-        jadwal_id: i.jadwal_id,
-        harga: i.harga,
-        durasi: i.durasi
-    }));
-    
-    // Calculate total
-    const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
-
-    const payload = {
-        penyewa_id: penyewaId,
-        items: itemsForServer,
-        total: total,
-        kasir: '{{ Auth::user()->name }}'
-    };
-
-    try {
-        let url = '';
-        if(method === 'cash') {
-            url = "{{ route('petugas.store.cash') }}";
-        } else {
-            url = "{{ route('petugas.store.midtrans') }}";
-        }
-
-        const res = await fetch(url, {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json", 
-                "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        
-        if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
-
-        if(method === 'cash'){
-            alert("Pemesanan Cash Berhasil!");
-            cart = [];
-            renderCart();
-            paymentModal.hide();
-            if(typeof refreshJadwal === "function") refreshJadwal();
-        } else {
-            // Midtrans
-            paymentModal.hide();
-            if(data.snap_token){
-                snap.pay(data.snap_token, {
-                    onSuccess: function(result){
-                        alert("Pembayaran Berhasil!");
-                        cart = [];
-                        renderCart();
-                        if(typeof refreshJadwal === "function") refreshJadwal();
-                    },
-                    onPending: function(result){
-                        alert("Menunggu Pembayaran...");
-                        cart = [];
-                        renderCart();
-                    },
-                    onError: function(result){
-                        alert("Pembayaran Gagal!");
-                    },
-                    onClose: function(){
-                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
-                    }
-                });
-            } else {
-                alert("Token pembayaran tidak ditemukan");
-            }
-        }
-
-    } catch(err) {
-        console.error(err);
-        alert("Terjadi kesalahan: " + err.message);
-    }
-  });
+  document.getElementById("searchInput").addEventListener("input", () => { page = 1; renderGrid(); });
 
   // ======== SEARCH PENYEWA ========
   const penyewaInput = document.getElementById("searchPenyewa");
@@ -875,27 +545,45 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
 
   penyewaInput.addEventListener("input", function () {
       let q = this.value;
-      if(q.length<2){ list.style.display="none"; return; }
+      // Clear ID when user types to force selection
+      this.removeAttribute('data-id'); 
+      
+      if(q.length<1){ list.style.display="none"; return; }
 
       fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(q))
         .then(res=>res.json())
         .then(data=>{
           list.innerHTML="";
-          if(data.length===0){ list.style.display="none"; return; }
-
-          data.forEach(p=>{
-            let item = document.createElement("li");
-            item.className="list-group-item list-group-item-action";
-            item.textContent = p.name;
-            item.onclick = ()=>{ 
-              penyewaInput.value=p.name; 
-              penyewaInput.dataset.id=p.id; 
-              list.style.display="none"; 
-            };
-            list.appendChild(item);
-          });
+          
+          if(data.length===0){ 
+              let item = document.createElement("li");
+              item.className="list-group-item text-muted small";
+              item.textContent = "Penyewa tidak ditemukan";
+              list.appendChild(item);
+          } else {
+              data.forEach(p=>{
+                let item = document.createElement("li");
+                item.className="list-group-item list-group-item-action";
+                item.style.cursor = "pointer";
+                item.textContent = p.name;
+                item.onclick = ()=>{ 
+                  penyewaInput.value=p.name; 
+                  penyewaInput.dataset.id=p.id; 
+                  list.style.display="none"; 
+                };
+                list.appendChild(item);
+              });
+          }
           list.style.display="block";
-        });
+        })
+        .catch(err => console.error(err));
+  });
+
+  // Hide dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+      if (!penyewaInput.contains(e.target) && !list.contains(e.target)) {
+          list.style.display = 'none';
+      }
   });
 
   // ======== INIT ========
@@ -903,6 +591,4 @@ document.getElementById('confirmPaymentBtn').addEventListener('click', function(
   renderCart();
 });
 </script>
-<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
-
 @endpush

@@ -28,6 +28,9 @@
       color: #fff;
       padding: 12px 20px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 1020;
     }
 
     .brand {
@@ -58,7 +61,7 @@
 
     .cart {
       position: sticky;
-      top: 20px;
+      top: 90px;
       max-height: calc(100vh - 40px);
       background: #fff;
       border-radius: 10px;

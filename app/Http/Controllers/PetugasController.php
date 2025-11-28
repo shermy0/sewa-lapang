@@ -487,7 +487,10 @@ class PetugasController extends Controller
         $petugas = auth()->user();
     
         $data = User::where('role', 'penyewa')
-            ->where('pemilik_id', $petugas->pemilik_id)
+            ->where(function($q) use ($petugas) {
+                $q->where('pemilik_id', $petugas->pemilik_id)
+                  ->orWhereNull('pemilik_id');
+            })
             ->when($keyword, function($query, $keyword){
                 return $query->where('name', 'LIKE', "%$keyword%");
             })
