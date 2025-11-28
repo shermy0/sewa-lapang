@@ -39,7 +39,7 @@
 
     {{-- ================== SECTION LIST ================== --}}
     <div class="mb-5">
-        <h5 class="fw-bold mb-3 text-secondary">Pilih Section Lapangan</h5>
+        <h5 class="fw-bold mb-3 text-secondary">Pilih Lapangan</h5>
         <div class="row g-3">
             @foreach($lapangan->sections as $section)
             <div class="col-md-3">
@@ -62,9 +62,26 @@
     </div>
 
     {{-- ================== JADWAL ================== --}}
-    <div id="jadwalContainer" class="mt-5" style="display:none;">
-        <h5 class="fw-bold mb-4 text-secondary">Pilih Jadwal Tersedia</h5>
-        <div id="jadwalList"></div>
+<div id="jadwalContainer" class="mt-5" style="display:none;">
+    <h5 class="fw-bold mb-4 text-secondary">Pilih Jadwal Tersedia</h5>
+
+    <div class="mb-4 d-flex align-items-center gap-3" id="filterTanggalWrapper" style="display:none;">
+        <label class="fw-semibold text-secondary mb-0">
+            <i class="fa-solid fa-filter me-1"></i> Pilih Tanggal
+        </label>
+
+        <input type="date" id="filterTanggal" class="filter-tgl-input">
+        
+        <button class="btn btn-outline-success btn-sm px-3" id="resetFilter">
+            Reset
+        </button>
+    </div>
+</div>
+
+
+
+<div id="jadwalList"></div>
+
     </div>
 </div>
 
@@ -233,14 +250,28 @@ document.querySelectorAll('.section-card').forEach(card => {
 });
 
 // ========== TAMPILKAN JADWAL ==========
+// Tampilkan filter tanggal setelah section dipilih
 function showJadwal(jadwals){
+    document.getElementById('filterTanggalWrapper').style.display = 'flex';
+
     const jadwalContainer = document.getElementById('jadwalContainer');
     const jadwalList = document.getElementById('jadwalList');
     jadwalContainer.style.display = 'block';
     jadwalList.innerHTML = '';
 
+    // Simpan semua jadwal untuk filter
+    window.allJadwal = jadwals;
+
+    renderJadwal(jadwals);
+}
+
+// Render berdasarkan filter
+function renderJadwal(data) {
+    const jadwalList = document.getElementById('jadwalList');
+    jadwalList.innerHTML = '';
+
     const groupByDate = {};
-    jadwals.forEach(j => {
+    data.forEach(j => {
         if (!groupByDate[j.tanggal]) groupByDate[j.tanggal] = [];
         groupByDate[j.tanggal].push(j);
     });
@@ -251,7 +282,9 @@ function showJadwal(jadwals){
         card.innerHTML = `
             <div class="jadwal-header">
                 <i class="fa-solid fa-calendar-day me-2"></i>
-                ${new Date(date).toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+                ${new Date(date).toLocaleDateString('id-ID', {
+                    weekday:'long', day:'numeric', month:'long', year:'numeric'
+                })}
             </div>
             <div class="jadwal-body row g-3 mt-1">
                 ${groupByDate[date].map(j => `
@@ -262,8 +295,11 @@ function showJadwal(jadwals){
                              data-mulai="${j.jam_mulai}"
                              data-selesai="${j.jam_selesai}"
                              data-harga="${j.harga_sewa}">
-                            <i class="fa-solid fa-clock me-1"></i> ${j.jam_mulai} - ${j.jam_selesai}
-                            <small class="d-block mt-1 fw-semibold text-muted">Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}</small>
+                            <i class="fa-solid fa-clock me-1"></i>
+                            ${j.jam_mulai} - ${j.jam_selesai}
+                            <small class="d-block mt-1 fw-semibold text-muted">
+                                Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}
+                            </small>
                         </div>
                     </div>
                 `).join('')}
@@ -272,22 +308,58 @@ function showJadwal(jadwals){
         jadwalList.appendChild(card);
     });
 
+    // event pilih jadwal
     document.querySelectorAll('.jadwal-item.available').forEach(item => {
         item.addEventListener('click', function() {
             document.querySelectorAll('.jadwal-item').forEach(i => i.classList.remove('selected'));
             this.classList.add('selected');
+
             selectedJadwal = this.dataset.id;
 
-            // Update modal content
-            document.getElementById('summarySection').innerText = document.querySelector('.section-card.active h6').innerText;
-            document.getElementById('summaryJadwal').innerText = `${this.dataset.tanggal} (${this.dataset.mulai} - ${this.dataset.selesai})`;
-            document.getElementById('summaryTotal').innerText = 'Rp ' + parseInt(this.dataset.harga).toLocaleString('id-ID');
+            document.getElementById('summarySection').innerText =
+                document.querySelector('.section-card.active h6').innerText;
+            document.getElementById('summaryJadwal').innerText =
+                `${this.dataset.tanggal} (${this.dataset.mulai} - ${this.dataset.selesai})`;
+            document.getElementById('summaryTotal').innerText =
+                'Rp ' + parseInt(this.dataset.harga).toLocaleString('id-ID');
 
-            // Show modal
             summaryModal.show();
         });
     });
 }
+
+// FILTER ACTION
+document.getElementById('filterTanggal').addEventListener('change', function(){
+    const tgl = this.value;
+    if (!tgl) {
+        renderJadwal(window.allJadwal);
+        return;
+    }
+
+    const filtered = window.allJadwal.filter(j => j.tanggal === tgl);
+    renderJadwal(filtered);
+});
+
+document.getElementById('resetFilter').addEventListener('click', function(){
+    document.getElementById('filterTanggal').value = '';
+    renderJadwal(window.allJadwal);
+});
+
+// // Convert text "Senin, 10 Februari 2025" → "2025-02-10"
+// function convertHeaderToDate(text) {
+//     const options = { day: 'numeric', month: 'long', year: 'numeric' };
+//     const datePart = text.replace(/^[A-Za-z]+,\s*/, ''); // buang nama hari
+
+//     // Paksa bahasa Indonesia
+//     const parsed = new Date(datePart + " GMT+7");
+
+//     const y = parsed.getFullYear();
+//     const m = String(parsed.getMonth() + 1).padStart(2, '0');
+//     const d = String(parsed.getDate()).padStart(2, '0');
+
+//     return `${y}-${m}-${d}`;
+// }
+
 
 // =================== PESAN & BAYAR ===================
 // =================== PESAN & BAYAR ===================
