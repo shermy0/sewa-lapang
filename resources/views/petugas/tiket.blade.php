@@ -23,6 +23,7 @@
                             <th>Status Pesanan</th>
                             <th>Status Bayar</th>
                             <th>Status Scan</th>
+                            <th>QR</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -65,7 +66,20 @@
                                 <td>{{ $jamMain }}</td>
                                 <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
                                 <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
-                                <td><span class="badge bg-{{ $scanClass }}">{{ str_replace('_', ' ', strtoupper($scanStatus)) }}</span></td>
+                                <td>
+                                    @if($scanStatus == 'sudah_scan')
+                                        <span class="badge bg-success">MASUK LAPANG</span>
+                                    @elseif($scanStatus == 'scan_lobby')
+                                        <span class="badge bg-info text-dark">MASUK ARENA</span>
+                                    @else
+                                        <span class="badge bg-secondary">BELUM SCAN</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary view-qr" data-code="{{ $t->kode_tiket }}">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                    </button>
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -78,4 +92,53 @@
         </div>
     </div>
 </div>
+
+<!-- Modal QR -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="qrModalLabel">QR Tiket</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body d-flex flex-column align-items-center">
+        <div id="qrContainer" class="mb-3"></div>
+        <div id="qrCodeText" class="fw-semibold"></div>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const qrModalEl = document.getElementById('qrModal');
+  const qrModal = new bootstrap.Modal(qrModalEl);
+  const qrContainer = document.getElementById('qrContainer');
+  const qrCodeText = document.getElementById('qrCodeText');
+  let qrInstance = null;
+
+  document.querySelectorAll('.view-qr').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.dataset.code || '';
+      qrContainer.innerHTML = '';
+      qrCodeText.textContent = code;
+      qrInstance = new QRCode(qrContainer, {
+        text: code,
+        width: 180,
+        height: 180,
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      qrModal.show();
+    });
+  });
+
+  qrModalEl.addEventListener('hidden.bs.modal', () => {
+    qrContainer.innerHTML = '';
+    qrInstance = null;
+  });
+});
+</script>
+@endpush
