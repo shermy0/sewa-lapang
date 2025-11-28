@@ -214,7 +214,8 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
 
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
-        Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');        
+        Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
+    Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
 
         // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
