@@ -262,11 +262,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaId = penyewaInput.dataset.id;
     
     if(!penyewaId) { 
-        Swal.fire('Perhatian', "Silakan pilih penyewa terlebih dahulu!", 'warning').then(()=>penyewaInput.focus());
+        alert("Silakan pilih penyewa terlebih dahulu!"); 
+        penyewaInput.focus();
         return; 
     }
     if(cart.length===0){ 
-        Swal.fire('Perhatian', "Keranjang kosong!", 'warning');
+        alert("Keranjang kosong!"); 
         return; 
     }
 
@@ -282,8 +283,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaId = penyewaInput.dataset.id;
     
     // Validation already done before opening modal, but good to keep as safety
-    if(!penyewaId) { Swal.fire('Perhatian', "Silakan pilih penyewa terlebih dahulu!", 'warning'); return; }
-    if(cart.length===0){ Swal.fire('Perhatian', "Keranjang kosong!", 'warning'); return; }
+    if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
+    if(cart.length===0){ alert("Keranjang kosong!"); return; }
 
     // Prepare data
     const itemsForServer = cart.map(i => ({
@@ -325,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
 
         if(method === 'cash'){
-            Swal.fire('Berhasil', "Pemesanan Cash Berhasil!", 'success');
+            alert("Pemesanan Cash Berhasil!");
             cart = [];
             renderCart();
             // Hide modal manually since we created a new instance
@@ -352,31 +353,32 @@ document.addEventListener("DOMContentLoaded", () => {
                             },
                             body: JSON.stringify({ order_ids: data.orders })
                         }).then(() => {
-                            Swal.fire('Berhasil', "Pembayaran Berhasil!", 'success');
+                            alert("Pembayaran Berhasil!");
                             cart = [];
                             renderCart();
                             if(typeof refreshJadwal === "function") refreshJadwal();
                         });
                     },
                     onPending: function(result){
-                        Swal.fire('Menunggu', "Menunggu Pembayaran...", 'info');
+                        alert("Menunggu Pembayaran...");
                         cart = [];
                         renderCart();
                     },
                     onError: function(result){
-                        Swal.fire('Gagal', "Pembayaran Gagal!", 'error');
+                        alert("Pembayaran Gagal!");
                     },
                     onClose: function(){
-                        Swal.fire('Batal', 'Anda menutup popup tanpa menyelesaikan pembayaran', 'warning');
+                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
                     }
                 });
             } else {
-                Swal.fire('Error', "Token pembayaran tidak ditemukan", 'error');
+                alert("Token pembayaran tidak ditemukan");
             }
+        }
 
     } catch(err) {
         console.error(err);
-        Swal.fire('Error', "Terjadi kesalahan: " + err.message, 'error');
+        alert("Terjadi kesalahan: " + err.message);
     }
   });
 
