@@ -344,10 +344,20 @@ document.addEventListener("DOMContentLoaded", () => {
             if(data.snap_token){
                 snap.pay(data.snap_token, {
                     onSuccess: function(result){
-                        alert("Pembayaran Berhasil!");
-                        cart = [];
-                        renderCart();
-                        if(typeof refreshJadwal === "function") refreshJadwal();
+                        // Call check status endpoint
+                        fetch("{{ route('petugas.payment.check') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({ order_ids: data.orders })
+                        }).then(() => {
+                            alert("Pembayaran Berhasil!");
+                            cart = [];
+                            renderCart();
+                            if(typeof refreshJadwal === "function") refreshJadwal();
+                        });
                     },
                     onPending: function(result){
                         alert("Menunggu Pembayaran...");

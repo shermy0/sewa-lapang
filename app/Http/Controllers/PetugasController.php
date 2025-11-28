@@ -13,6 +13,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Midtrans\Snap;
 use Midtrans\Config;
+use Midtrans\Transaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -497,5 +498,51 @@ class PetugasController extends Controller
             ->get();
     
         return response()->json($data);
-    }    
+    }
+
+    public function checkPaymentStatus(Request $request)
+    {
+        $orderIds = $request->order_ids; 
+        if(!is_array($orderIds)) return response()->json(['success'=>false]);
+
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        $updated = 0;
+
+        foreach($orderIds as $orderId){
+            try {
+                $status = Transaction::status($orderId);
+                $transactionStatus = $status->transaction_status;
+                $fraudStatus = $status->fraud_status;
+
+                $paid = false;
+                if ($transactionStatus == 'capture') {
+                    if ($fraudStatus == 'accept') {
+                        $paid = true;
+                    }
+                } else if ($transactionStatus == 'settlement') {
+                    $paid = true;
+                }
+
+                if($paid){
+                    $pembayaran = Pembayaran::where('order_id', $orderId)->first();
+                    if($pembayaran && $pembayaran->status !== 'berhasil'){
+                        $pembayaran->update(['status' => 'berhasil']);
+                        $pemesanan = $pembayaran->pemesanan;
+                        if($pemesanan){
+                            $pemesanan->update(['status' => 'dibayar']);
+                            $updated++;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        return response()->json(['success' => true, 'updated' => $updated]);
+    }
 }
