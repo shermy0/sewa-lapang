@@ -57,7 +57,7 @@
             $bolehUlas = (clone $pemesananDasar)
                 ->where(function ($query) {
                     if (\Illuminate\Support\Facades\Schema::hasColumn('pemesanan', 'status_scan')) {
-                        $query->where('status_scan', 'sudah_scan');
+                        $query->whereIn('status_scan', ['sudah_scan', 'masuk_lapang']);
                     } else {
                         $query->where('is_scanned', true);
                     }

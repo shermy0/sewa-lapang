@@ -49,9 +49,9 @@
                                     default => 'secondary',
                                 };
                                 $scanStatus = $t->status_scan ?? 'belum_scan';
-                                $scanClass = match($scanStatus) {
-                                    'sudah_scan' => 'success',
-                                    'scan_lobby' => 'info text-dark',
+                                $scanClass = match(true) {
+                                    in_array($scanStatus, ['sudah_scan', 'masuk_lapang']) => 'success',
+                                    in_array($scanStatus, ['scan_lobby', 'masuk_arena']) => 'info text-dark',
                                     default => 'secondary',
                                 };
                             @endphp
@@ -67,9 +67,9 @@
                                 <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
                                 <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
                                 <td>
-                                    @if($scanStatus == 'sudah_scan')
+                                    @if(in_array($scanStatus, ['sudah_scan','masuk_lapang']))
                                         <span class="badge bg-success">MASUK LAPANG</span>
-                                    @elseif($scanStatus == 'scan_lobby')
+                                    @elseif(in_array($scanStatus, ['scan_lobby','masuk_arena']))
                                         <span class="badge bg-info text-dark">MASUK ARENA</span>
                                     @else
                                         <span class="badge bg-secondary">BELUM SCAN</span>

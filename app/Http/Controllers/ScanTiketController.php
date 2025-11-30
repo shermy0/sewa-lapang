@@ -38,6 +38,12 @@ class ScanTiketController extends Controller
         $jadwal = $pemesanan->jadwal;
         $lapangan = $pemesanan->lapangan;
         $statusScan = $pemesanan->status_scan ?? 'belum_scan';
+        // Normalisasi label lama ke label baru
+        $statusScan = match ($statusScan) {
+            'scan_lobby' => 'masuk_arena',
+            'sudah_scan' => 'masuk_lapang',
+            default => $statusScan,
+        };
 
         $tanggalMain = $jadwal?->tanggal;
         $jamMulai = $jadwal?->jam_mulai;
@@ -84,8 +90,8 @@ class ScanTiketController extends Controller
             ]);
         }
 
-        $hasScanLobby = in_array($statusScan, ['scan_lobby', 'sudah_scan'], true);
-        $hasScanLapang = $statusScan === 'sudah_scan';
+        $hasScanLobby = in_array($statusScan, ['masuk_arena', 'masuk_lapang'], true);
+        $hasScanLapang = $statusScan === 'masuk_lapang';
 
         // 💡 Jika double scan di checkpoint yang sama
         if ($checkpoint === 'gor' && $hasScanLobby) {
@@ -103,7 +109,7 @@ class ScanTiketController extends Controller
                         : '-',
                     'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
                     'status_scan' => $statusScan,
-                    'status_scan_label' => 'Sudah Scan GOR',
+                    'status_scan_label' => 'Masuk Arena',
                     'checkpoint' => $checkpoint,
                     'status_pembayaran' => $pemesanan->status,
                     'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),
@@ -127,7 +133,7 @@ class ScanTiketController extends Controller
                         : '-',
                     'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
                     'status_scan' => $statusScan,
-                    'status_scan_label' => 'Sudah Scan Lapang',
+                    'status_scan_label' => 'Masuk Lapang',
                     'checkpoint' => $checkpoint,
                     'status_pembayaran' => $pemesanan->status,
                     'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),
@@ -163,7 +169,7 @@ class ScanTiketController extends Controller
         // ✅ Update status sesuai checkpoint
         if ($checkpoint === 'gor') {
             $pemesanan->update([
-                'status_scan' => 'scan_lobby',
+                'status_scan' => 'masuk_arena',
                 'waktu_scan' => $now,
             ]);
 
@@ -179,8 +185,8 @@ class ScanTiketController extends Controller
                         ? $waktuMainMulai->format('H:i') . ' - ' . $waktuMainSelesai->format('H:i')
                         : '-',
                     'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
-                    'status_scan' => 'scan_lobby',
-                    'status_scan_label' => 'Sudah Scan GOR',
+                    'status_scan' => 'masuk_arena',
+                    'status_scan_label' => 'Masuk Arena',
                     'checkpoint' => $checkpoint,
                     'status_pembayaran' => $pemesanan->status,
                     'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),
@@ -191,7 +197,7 @@ class ScanTiketController extends Controller
 
         // checkpoint lapang
         $pemesanan->update([
-            'status_scan' => 'sudah_scan',
+            'status_scan' => 'masuk_lapang',
             'waktu_scan' => $now,
         ]);
 
@@ -207,8 +213,8 @@ class ScanTiketController extends Controller
                     ? $waktuMainMulai->format('H:i') . ' - ' . $waktuMainSelesai->format('H:i')
                     : '-',
                 'durasi' => $jadwal?->durasi_sewa ? $jadwal->durasi_sewa . ' menit' : '-',
-                'status_scan' => 'sudah_scan',
-                'status_scan_label' => 'Sudah Scan Lapang',
+                'status_scan' => 'masuk_lapang',
+                'status_scan_label' => 'Masuk Lapang',
                 'checkpoint' => $checkpoint,
                 'status_pembayaran' => $pemesanan->status,
                 'status_pembayaran_label' => ucfirst($pemesanan->status ?? '-'),

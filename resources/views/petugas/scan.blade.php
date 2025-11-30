@@ -114,11 +114,13 @@ document.addEventListener("DOMContentLoaded", async function () {
             return map[statusFlag] || { text: 'Info', cls: 'bg-secondary' };
         })();
 
-        const scanStatus = payload.status_scan === 'sudah_scan'
-            ? '<span class="badge bg-success">Masuk Lapang</span>'
-            : payload.status_scan === 'scan_lobby'
-                ? '<span class="badge bg-info text-dark">Masuk Arena</span>'
-                : '<span class="badge bg-warning text-dark">Belum Scan</span>';
+        const scanStatusMap = {
+            'masuk_lapang': '<span class="badge bg-success">Masuk Lapang</span>',
+            'sudah_scan': '<span class="badge bg-success">Masuk Lapang</span>',
+            'masuk_arena': '<span class="badge bg-info text-dark">Masuk Arena</span>',
+            'scan_lobby': '<span class="badge bg-info text-dark">Masuk Arena</span>',
+        };
+        const scanStatus = scanStatusMap[payload.status_scan] || '<span class="badge bg-warning text-dark">Belum Scan</span>';
 
         resultBox.innerHTML = `
             <div class="${isSuccess ? 'success-result' : 'error-result'}">

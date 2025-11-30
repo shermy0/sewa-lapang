@@ -162,12 +162,13 @@ class PetugasController extends Controller
                     'label' => $first->nama_section ?? 'Section',
                     'lapangan' => $first->nama_lapangan ?? '-',
                     'queue' => $items->map(function ($row) {
+                        $scanMasukLapang = in_array($row->status_scan, ['sudah_scan', 'masuk_lapang'], true);
                         return [
                             'penyewa' => $row->penyewa,
                             'tanggal' => Carbon::parse($row->tanggal)->format('d M Y'),
                             'jam_mulai' => substr($row->jam_mulai, 0, 5),
                             'jam_selesai' => substr($row->jam_selesai, 0, 5),
-                            'status' => $row->status_scan === 'sudah_scan' ? 'sedang_main' : $row->status,
+                            'status' => $scanMasukLapang ? 'sedang_main' : $row->status,
                             'status_scan' => $row->status_scan,
                             'kode_tiket' => $row->kode_tiket,
                             'lokasi' => $row->lokasi,
