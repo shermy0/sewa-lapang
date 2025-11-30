@@ -831,44 +831,104 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======== SEARCH PENYEWA ========
   const penyewaInput = document.getElementById("searchPenyewa");
   const list = document.getElementById("penyewaResults");
+  let penyewaTimeout = null;
+  const MIN_PENYEWA_LEN = 2;
 
-  penyewaInput.addEventListener("input", function () {
-    let q = this.value;
-    // Clear ID when user types to force selection
-    this.removeAttribute('data-id'); 
-    
-    if(q.length < 1){ 
-      list.style.display = "none"; 
-      return; 
+  function renderPenyewaDropdown(data, options = {}) {
+    if (!list) return;
+    const headline = options.headline || "";
+    const emptyText = options.emptyText || "Penyewa tidak ditemukan";
+
+    list.innerHTML = "";
+
+    if (headline) {
+      const headItem = document.createElement("li");
+      headItem.className = "list-group-item text-muted small bg-light";
+      headItem.textContent = headline;
+      list.appendChild(headItem);
     }
 
-    fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(q))
+    if (data.length === 0) {
+      const item = document.createElement("li");
+      item.className = "list-group-item text-muted small";
+      item.textContent = emptyText;
+      list.appendChild(item);
+      list.style.display = "block";
+      return;
+    }
+
+    data.forEach(p => {
+      const emailText = p.email ? p.email : "-";
+      const phoneText = p.no_hp ? ` • ${p.no_hp}` : "";
+      const item = document.createElement("li");
+      item.className = "list-group-item list-group-item-action";
+      item.dataset.penyewaId = p.id;
+      item.style.cursor = "pointer";
+      item.innerHTML = `
+        <div class="d-flex flex-column">
+          <span class="fw-semibold">${p.name}</span>
+          <small class="text-muted">${emailText}${phoneText}</small>
+        </div>
+      `;
+      item.addEventListener("click", () => selectPenyewa(p));
+      list.appendChild(item);
+    });
+
+    list.style.display = "block";
+  }
+
+  function selectPenyewa(penyewa) {
+    if (!penyewaInput) return;
+    penyewaInput.value = penyewa.name;
+    penyewaInput.dataset.id = penyewa.id;
+    list.style.display = "none";
+  }
+
+  function fetchPenyewa(keyword, options = {}) {
+    fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(keyword))
       .then(res => res.json())
-      .then(data => {
-        list.innerHTML = "";
-        
-        if(data.length === 0){ 
-          let item = document.createElement("li");
-          item.className = "list-group-item text-muted small";
-          item.textContent = "Penyewa tidak ditemukan";
-          list.appendChild(item);
-        } else {
-          data.forEach(p => {
-            let item = document.createElement("li");
-            item.className = "list-group-item list-group-item-action";
-            item.style.cursor = "pointer";
-            item.textContent = p.name;
-            item.onclick = () => { 
-              penyewaInput.value = p.name; 
-              penyewaInput.dataset.id = p.id; 
-              list.style.display = "none"; 
-            };
-            list.appendChild(item);
-          });
-        }
-        list.style.display = "block";
-      })
+      .then(data => renderPenyewaDropdown(data, options))
       .catch(err => console.error(err));
+  }
+
+  penyewaInput.addEventListener("focus", function () {
+    // Saat input kosong, tampilkan 10 penyewa terbaru supaya petugas bisa pilih cepat
+    if (!this.value.trim()) {
+      this.removeAttribute('data-id');
+      fetchPenyewa("", { headline: "Penyewa terbaru" });
+    }
+  });
+
+  penyewaInput.addEventListener("input", function () {
+    const q = this.value.trim();
+    this.removeAttribute('data-id');
+
+    if (penyewaTimeout) clearTimeout(penyewaTimeout);
+
+    if (!q) {
+      fetchPenyewa("", { headline: "Penyewa terbaru" });
+      return;
+    }
+
+    if (q.length < MIN_PENYEWA_LEN) {
+      renderPenyewaDropdown([], { emptyText: "Ketik minimal 2 huruf" });
+      return;
+    }
+
+    penyewaTimeout = setTimeout(() => {
+      fetchPenyewa(q);
+    }, 250);
+  });
+
+  // Enter otomatis memilih hasil pertama supaya petugas lebih cepat
+  penyewaInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      const firstItem = list.querySelector("li.list-group-item-action");
+      if (firstItem && firstItem.dataset.penyewaId) {
+        e.preventDefault();
+        firstItem.click();
+      }
+    }
   });
 
   // Hide dropdown when clicking outside
