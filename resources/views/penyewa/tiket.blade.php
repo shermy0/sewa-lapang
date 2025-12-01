@@ -252,8 +252,8 @@ function ajukanPerubahan(pemesananId, lapanganId) {
         width: "90%",
         html: `
             <div class="text-start">
-                <div class="modal-title-custom"><i class="fa-solid fa-arrows-rotate me-1"></i>Ajukan Perubahan Jadwal / Section</div>
-                <div class="mb-3"><label class="modal-label">Pilih Section</label><div id="sectionList" class="row g-2"></div></div>
+                <div class="modal-title-custom"><i class="fa-solid fa-arrows-rotate me-1"></i>Ajukan Perubahan Jadwalphp</div>
+                <div class="mb-3"><label class="modal-label">Pilih lapangan</label><div id="sectionList" class="row g-2"></div></div>
                 <div id="tanggalWrapper" class="mt-3" style="display:none">
                     <label class="modal-label">Pilih Tanggal</label>
                     <input type="date" id="filterTanggal" class="form-control rounded-3" style="max-width:200px;">
