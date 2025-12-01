@@ -34,7 +34,7 @@
             </p>
         @endif
 
-        <p class="text-muted">Pilih section dan jadwal bermain sesuai ketersediaan.</p>
+        <p class="text-muted">Pilih lapangan dan jadwal bermain sesuai ketersediaan.</p>
     </div>
 
     {{-- ================== SECTION LIST ================== --}}
