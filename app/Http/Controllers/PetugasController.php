@@ -518,14 +518,38 @@ public function storeMidtrans(Request $request)
         return response()->json($jadwalFormatted);
     }
 
-    public function display()
+    public function getLapanganList()
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        $lapangan = Lapangan::query()
+            ->when($pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
+            ->select('id', 'nama_lapangan')
+            ->orderBy('nama_lapangan')
+            ->get();
+
+        if ($lapangan->isEmpty()) {
+            $lapangan = Lapangan::select('id', 'nama_lapangan')
+                ->orderBy('nama_lapangan')
+                ->get();
+        }
+
+        return response()->json($lapangan);
+    }
+
+    public function display(Request $request)
     {
         $petugas = Auth::user();
         $pemilikId = $petugas->pemilik_id;
 
         $lapangan = Lapangan::query()
             ->with('kategori')
-            ->when($pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
+            // Jika lapangan_id diberikan, pakai itu (bisa lintas pemilik).
+            ->when($request->lapangan_id, fn ($q) => $q->where('id', $request->lapangan_id))
+            // Jika tidak ada lapangan_id, default ke lapangan milik pemilik petugas (jika ada),
+            // kalau pemilik_id null maka ambil semua lapangan.
+            ->when(!$request->lapangan_id && $pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
             ->get();
 
         if ($lapangan->isEmpty()) {

@@ -221,6 +221,7 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
         Route::get('/display', [PetugasController::class, 'display'])->name('display');
+        Route::get('/api/lapangan-list', [PetugasController::class, 'getLapanganList'])->name('api.lapangan-list');
     });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {

@@ -620,10 +620,31 @@
         <!-- Bottom Right: Queue Grid -->
         <div class="queue-grid-container">
             <div class="queue-grid">
-                @foreach($sectionQueues as $index => $section)
+                @php
+                    // Flatten all queues from all sections
+                    $allQueues = collect();
+                    foreach($sectionQueues as $section) {
+                        foreach($section['queue'] as $item) {
+                            $allQueues->push($item);
+                        }
+                    }
+                    
+                    // Sort by date and time (assuming they are already sorted, but good to be safe)
+                    // $allQueues = $allQueues->sortBy(function($item) {
+                    //     return $item['tanggal'] . ' ' . $item['jam_mulai'];
+                    // });
+
+                    // Exclude the active queue if it exists
+                    if($activeQueue) {
+                        $allQueues = $allQueues->reject(function($item) use ($activeQueue) {
+                            return $item['kode_tiket'] === $activeQueue['kode_tiket'];
+                        });
+                    }
+                @endphp
+
+                @forelse($allQueues as $index => $queueItem)
                     @php
-                        $currentQueue = $section['queue']->first();
-                        $statusRaw = $currentQueue['status'] ?? 'menunggu';
+                        $statusRaw = $queueItem['status'] ?? 'menunggu';
                         $statusLabel = match($statusRaw) {
                             'sedang_main' => 'SEDANG MAIN',
                             'masuk_arena' => 'MASUK ARENA',
@@ -636,46 +657,46 @@
                             'masuk_arena' => 'status-playing',
                             default => 'status-waiting'
                         };
-                        $jamRange = $currentQueue ? ($currentQueue['jam_mulai'] . ' - ' . $currentQueue['jam_selesai']) : '';
+                        $jamRange = $queueItem['jam_mulai'] . ' - ' . $queueItem['jam_selesai'];
                     @endphp
                     <div class="queue-item-card color-{{ $index % 6 }}">
                         <div class="queue-item-header">
-                            <div class="fw-bold text-truncate">{{ $section['label'] }}</div>
+                            <div class="fw-bold text-truncate">{{ $queueItem['nama_section'] }}</div>
                             <div class="queue-location">
                                 <i class="fa-solid fa-location-dot me-1"></i>
-                                {{ $currentQueue['nama_lapangan'] ?? 'Lapangan' }}
+                                {{ $queueItem['nama_lapangan'] ?? 'Lapangan' }}
                             </div>
                         </div>
                         <div class="queue-item-body">
-                            <div class="queue-item-code">{{ $currentQueue ? $currentQueue['kode_tiket'] : '-' }}</div>
-                            <div class="queue-item-status {{ $statusClass }}">{{ $currentQueue ? $statusLabel : 'MENUNGGU' }}</div>
+                            <div class="queue-item-code">{{ $queueItem['kode_tiket'] }}</div>
+                            <div class="queue-item-status {{ $statusClass }}">{{ $statusLabel }}</div>
                             
-                            @if($currentQueue)
-                                <div class="queue-meta mt-1">
-                                    <span class="info-badge date-badge" style="font-size: 0.7rem;">
-                                        <i class="fa-regular fa-calendar me-1"></i>
-                                        {{ $currentQueue['tanggal'] }}
-                                    </span>
-                                    @if($currentQueue['kategori'])
-                                    <span class="info-badge category-badge" style="font-size: 0.7rem;">
-                                        <i class="fa-solid fa-tag me-1"></i>
-                                        {{ $currentQueue['kategori'] }}
-                                    </span>
-                                    @endif
-                                </div>
-                            @endif
+                            <div class="queue-meta mt-1">
+                                <span class="info-badge date-badge" style="font-size: 0.7rem;">
+                                    <i class="fa-regular fa-calendar me-1"></i>
+                                    {{ $queueItem['tanggal'] }}
+                                </span>
+                                @if($queueItem['kategori'])
+                                <span class="info-badge category-badge" style="font-size: 0.7rem;">
+                                    <i class="fa-solid fa-tag me-1"></i>
+                                    {{ $queueItem['kategori'] }}
+                                </span>
+                                @endif
+                            </div>
                         </div>
                         <div class="queue-item-footer">
-                             {{ $currentQueue ? $currentQueue['penyewa'] : 'Kosong' }}
-                             @if($jamRange)
-                                <div class="text-muted mt-1" style="font-size: 0.78rem; font-weight: 500;">
-                                    <i class="fa-regular fa-clock me-1"></i>
-                                    {{ $jamRange }}
-                                </div>
-                             @endif
+                             {{ $queueItem['penyewa'] }}
+                             <div class="text-muted mt-1" style="font-size: 0.78rem; font-weight: 500;">
+                                <i class="fa-regular fa-clock me-1"></i>
+                                {{ $jamRange }}
+                            </div>
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="d-flex align-items-center justify-content-center w-100 text-muted">
+                        <small>Tidak ada antrian berikutnya</small>
+                    </div>
+                @endforelse
             </div>
         </div>
 

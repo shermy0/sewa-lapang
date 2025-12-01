@@ -136,9 +136,16 @@
                 <i class="fa-solid fa-qrcode me-1"></i> Scan QR
             </a>
             
-             <a href="{{ route('petugas.display') }}" target="_blank" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-tv me-1"></i> Layar Antrian
-            </a>
+            {{-- Dropdown Layar Antrian --}}
+            <div class="dropdown">
+                <button class="btn btn-light btn-sm fw-semibold dropdown-toggle" type="button" id="dropdownDisplay" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-tv me-1"></i> Layar Antrian
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownDisplay" id="displayDropdownMenu">
+                    <!-- Dynamic items will be appended here -->
+                    <li id="loadingDisplay"><span class="dropdown-item-text text-muted small">Memuat...</span></li>
+                </ul>
+            </div>
 
             {{-- Tombol Tambah Penyewa --}}
             <a href="{{ route('petugas.penyewa') }}" class="btn btn-light btn-sm fw-semibold">
@@ -155,19 +162,27 @@
                 <small>Petugas: <strong>{{ $petugasName ?? auth()->user()->name }}</strong></small>
             </div>
 
-            {{-- Inisial --}}
-            <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center"
-                style="width:36px;height:36px;font-weight:600">
-                {{ substr($petugasName ?? auth()->user()->name, 0, 1) }}
+            {{-- User Dropdown --}}
+            <div class="dropdown">
+                <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle"
+                    role="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="width:36px;height:36px;font-weight:600;cursor:pointer;">
+                    {{ substr($petugasName ?? auth()->user()->name, 0, 1) }}
+                </div>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
+                    <li><h6 class="dropdown-header">Halo, {{ $petugasName ?? auth()->user()->name }}!</h6></li>
+                    <li><a class="dropdown-item" href="{{ route('profile.index') }}"><i class="fa-solid fa-user-gear me-2"></i> Profile</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
             </div>
-
-            {{-- Logout --}}
-            <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
-                @csrf
-                <button type="submit" class="btn btn-light btn-sm">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
-            </form>
 
         </div>
     </header>
@@ -212,5 +227,40 @@
       });
     </script>
     @endif
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const dropdownBtn = document.getElementById('dropdownDisplay');
+        const dropdownMenu = document.getElementById('displayDropdownMenu');
+        const loadingItem = document.getElementById('loadingDisplay');
+        let isLoaded = false;
+
+        dropdownBtn.addEventListener('show.bs.dropdown', function () {
+            if (isLoaded) return;
+
+            fetch("{{ route('petugas.api.lapangan-list') }}")
+                .then(response => response.json())
+                .then(data => {
+                    // Remove loading item
+                    if(loadingItem) loadingItem.remove();
+
+                    data.forEach(lapangan => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.className = 'dropdown-item';
+                        a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}`;
+                        a.target = '_blank';
+                        a.textContent = lapangan.nama_lapangan;
+                        li.appendChild(a);
+                        dropdownMenu.appendChild(li);
+                    });
+                    isLoaded = true;
+                })
+                .catch(error => {
+                    console.error('Error fetching lapangan:', error);
+                    if(loadingItem) loadingItem.innerHTML = '<span class="dropdown-item-text text-danger small">Gagal memuat</span>';
+                });
+        });
+      });
+    </script>
 </body>
 </html>
