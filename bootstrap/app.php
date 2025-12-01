@@ -38,6 +38,10 @@ return Application::configure(basePath: dirname(__DIR__))
             };
         });
     })
+    ->withSchedule(function ($schedule) {
+    $schedule->command('pemesanan:expire')->everyMinute();
+})
+
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

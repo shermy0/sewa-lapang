@@ -28,5 +28,14 @@ class AppServiceProvider extends ServiceProvider
         MidtransConfig::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
         MidtransConfig::$isSanitized = true;
         MidtransConfig::$is3ds = true;
+
+          // Set timezone
+    config(['app.locale' => 'id']);
+    date_default_timezone_set('Asia/Jakarta');
+
+    // Auto-expire pemesanan
+    Pemesanan::where('status', 'menunggu')
+        ->where('expires_at', '<', Carbon::now())
+        ->update(['status' => 'kadaluarsa']);
     }
 }
