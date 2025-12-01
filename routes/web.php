@@ -217,6 +217,12 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
     Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
 
+        // CARD TEMP
+        Route::get('/cart-temp', [CartTempController::class, 'index']);
+        Route::post('/cart-temp', [CartTempController::class, 'store']);
+        Route::delete('/cart-temp/{id}', [CartTempController::class, 'destroy']);
+        Route::delete('/cart-temp', [CartTempController::class, 'clear']);
+
         // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');

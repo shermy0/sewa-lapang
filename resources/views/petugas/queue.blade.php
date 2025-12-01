@@ -24,18 +24,15 @@
 
     <div class="col-lg-4">
       <div class="cart">
-        <!-- INPUT NAMA PENYEWA -->
+        <!-- Input Nama Penyewa -->
         <div class="mb-3 position-relative">
           <label class="fw-semibold mb-1">Nama Penyewa</label>
           <input 
             type="text" 
             id="searchPenyewa" 
             class="form-control" 
-            placeholder="Cari nama penyewa..."
-            autocomplete="off"
-            required>
-          <ul id="penyewaResults" class="list-group position-absolute w-100" 
-              style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+            placeholder="Cari nama penyewa..." 
+            autocomplete="off">
         </div>
 
         <div class="d-flex justify-content-between mb-2">
@@ -59,7 +56,7 @@
         </div>
       </div>
     </div>
-  </div>
+
 
   <!-- MODAL JADWAL -->
   <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
@@ -262,50 +259,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======== CART ========
   function addToCart(item){
-    const exist = cart.find(c => 
-      c.id === item.id && 
-      c.jam_mulai === item.jam_mulai && 
-      c.tanggal === item.tanggal
-    );
-    
-    if(exist) {
-      exist.durasi += item.durasi;
-    } else {
-      cart.push({...item});
-    }
-    renderCart();
+      fetch('/petugas/cart-temp', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          },
+          body: JSON.stringify({
+              lapangan_id: item.lapangan_id,
+              lapangan_name: item.nama,
+              harga: item.harga,
+              durasi: item.durasi,
+              nama_penyewa: document.getElementById('searchPenyewa').value || null
+          })
+      })
+      .then(res => res.json())
+      .then(savedItem => {
+          renderCartFromDB(); // reload cart dari DB
+      });
   }
 
-  function renderCart(){
-    const list = document.getElementById("orderList");
-    list.innerHTML = "";
+  function renderCartFromDB() {
+      fetch('/petugas/cart-temp')
+          .then(res => res.json())
+          .then(data => {
+              const list = document.getElementById('orderList');
+              list.innerHTML = '';
+              cart = data;
 
-    if(cart.length === 0){
-      list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-    } else {
-      cart.forEach((it, index) => {
-        const li = document.createElement("li");
-        li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
-        li.innerHTML = `
-          <div>
-            <div class="fw-bold">${it.nama}</div>
-            <div class="small text-muted">${it.jam_mulai} • ${it.tanggal}</div>
-            <div class="fw-bold">Rp ${Number(it.harga).toLocaleString('id-ID')}</div>
-          </div>
-          <button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button>
-        `;
-
-        li.querySelector('.btn-remove').addEventListener('click', () => {
-          cart.splice(index, 1);
-          renderCart();
-        });
-
-        list.appendChild(li);
-      });
-    }
-
-    document.getElementById("cartCount").innerText = cart.length + " item";
-    updateTotals();
+              if(cart.length === 0){
+                  list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
+              } else {
+                  cart.forEach((it, index) => {
+                      const li = document.createElement('li');
+                      li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
+                      li.innerHTML = `
+                          <div>
+                              <div class="fw-bold">${it.lapangan_name}</div>
+                              <div class="small text-muted">${it.jam_mulai || ''} • ${it.tanggal || ''}</div>
+                              <div class="fw-bold">Rp ${Number(it.harga).toLocaleString('id-ID')}</div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button>
+                      `;
+                      li.querySelector('.btn-remove').addEventListener('click', () => {
+                          fetch(`/petugas/cart-temp/${it.id}`, { method: 'DELETE', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'} })
+                              .then(() => renderCartFromDB());
+                      });
+                      list.appendChild(li);
+                  });
+              }
+              document.getElementById('cartCount').innerText = cart.length + ' item';
+              updateTotals();
+          });
   }
 
   function updateTotals(){
@@ -334,111 +339,77 @@ document.addEventListener("DOMContentLoaded", () => {
     paymentModal.show();
   });
 
-  document.getElementById('confirmPaymentBtn').addEventListener('click', async function() {
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaId = penyewaInput.dataset.id;
-    
-    if(!penyewaId) { 
-      alert("Silakan pilih penyewa terlebih dahulu!"); 
-      return; 
-    }
-    if(cart.length === 0){ 
-      alert("Keranjang kosong!"); 
-      return; 
-    }
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchPenyewa = document.getElementById('searchPenyewa');
+    const orderList = document.getElementById('orderList');
+    const cartCount = document.getElementById('cartCount');
+    const subtotalEl = document.getElementById('subtotal');
+    const totalPriceEl = document.getElementById('totalPrice');
 
-    // Prepare data
-    const itemsForServer = cart.map(i => ({
-      id: i.lapangan_id || i.id, 
-      jadwal_id: i.jadwal_id,
-      harga: i.harga,
-      durasi: i.durasi
-    }));
-    
-    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
-
-    const payload = {
-      penyewa_id: penyewaId,
-      items: itemsForServer,
-      total: total,
-      kasir: '{{ Auth::user()->name }}'
-    };
-
-    try {
-      let url = '';
-      if(method === 'cash') {
-        url = "{{ route('petugas.store.cash') }}";
-      } else {
-        url = "{{ route('petugas.store.midtrans') }}";
-      }
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          "Accept": "application/json",
-          "X-CSRF-TOKEN": "{{ csrf_token() }}" 
-        },
-        body: JSON.stringify(payload)
+    // Load cart dari DB
+    fetch('/cart-temp')
+      .then(res => res.json())
+      .then(cart => {
+          cart.forEach(item => addOrderToDOM(item));
+          updateCartInfo();
+          if(cart.length && cart[0].nama_penyewa) {
+              searchPenyewa.value = cart[0].nama_penyewa;
+          }
       });
 
-      const data = await res.json();
-      
-      if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+    // Update nama penyewa di DB
+    searchPenyewa.addEventListener('input', () => {
+        fetch('/cart-temp/nama', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({nama_penyewa: searchPenyewa.value})
+        });
+    });
 
-      if(method === 'cash'){
-        alert("Pemesanan Cash Berhasil!");
-        cart = [];
-        renderCart();
-        const paymentModalEl = document.getElementById('paymentModal');
-        const modal = bootstrap.Modal.getInstance(paymentModalEl);
-        if(modal) modal.hide();
-        
-        if(typeof refreshJadwal === "function") refreshJadwal();
-      } else {
-        const paymentModalEl = document.getElementById('paymentModal');
-        const modal = bootstrap.Modal.getInstance(paymentModalEl);
-        if(modal) modal.hide();
-
-        if(data.snap_token){
-          snap.pay(data.snap_token, {
-            onSuccess: function(result){
-              fetch("{{ route('petugas.payment.check') }}", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ order_ids: data.orders })
-              }).then(() => {
-                alert("Pembayaran Berhasil!");
-                cart = [];
-                renderCart();
-                if(typeof refreshJadwal === "function") refreshJadwal();
-              });
+    // Tambah item lapangan (contoh)
+    function addOrder(item) {
+        fetch('/cart-temp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            onPending: function(result){
-              alert("Menunggu Pembayaran...");
-              cart = [];
-              renderCart();
-            },
-            onError: function(result){
-              alert("Pembayaran Gagal!");
-            },
-            onClose: function(){
-              alert('Anda menutup popup tanpa menyelesaikan pembayaran');
-            }
-          });
-        } else {
-          alert("Token pembayaran tidak ditemukan");
-        }
-      }
-    } catch(err) {
-      console.error(err);
-      alert("Terjadi kesalahan: " + err.message);
+            body: JSON.stringify(item)
+        })
+        .then(res => res.json())
+        .then(item => {
+            addOrderToDOM(item);
+            updateCartInfo();
+        });
     }
-  });
+
+    function addOrderToDOM(item) {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between';
+        li.textContent = `${item.lapangan_name} x ${item.qty}`;
+        const priceSpan = document.createElement('span');
+        priceSpan.textContent = `Rp ${item.harga * item.qty}`;
+        li.appendChild(priceSpan);
+        orderList.appendChild(li);
+    }
+
+    function updateCartInfo() {
+        const items = orderList.querySelectorAll('li');
+        let totalItems = 0, totalPrice = 0;
+        items.forEach(li => {
+            const harga = parseInt(li.textContent.split('Rp ')[1]);
+            totalItems += 1;
+            totalPrice += harga;
+        });
+        cartCount.textContent = `${totalItems} item`;
+        subtotalEl.textContent = `Rp ${totalPrice}`;
+        totalPriceEl.textContent = `Rp ${totalPrice}`;
+    }
+});
+
 
   // ======== MODAL JADWAL & CART HANDLING ========
   let jadwalData = [];
