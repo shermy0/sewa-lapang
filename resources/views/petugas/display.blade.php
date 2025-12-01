@@ -341,6 +341,65 @@
     .queue-item-status.status-waiting { background: #fff7e6; color: #d97706; }
     .queue-item-status.status-paid { background: #ecfdf3; color: #047857; }
     .queue-item-status.status-playing { background: #dbeafe; color: #1d4ed8; }
+
+    .queue-upcoming-title {
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #6b7280;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .queue-upcoming-list {
+      list-style: none;
+      padding: 0;
+      margin: 6px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .queue-upcoming-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 10px;
+      padding: 6px 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .queue-upcoming-item .time-badge {
+      background: rgba(16, 185, 129, 0.1);
+      color: #0f9d58;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    .queue-upcoming-item .guest {
+      flex: 1;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1f2937;
+      margin-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-upcoming-item .code {
+      font-family: 'Inter', monospace;
+      font-size: 0.8rem;
+      color: #6b7280;
+      font-weight: 700;
+      white-space: nowrap;
+    }
     
     .queue-meta {
       display: flex;
@@ -510,14 +569,31 @@
     <div class="active-queue-panel">
       <!-- We can show the very first queue item here as the "Active" one being called -->
       @php
-        // Find the first section with a queue
         $activeQueue = null;
         $activeSectionName = 'Menunggu...';
+        // 1) Prioritaskan yang sedang main
         foreach($sectionQueues as $section) {
-            if($section['queue']->isNotEmpty()) {
-                $activeQueue = $section['queue']->first();
-                $activeSectionName = $section['label'];
-                break;
+            foreach($section['queue'] as $item) {
+                if(($item['status'] ?? '') === 'sedang_main') {
+                    $activeQueue = $item;
+                    $activeSectionName = $section['label'];
+                    break 2;
+                }
+            }
+        }
+        // 2) Jika tidak ada, ambil jadwal terdekat
+        if(!$activeQueue) {
+            $nearestTime = null;
+            foreach($sectionQueues as $section) {
+                if($section['queue']->isNotEmpty()) {
+                    $candidate = $section['queue']->first();
+                    $candidateTime = \Carbon\Carbon::parse($candidate['tanggal'].' '.$candidate['jam_mulai']);
+                    if(is_null($nearestTime) || $candidateTime->lt($nearestTime)) {
+                        $nearestTime = $candidateTime;
+                        $activeQueue = $candidate;
+                        $activeSectionName = $section['label'];
+                    }
+                }
             }
         }
       @endphp
@@ -639,6 +715,18 @@
                                     </span>
                                     @endif
                                 </div>
+                                @if($section['queue']->count() > 1)
+                                    <div class="queue-upcoming-title">Selanjutnya</div>
+                                    <ul class="queue-upcoming-list">
+                                        @foreach($section['queue']->skip(1) as $upcoming)
+                                            <li class="queue-upcoming-item">
+                                                <span class="time-badge">{{ $upcoming['jam_mulai'] }}-{{ $upcoming['jam_selesai'] }}</span>
+                                                <span class="guest">{{ $upcoming['penyewa'] }}</span>
+                                                <span class="code">{{ $upcoming['kode_tiket'] }}</span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
                             @endif
                         </div>
                         <div class="queue-item-footer">

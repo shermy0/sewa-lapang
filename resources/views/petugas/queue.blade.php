@@ -24,14 +24,14 @@
         <!-- INPUT NAMA PENYEWA -->
         <div class="mb-3 position-relative">
           <label class="fw-semibold mb-1">Nama Penyewa</label>
-          <input 
-            type="text" 
-            id="searchPenyewa" 
-            class="form-control" 
+          <input
+            type="text"
+            id="searchPenyewa"
+            class="form-control"
             placeholder="Cari nama penyewa..."
             autocomplete="off"
             required>
-          <ul id="penyewaResults" class="list-group position-absolute w-100" 
+          <ul id="penyewaResults" class="list-group position-absolute w-100"
               style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
         </div>
 
@@ -214,10 +214,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderGridPagination(totalPages){
     const pg = document.getElementById("gridPagination");
-    if(!pg) return; 
-    
+    if(!pg) return;
+
     pg.innerHTML = "";
-    
+
     const createPageItem = (num, active = false, disabled = false) => {
       const li = document.createElement("li");
       li.className="page-item "+(active?"active":"")+(disabled?" disabled":"");
@@ -335,15 +335,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaId = penyewaInput.dataset.id;
     const radioCash = document.getElementById('payCash');
     const radioMidtrans = document.getElementById('payMidtrans');
-    
-    if(!penyewaId) { 
+
+    if(!penyewaId) {
       swalWarn("Silakan pilih penyewa terlebih dahulu!");
       penyewaInput.focus();
-      return; 
+      return;
     }
-    if(cart.length === 0){ 
+    if(cart.length === 0){
       swalWarn("Keranjang kosong!");
-      return; 
+      return;
     }
 
     const paymentModalEl = document.getElementById('paymentModal');
@@ -364,14 +364,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
     const total = getCartTotal();
-    
-    if(!penyewaId) { 
+
+    if(!penyewaId) {
       swalWarn("Silakan pilih penyewa terlebih dahulu!");
-      return; 
+      return;
     }
-    if(cart.length === 0){ 
+    if(cart.length === 0){
       swalWarn("Keranjang kosong!");
-      return; 
+      return;
     }
     if(method === 'cash'){
       const cash = Number(cashReceivedEl?.value || 0);
@@ -383,13 +383,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Prepare data
     const itemsForServer = cart.map(i => ({
-      id: i.lapangan_id || i.id, 
+      id: i.lapangan_id || i.id,
       jadwal_id: i.jadwal_id,
       harga: i.harga,
       durasi: i.durasi
     }));
     const cartSnapshot = cart.map(i => ({...i}));
-    
+
     const payload = {
         penyewa_id: penyewaId,
         items: itemsForServer,
@@ -407,16 +407,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const res = await fetch(url, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
+        headers: {
+          "Content-Type": "application/json",
           "Accept": "application/json",
-          "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+          "X-CSRF-TOKEN": "{{ csrf_token() }}"
         },
         body: JSON.stringify(payload)
       });
 
       const data = await res.json();
-      
+
       if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
 
       if(method === 'cash'){
@@ -426,7 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const paymentModalEl = document.getElementById('paymentModal');
         const modal = bootstrap.Modal.getInstance(paymentModalEl);
         if(modal) modal.hide();
-        
+
         if(typeof refreshJadwal === "function") refreshJadwal();
       } else {
         const paymentModalEl = document.getElementById('paymentModal');
@@ -493,7 +493,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const newFilterTanggal = filterTanggal.cloneNode(true);
     const newFilterJamMulai = filterJamMulai.cloneNode(true);
     const newResetBtn = resetBtn.cloneNode(true);
-    
+
     filterTanggal.parentNode.replaceChild(newFilterTanggal, filterTanggal);
     filterJamMulai.parentNode.replaceChild(newFilterJamMulai, filterJamMulai);
     resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
@@ -555,32 +555,32 @@ document.addEventListener("DOMContentLoaded", () => {
   function loadJadwalData(lapanganId, tanggal, jamMulai) {
     const content = document.getElementById('jadwalContent');
     content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
-    
+
     // Build query parameters
     let url = `/petugas/api/jadwal/${lapanganId}`;
     const params = new URLSearchParams();
     if (tanggal) params.append('tanggal', tanggal);
     if (jamMulai) params.append('jam_mulai', jamMulai);
-    
+
     if (params.toString()) {
       url += '?' + params.toString();
     }
 
     fetch(url)
       .then(res => res.json())
-      .then(data => { 
+      .then(data => {
         // Filter data berdasarkan waktu jika tanggal hari ini
         let filteredData = data || [];
         if (isToday(tanggal)) {
           filteredData = filteredData.filter(j => shouldFilterByTime(j.tanggal, j.jam_mulai));
         }
-        
+
         jadwalData = filteredData;
         renderJadwalPage(currentPage);
       })
-      .catch(err => { 
-        content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>'; 
-        console.error(err); 
+      .catch(err => {
+        content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>';
+        console.error(err);
         jadwalData = [];
       });
 
@@ -646,13 +646,13 @@ document.addEventListener("DOMContentLoaded", () => {
               <label class="form-check-label small tanggal-text">${statusText}</label>
             </div>
           `;
-          
+
           // Toggle selection on card click
           card.addEventListener('click', function(e) {
             if (e.target.type !== 'checkbox') {
               const checkbox = this.querySelector('.slot-checkbox');
               checkbox.checked = !checkbox.checked;
-              
+
               // Visual feedback
               if (checkbox.checked) {
                 this.style.backgroundColor = '#e8f5e8';
