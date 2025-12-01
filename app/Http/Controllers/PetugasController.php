@@ -225,10 +225,7 @@ class PetugasController extends Controller
                 }
 
                 $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);
-
-                if (! $jadwal->tersedia) {
-                    throw new \RuntimeException('Jadwal sudah dibooking.');
-                }
+                $this->assertSlotAvailable($jadwal);
 
                 $lapanganId = $item['id'] ?? optional($jadwal->section)->lapangan_id;
                 if (! $lapanganId) {
@@ -290,6 +287,7 @@ public function storeMidtrans(Request $request)
         try {
             $orderIds = [];
             $grossAmount = 0;
+            $transactionId = 'TRX-' . time() . '-' . strtoupper(Str::random(4));
 
             foreach ($validated['items'] as $item) {
                 if (empty($item['jadwal_id'])) {
@@ -297,10 +295,7 @@ public function storeMidtrans(Request $request)
                 }
 
                 $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);
-
-                if (! $jadwal->tersedia) {
-                    throw new \RuntimeException('Jadwal sudah dibooking.');
-                }
+                $this->assertSlotAvailable($jadwal);
 
                 $lapanganId = $item['id'] ?? optional($jadwal->section)->lapangan_id;
                 if (! $lapanganId) {
@@ -311,12 +306,11 @@ public function storeMidtrans(Request $request)
                     'penyewa_id' => $validated['penyewa_id'],
                     'lapangan_id' => $lapanganId,
                     'jadwal_id' => $jadwal->id,
-                    'status' => 'dibayar',
+                    'status' => 'menunggu',
                     'kode_tiket' => $this->generateTicketCode(),
                     'status_scan' => 'belum_scan',
                 ]);
 
-                $orderId = 'MID-' . strtoupper(Str::random(10));
                 $amount = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
                 $grossAmount += $amount;
 
@@ -324,14 +318,14 @@ public function storeMidtrans(Request $request)
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'midtrans',
                     'jumlah' => $amount,
-                    'status' => 'berhasil',
-                    'order_id' => $orderId,
+                    'status' => 'pending',
+                    'order_id' => $transactionId,
                     'payment_url' => null,
                 ]);
 
                 $jadwal->update(['tersedia' => false]);
-                $orderIds[] = $orderId;
             }
+            $orderIds = [$transactionId];
 
             // Config Midtrans
             Config::$serverKey = config('midtrans.server_key');
@@ -352,8 +346,6 @@ public function storeMidtrans(Request $request)
             
             // BETTER APPROACH for this specific codebase state:
             // Just generate one Snap Token for the total amount.
-            $transactionId = 'TRX-' . time();
-            
             $params = [
                 'transaction_details' => [
                     'order_id' => $transactionId,
@@ -389,6 +381,60 @@ public function storeMidtrans(Request $request)
     private function generateTicketCode(): string
     {
         return 'TK' . strtoupper(Str::random(6));
+    }
+
+    /**
+     * Pastikan slot jadwal tersedia.
+     * - Jika ada pemesanan dibayar: blok.
+     * - Jika ada pemesanan menunggu yang sudah kadaluarsa (>15 menit) atau bayar gagal/batal: tandai kadaluarsa dan buka slot.
+     * - Jika ada pemesanan menunggu yang masih aktif: blok.
+     */
+    private function assertSlotAvailable(JadwalLapangan $jadwal): void
+    {
+        $existing = Pemesanan::with('pembayaran')
+            ->where('jadwal_id', $jadwal->id)
+            ->whereIn('status', ['menunggu', 'dibayar'])
+            ->first();
+
+        if (! $existing) {
+            if (! $jadwal->tersedia) {
+                throw new \RuntimeException('Jadwal sudah dibooking.');
+            }
+            return;
+        }
+
+        // Jika sudah dibayar, langsung blok
+        if ($existing->status === 'dibayar') {
+            throw new \RuntimeException('Jadwal sudah dibooking.');
+        }
+
+        // Status menunggu: cek pembayaran
+        $payment = $existing->pembayaran;
+        $now = Carbon::now('Asia/Jakarta');
+        $expired = false;
+
+        if ($payment) {
+            if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
+                $expired = true;
+            } elseif ($payment->status === 'pending') {
+                $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
+            }
+        } else {
+            // Tidak ada pembayaran, pakai created_at pemesanan
+            $expired = $existing->created_at && $existing->created_at->addMinutes(15)->lt($now);
+        }
+
+        if ($expired) {
+            $existing->update(['status' => 'kadaluarsa']);
+            if ($payment && $payment->status === 'pending') {
+                $payment->update(['status' => 'kadaluarsa']);
+            }
+            $jadwal->update(['tersedia' => true]);
+            return;
+        }
+
+        // Masih aktif
+        throw new \RuntimeException('Jadwal sudah dibooking.');
     }
 
     public function getJadwalLapangan($lapanganId)
