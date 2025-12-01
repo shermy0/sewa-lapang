@@ -164,10 +164,14 @@
 
             {{-- User Dropdown --}}
             <div class="dropdown">
-                <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle"
+                <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle overflow-hidden"
                     role="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false"
-                    style="width:36px;height:36px;font-weight:600;cursor:pointer;">
-                    {{ substr($petugasName ?? auth()->user()->name, 0, 1) }}
+                    style="width:36px;height:36px;font-weight:600;cursor:pointer; padding: 0;">
+                    @if(auth()->user()->foto_profil)
+                        <img src="{{ asset('storage/' . auth()->user()->foto_profil) }}" alt="Profile" class="w-100 h-100 object-fit-cover">
+                    @else
+                        {{ substr($petugasName ?? auth()->user()->name, 0, 1) }}
+                    @endif
                 </div>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
                     <li><h6 class="dropdown-header">Halo, {{ $petugasName ?? auth()->user()->name }}!</h6></li>
