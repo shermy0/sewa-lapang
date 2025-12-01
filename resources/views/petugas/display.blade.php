@@ -95,6 +95,7 @@
       font-weight: 500;
       margin-top: 4px;
     }
+    
 
     .main-content {
       flex: 1;
@@ -197,30 +198,13 @@
     }
 
     /* Right Panel: Video/Carousel */
-    .media-panel {
-      flex: 1;
-      background: #000;
-      border-radius: 24px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      position: relative;
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      animation: fadeInUp 0.8s ease;
-    }
-    
-    .carousel, .carousel-inner, .carousel-item {
-      height: 100%;
-    }
-    
+    .media-panel,
+    .empty-media,
+    .carousel,
+    .carousel-inner,
+    .carousel-item,
     .carousel-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s ease;
-    }
-    
-    .carousel-item img:hover {
-      transform: scale(1.05);
+      display: none;
     }
 
     /* Bottom Panel: Queue Grid */
@@ -488,13 +472,40 @@
 </head>
 <body>
 
+  @php
+    $activeQueue = null;
+    $activeSectionName = 'Menunggu...';
+    // 1) Prioritaskan yang sedang main / masuk arena
+    foreach($sectionQueues as $section) {
+        foreach($section['queue'] as $item) {
+            if(in_array($item['status'], ['sedang_main', 'masuk_arena'], true)) {
+                $activeQueue = $item;
+                $activeSectionName = $section['label'];
+                break 2;
+            }
+        }
+    }
+    // 2) Jika tidak ada, ambil antrean pertama yang ada
+    if(!$activeQueue) {
+        foreach($sectionQueues as $section) {
+            if($section['queue']->isNotEmpty()) {
+                $activeQueue = $section['queue']->first();
+                $activeSectionName = $section['label'];
+                break;
+            }
+        }
+    }
+  @endphp
+
   <!-- Header -->
-  <header class="header">
-    <div class="brand">
-      <i class="fa-solid fa-layer-group"></i>
-      <div>
-        <div>SEWALAP VIRTUAL OFFICE</div>
-        <div style="font-size: 0.8rem; font-weight: 400;">Sistem Antrian Sewa Lapangan</div>
+  <header class="header d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="brand">
+        <i class="fa-solid fa-layer-group"></i>
+        <div>
+          <div>{{ $activeSectionName ?? 'Lapangan' }}</div>
+          <div style="font-size: 0.8rem; font-weight: 400;">&nbsp;</div>
+        </div>
       </div>
     </div>
     <div class="clock">
@@ -508,56 +519,14 @@
 
     <!-- Left: Active Queue (Biggest/Latest) -->
     <div class="active-queue-panel">
-      <!-- We can show the very first queue item here as the "Active" one being called -->
-      @php
-        $activeQueue = null;
-        $activeSectionName = 'Menunggu...';
-        // 1) Prioritaskan yang sedang main / masuk arena
-        foreach($sectionQueues as $section) {
-            foreach($section['queue'] as $item) {
-                if(in_array($item['status'], ['sedang_main', 'masuk_arena'], true)) {
-                    $activeQueue = $item;
-                    $activeSectionName = $section['label'];
-                    break 2;
-                }
-            }
-        }
-        // 2) Jika tidak ada, ambil antrean pertama yang ada
-        if(!$activeQueue) {
-            foreach($sectionQueues as $section) {
-                if($section['queue']->isNotEmpty()) {
-                    $activeQueue = $section['queue']->first();
-                    $activeSectionName = $section['label'];
-                    break;
-                }
-            }
-        }
-      @endphp
-
       <div class="active-card">
         <div class="card-header">NOMOR ANTRIAN</div>
         <div class="card-body">
             @if($activeQueue)
-                <div class="active-queue-number">{{ $activeQueue['kode_tiket'] }}</div>
                 <div class="active-queue-label">{{ $activeQueue['penyewa'] }}</div>
                 
                 <!-- Date and Category Info -->
-                <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
-                    <span class="info-badge date-badge">
-                        <i class="fa-regular fa-calendar me-1"></i>
-                        {{ $activeQueue['tanggal'] }}
-                    </span>
-                    <span class="info-badge category-badge">
-                        <i class="fa-solid fa-tag me-1"></i>
-                        {{ $activeQueue['kategori'] ?? 'Lapangan' }}
-                    </span>
-                    @if(!empty($activeQueue['status_scan_label']))
-                    <span class="info-badge" style="background: rgba(59,130,246,0.12); color:#2563eb;">
-                        <i class="fa-solid fa-person-running me-1"></i>
-                        {{ $activeQueue['status_scan_label'] }}
-                    </span>
-                    @endif
-                </div>
+                <div class="mt-3"></div>
 
                 <!-- Countdown Timer -->
                 @if($activeQueue['status'] === 'sedang_main')
@@ -587,37 +556,14 @@
                 </div>
                 @endif
             @else
-                <div class="active-queue-number">-</div>
                 <div class="active-queue-label">Belum ada antrian</div>
             @endif
         </div>
-        <div class="active-queue-section">{{ $activeSectionName }}</div>
       </div>
     </div>
 
-    <!-- Right: Carousel & Grid -->
+    <!-- Right: Queue Grid -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
-
-        <!-- Top Right: Carousel -->
-        <div class="media-panel">
-            <div id="carouselExampleSlidesOnly" class="carousel slide carousel-fade" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                    @forelse($carouselImages as $index => $img)
-                        <div class="carousel-item {{ $index == 0 ? 'active' : '' }}" data-bs-interval="5000">
-                            <img src="{{ asset('storage/' . $img) }}" class="d-block w-100" alt="...">
-                        </div>
-                    @empty
-                        <div class="carousel-item active">
-                            <div class="d-flex justify-content-center align-items-center h-100 bg-secondary text-white">
-                                <h3>Selamat Datang di Sewalap</h3>
-                            </div>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom Right: Queue Grid -->
         <div class="queue-grid-container">
             <div class="queue-grid">
                 @php
@@ -658,44 +604,23 @@
                             default => 'status-waiting'
                         };
                         $jamRange = $queueItem['jam_mulai'] . ' - ' . $queueItem['jam_selesai'];
-                    @endphp
-                    <div class="queue-item-card color-{{ $index % 6 }}">
-                        <div class="queue-item-header">
-                            <div class="fw-bold text-truncate">{{ $queueItem['nama_section'] }}</div>
-                            <div class="queue-location">
-                                <i class="fa-solid fa-location-dot me-1"></i>
-                                {{ $queueItem['nama_lapangan'] ?? 'Lapangan' }}
-                            </div>
-                        </div>
+                @endphp
+                <div class="queue-item-card color-{{ $index % 6 }}">
+                    <div class="queue-item-header" aria-hidden="true">&nbsp;</div>
                         <div class="queue-item-body">
-                            <div class="queue-item-code">{{ $queueItem['kode_tiket'] }}</div>
                             <div class="queue-item-status {{ $statusClass }}">{{ $statusLabel }}</div>
-                            
-                            <div class="queue-meta mt-1">
-                                <span class="info-badge date-badge" style="font-size: 0.7rem;">
-                                    <i class="fa-regular fa-calendar me-1"></i>
-                                    {{ $queueItem['tanggal'] }}
-                                </span>
-                                @if($queueItem['kategori'])
-                                <span class="info-badge category-badge" style="font-size: 0.7rem;">
-                                    <i class="fa-solid fa-tag me-1"></i>
-                                    {{ $queueItem['kategori'] }}
-                                </span>
-                                @endif
-                            </div>
                         </div>
                         <div class="queue-item-footer">
                              {{ $queueItem['penyewa'] }}
                              <div class="text-muted mt-1" style="font-size: 0.78rem; font-weight: 500;">
-                                <i class="fa-regular fa-clock me-1"></i>
                                 {{ $jamRange }}
                             </div>
                         </div>
-                    </div>
-                @empty
-                    <div class="d-flex align-items-center justify-content-center w-100 text-muted">
-                        <small>Tidak ada antrian berikutnya</small>
-                    </div>
+                </div>
+            @empty
+                <div class="d-flex align-items-center justify-content-center w-100 text-muted">
+                    <small>Tidak ada antrian berikutnya</small>
+                </div>
                 @endforelse
             </div>
         </div>

@@ -273,7 +273,7 @@ class PetugasController extends Controller
     }
     
 
-public function storeMidtrans(Request $request)
+    public function storeMidtrans(Request $request)
     {
         $validated = $request->validate([
             'penyewa_id' => 'required|integer',
@@ -289,43 +289,70 @@ public function storeMidtrans(Request $request)
             $grossAmount = 0;
             $transactionId = 'TRX-' . time() . '-' . strtoupper(Str::random(4));
 
+            $slotPlans = [];
+
             foreach ($validated['items'] as $item) {
                 if (empty($item['jadwal_id'])) {
                     throw new \InvalidArgumentException('Jadwal tidak ditemukan.');
                 }
 
                 $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);
-                $this->assertSlotAvailable($jadwal);
-
                 $lapanganId = $item['id'] ?? optional($jadwal->section)->lapangan_id;
                 if (! $lapanganId) {
                     throw new \RuntimeException('Lapangan tidak ditemukan.');
                 }
 
-                $pemesanan = Pemesanan::create([
-                    'penyewa_id' => $validated['penyewa_id'],
-                    'lapangan_id' => $lapanganId,
-                    'jadwal_id' => $jadwal->id,
-                    'status' => 'menunggu',
-                    'kode_tiket' => $this->generateTicketCode(),
-                    'status_scan' => 'belum_scan',
-                ]);
-
                 $amount = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
+
+                // Cek existing pemesanan untuk jadwal ini
+                $existing = Pemesanan::with('pembayaran')
+                    ->where('jadwal_id', $jadwal->id)
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->first();
+
+                $expired = false;
+                if ($existing) {
+                    if ($existing->status === 'dibayar') {
+                        throw new \RuntimeException('Jadwal sudah dibooking.');
+                    }
+
+                    $payment = $existing->pembayaran;
+                    $now = Carbon::now('Asia/Jakarta');
+
+                    if ($payment) {
+                        if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
+                            $expired = true;
+                        } elseif ($payment->status === 'pending') {
+                            $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
+                        }
+                    } else {
+                        $expired = $existing->created_at && $existing->created_at->addMinutes(15)->lt($now);
+                    }
+
+                    if (! $expired && $existing->penyewa_id != $validated['penyewa_id']) {
+                        throw new \RuntimeException('Jadwal sudah dibooking.');
+                    }
+
+                    if ($expired) {
+                        $existing->update(['status' => 'kadaluarsa']);
+                        if ($payment && $payment->status === 'pending') {
+                            $payment->update(['status' => 'kadaluarsa']);
+                        }
+                        $jadwal->update(['tersedia' => true]);
+                        $existing = null; // treat as new
+                    }
+                }
+
                 $grossAmount += $amount;
-
-                Pembayaran::create([
-                    'pemesanan_id' => $pemesanan->id,
-                    'metode' => 'midtrans',
-                    'jumlah' => $amount,
-                    'status' => 'pending',
-                    'order_id' => $transactionId,
-                    'payment_url' => null,
-                ]);
-
-                $jadwal->update(['tersedia' => false]);
+                $slotPlans[] = [
+                    'jadwal' => $jadwal,
+                    'lapangan_id' => $lapanganId,
+                    'amount' => $amount,
+                    'reuse' => (bool) $existing,
+                    'pemesanan' => $existing,
+                    'payment' => $existing?->pembayaran,
+                ];
             }
-            $orderIds = [$transactionId];
 
             // Config Midtrans
             Config::$serverKey = config('midtrans.server_key');
@@ -333,19 +360,6 @@ public function storeMidtrans(Request $request)
             Config::$isSanitized = true;
             Config::$is3ds = true;
 
-            // Create Snap Token (using the first order ID or a group ID?)
-            // For simplicity, let's use a group ID or just the first one.
-            // Midtrans expects unique order_id. If we have multiple items, we might need a parent transaction or treat them individually.
-            // But here we are returning a single snap token for the whole cart?
-            // Midtrans Snap is usually 1 transaction.
-            // If we want to pay for multiple items at once, we should group them under one 'order_id' sent to Midtrans.
-            // But our DB structure has 1 Pembayaran per Pemesanan.
-            // To fix this properly: Create a "Transaction" record that groups multiple "Pemesanan".
-            // For now, let's assume we create ONE Midtrans transaction for the TOTAL amount, and link it to the first Pemesanan (or all of them if we had a pivot).
-            // Hack: Use the first orderId for Midtrans, but we need to track status for all.
-            
-            // BETTER APPROACH for this specific codebase state:
-            // Just generate one Snap Token for the total amount.
             $params = [
                 'transaction_details' => [
                     'order_id' => $transactionId,
@@ -358,6 +372,54 @@ public function storeMidtrans(Request $request)
             ];
 
             $snapToken = Snap::getSnapToken($params);
+
+            foreach ($slotPlans as $plan) {
+                $jadwal = $plan['jadwal'];
+
+                if ($plan['reuse']) {
+                    $pemesanan = $plan['pemesanan'];
+                    $pemesanan->update(['status' => 'menunggu']);
+
+                    $payment = $plan['payment'];
+                    if ($payment) {
+                        $payment->update([
+                            'status' => 'pending',
+                            'jumlah' => $plan['amount'],
+                            'order_id' => $transactionId . '-' . $pemesanan->id,
+                        ]);
+                    } else {
+                        Pembayaran::create([
+                            'pemesanan_id' => $pemesanan->id,
+                            'metode' => 'midtrans',
+                            'jumlah' => $plan['amount'],
+                            'status' => 'pending',
+                            'order_id' => $transactionId . '-' . $pemesanan->id,
+                            'payment_url' => null,
+                        ]);
+                    }
+                } else {
+                    $pemesanan = Pemesanan::create([
+                        'penyewa_id' => $validated['penyewa_id'],
+                        'lapangan_id' => $plan['lapangan_id'],
+                        'jadwal_id' => $jadwal->id,
+                        'status' => 'menunggu',
+                        'kode_tiket' => $this->generateTicketCode(),
+                        'status_scan' => 'belum_scan',
+                    ]);
+
+                    Pembayaran::create([
+                        'pemesanan_id' => $pemesanan->id,
+                        'metode' => 'midtrans',
+                        'jumlah' => $plan['amount'],
+                        'status' => 'pending',
+                        'order_id' => $transactionId . '-' . $pemesanan->id,
+                        'payment_url' => null,
+                    ]);
+                }
+
+                $jadwal->update(['tersedia' => false]);
+            }
+            $orderIds = [$transactionId];
 
             DB::commit();
 
@@ -701,11 +763,16 @@ public function storeMidtrans(Request $request)
                 }
 
                 if($paid){
-                    $pembayaran = Pembayaran::where('order_id', $orderId)->first();
-                    if($pembayaran && $pembayaran->status !== 'berhasil'){
-                        $pembayaran->update(['status' => 'berhasil']);
+                    $pembayarans = Pembayaran::where('order_id', $orderId)
+                        ->orWhere('order_id', 'like', $orderId.'-%')
+                        ->get();
+
+                    foreach ($pembayarans as $pembayaran) {
+                        if($pembayaran->status !== 'berhasil'){
+                            $pembayaran->update(['status' => 'berhasil']);
+                        }
                         $pemesanan = $pembayaran->pemesanan;
-                        if($pemesanan){
+                        if($pemesanan && $pemesanan->status !== 'dibayar'){
                             $pemesanan->update(['status' => 'dibayar']);
                             $updated++;
                         }

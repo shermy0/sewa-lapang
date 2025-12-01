@@ -551,7 +551,6 @@ public function pindahLangsung(Request $request, $pemesananId)
                 }
             }
         }
-
         $sudahDibayar = Pemesanan::with([
             'lapangan',
             'jadwal.section',
