@@ -213,15 +213,17 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
 
+        // Payment
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
-    Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
+        Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
 
-        // CARD TEMP
+        // CART TEMP — FULL DB AUTO SAVE
         Route::get('/cart-temp', [CartTempController::class, 'index']);
         Route::post('/cart-temp', [CartTempController::class, 'store']);
         Route::delete('/cart-temp/{id}', [CartTempController::class, 'destroy']);
         Route::delete('/cart-temp', [CartTempController::class, 'clear']);
+        Route::post('/cart-temp/nama', [CartTempController::class, 'updateNama']);
 
         // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');

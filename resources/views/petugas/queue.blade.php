@@ -94,7 +94,10 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-          <button type="button" class="btn btn-success btn-sm" id="pesanBtn">Pesan</button>
+          <button onclick="addToCart({{ $lapangan->id }}, '{{ $lapangan->nama }}', {{ $lapangan->harga }})" 
+                  class="btn btn-success">
+              Tambah ke Cart
+          </button>
         </div>
       </div>
     </div>
@@ -258,28 +261,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======== CART ========
-  function addToCart(item){
-      fetch('/petugas/cart-temp', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': '{{ csrf_token() }}'
+  function addToCart(lapangan_id, lapangan_name, harga) {
+      $.ajax({
+          url: "/cart/add",
+          type: "POST",
+          data: {
+              _token: "{{ csrf_token() }}",
+              lapangan_id: lapangan_id,
+              lapangan_name: lapangan_name,
+              harga: harga,
+              nama_penyewa: document.getElementById("searchPenyewa").value || null
           },
-          body: JSON.stringify({
-              lapangan_id: item.lapangan_id,
-              lapangan_name: item.nama,
-              harga: item.harga,
-              durasi: item.durasi,
-              nama_penyewa: document.getElementById('searchPenyewa').value || null,
+          success: function(res) {
+              console.log("Masuk DB:", res);
+              alert("Berhasil masuk keranjang!");
 
-              jam_mulai: item.jam_mulai,
-              tanggal: item.tanggal,
-              jadwal_id: item.jadwal_id
-          })
-      })
-      .then(res => res.json())
-      .then(savedItem => {
-          renderCartFromDB();
+              // Optional: simpan localStorage biar tampilan ga delay
+              let cart = JSON.parse(localStorage.getItem("cartDB")) || [];
+              cart.push(res.cart);
+              localStorage.setItem("cartDB", JSON.stringify(cart));
+          }
       });
   }
 

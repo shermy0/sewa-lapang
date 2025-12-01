@@ -3,56 +3,70 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\CartTemp;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class CartTempController extends Controller
 {
-    // Ambil semua cart user login
+    // Ambil semua cart berdasarkan user login
     public function index()
     {
-        return DB::table('cart_temp')->orderBy('id','desc')->get();
-    }    
+        return DB::table('cart_temp')
+            ->where('user_id', Auth::id())
+            ->orderBy('id','desc')
+            ->get();
+    }
 
-    // Tambah item ke cart
+    // Tambah item otomatis saat user klik "Pesan"
     public function store(Request $r)
     {
-        $item = DB::table('cart_temp')->insertGetId([
+        $id = DB::table('cart_temp')->insertGetId([
+            'user_id'       => Auth::id(),
+            'nama_penyewa'  => $r->nama_penyewa, // boleh null
             'lapangan_id'   => $r->lapangan_id,
             'lapangan_name' => $r->lapangan_name ?? $r->nama,
+            'qty'           => 1,
             'harga'         => $r->harga,
-            'durasi'        => $r->durasi ?? 1,
             'tanggal'       => $r->tanggal,
             'jam_mulai'     => $r->jam_mulai,
             'jadwal_id'     => $r->jadwal_id,
-            'nama_penyewa'  => $r->nama_penyewa,
             'created_at'    => now(),
             'updated_at'    => now(),
         ]);
 
         return response()->json(
-            DB::table('cart_temp')->where('id', $item)->first()
+            DB::table('cart_temp')->find($id)
         );
     }
 
-    // Hapus item
+    // Hapus item cart
     public function destroy($id)
     {
-        DB::table('cart_temp')->where('id', $id)->delete();
-        return response()->json(['success' => true]);
-    }    
+        DB::table('cart_temp')
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
+            ->delete();
 
-    // Hapus semua (misal setelah bayar)
+        return response()->json(['success' => true]);
+    }
+
+    // Clear semua cart user (dipanggil setelah bayar)
     public function clear()
     {
-        CartTemp::where('user_id', Auth::id())->delete();
+        DB::table('cart_temp')
+            ->where('user_id', Auth::id())
+            ->delete();
+
         return response()->json(['success' => true]);
     }
 
+    // Update nama penyewa
     public function updateNama(Request $r)
     {
-        DB::table('cart_temp')->update(['nama_penyewa' => $r->nama_penyewa]);
+        DB::table('cart_temp')
+            ->where('user_id', Auth::id())
+            ->update(['nama_penyewa' => $r->nama_penyewa]);
+
         return response()->json(['success' => true]);
     }
-
 }
