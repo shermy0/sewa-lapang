@@ -162,12 +162,13 @@ class PetugasController extends Controller
                     'label' => $first->nama_section ?? 'Section',
                     'lapangan' => $first->nama_lapangan ?? '-',
                     'queue' => $items->map(function ($row) {
+                        $scanMasukLapang = in_array($row->status_scan, ['sudah_scan', 'masuk_lapang'], true);
                         return [
                             'penyewa' => $row->penyewa,
                             'tanggal' => Carbon::parse($row->tanggal)->format('d M Y'),
                             'jam_mulai' => substr($row->jam_mulai, 0, 5),
                             'jam_selesai' => substr($row->jam_selesai, 0, 5),
-                            'status' => $row->status_scan === 'sudah_scan' ? 'sedang_main' : $row->status,
+                            'status' => $scanMasukLapang ? 'sedang_main' : $row->status,
                             'status_scan' => $row->status_scan,
                             'kode_tiket' => $row->kode_tiket,
                             'lokasi' => $row->lokasi,
@@ -275,8 +276,9 @@ public function storeMidtrans(Request $request)
         DB::beginTransaction();
 
         try {
-            $orderIds = [];
             $grossAmount = 0;
+            $orderIds = [];
+            $transactionId = 'TRX-' . time() . '-' . strtoupper(Str::random(4));
 
             foreach ($validated['items'] as $item) {
                 if (empty($item['jadwal_id'])) {
@@ -298,12 +300,11 @@ public function storeMidtrans(Request $request)
                     'penyewa_id' => $validated['penyewa_id'],
                     'lapangan_id' => $lapanganId,
                     'jadwal_id' => $jadwal->id,
-                    'status' => 'dibayar',
+                    'status' => 'menunggu', // tunggu pembayaran Midtrans
                     'kode_tiket' => $this->generateTicketCode(),
                     'status_scan' => 'belum_scan',
                 ]);
 
-                $orderId = 'MID-' . strtoupper(Str::random(10));
                 $amount = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
                 $grossAmount += $amount;
 
@@ -311,14 +312,15 @@ public function storeMidtrans(Request $request)
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'midtrans',
                     'jumlah' => $amount,
-                    'status' => 'berhasil',
-                    'order_id' => $orderId,
+                    'status' => 'pending',
+                    'order_id' => $transactionId,
                     'payment_url' => null,
                 ]);
 
                 $jadwal->update(['tersedia' => false]);
-                $orderIds[] = $orderId;
             }
+
+            $orderIds[] = $transactionId;
 
             // Config Midtrans
             Config::$serverKey = config('midtrans.server_key');
@@ -326,21 +328,6 @@ public function storeMidtrans(Request $request)
             Config::$isSanitized = true;
             Config::$is3ds = true;
 
-            // Create Snap Token (using the first order ID or a group ID?)
-            // For simplicity, let's use a group ID or just the first one.
-            // Midtrans expects unique order_id. If we have multiple items, we might need a parent transaction or treat them individually.
-            // But here we are returning a single snap token for the whole cart?
-            // Midtrans Snap is usually 1 transaction.
-            // If we want to pay for multiple items at once, we should group them under one 'order_id' sent to Midtrans.
-            // But our DB structure has 1 Pembayaran per Pemesanan.
-            // To fix this properly: Create a "Transaction" record that groups multiple "Pemesanan".
-            // For now, let's assume we create ONE Midtrans transaction for the TOTAL amount, and link it to the first Pemesanan (or all of them if we had a pivot).
-            // Hack: Use the first orderId for Midtrans, but we need to track status for all.
-            
-            // BETTER APPROACH for this specific codebase state:
-            // Just generate one Snap Token for the total amount.
-            $transactionId = 'TRX-' . time();
-            
             $params = [
                 'transaction_details' => [
                     'order_id' => $transactionId,
@@ -406,7 +393,7 @@ public function storeMidtrans(Request $request)
 
         // Format data sesuai JS
         $jadwalFormatted = $jadwal->map(function($j){
-            $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'menunggu');
+            $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'tidak_tersedia');
 
             return [
                 'id' => $j->id,
@@ -536,19 +523,27 @@ public function storeMidtrans(Request $request)
 
     public function searchPenyewa(Request $request)
     {
-        $keyword = $request->q ?? ''; // ambil query param 'q' dari JS
+        $keyword = trim($request->q ?? '');
         $petugas = auth()->user();
-    
+
         $data = User::where('role', 'penyewa')
-            ->where(function($q) use ($petugas) {
+            ->where(function ($q) use ($petugas) {
                 $q->where('pemilik_id', $petugas->pemilik_id)
                   ->orWhereNull('pemilik_id');
             })
-            ->when($keyword, function($query, $keyword){
-                return $query->where('name', 'LIKE', "%$keyword%");
+            ->when($keyword !== '', function ($query) use ($keyword) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('name', 'LIKE', "%{$keyword}%")
+                      ->orWhere('email', 'LIKE', "%{$keyword}%")
+                      ->orWhere('no_hp', 'LIKE', "%{$keyword}%");
+                })
+                ->orderBy('name');
+            }, function ($query) {
+                $query->orderByDesc('created_at');
             })
-            ->get();
-    
+            ->limit(10)
+            ->get(['id', 'name', 'email', 'no_hp']);
+
         return response()->json($data);
     }
 
@@ -564,7 +559,7 @@ public function storeMidtrans(Request $request)
 
         $updated = 0;
 
-        foreach($orderIds as $orderId){
+        foreach ($orderIds as $orderId) {
             try {
                 $status = Transaction::status($orderId);
                 $transactionStatus = $status->transaction_status;
@@ -579,12 +574,15 @@ public function storeMidtrans(Request $request)
                     $paid = true;
                 }
 
-                if($paid){
-                    $pembayaran = Pembayaran::where('order_id', $orderId)->first();
-                    if($pembayaran && $pembayaran->status !== 'berhasil'){
-                        $pembayaran->update(['status' => 'berhasil']);
+                if ($paid) {
+                    $pembayarans = Pembayaran::where('order_id', $orderId)->get();
+                    foreach ($pembayarans as $pembayaran) {
+                        if ($pembayaran->status !== 'berhasil') {
+                            $pembayaran->update(['status' => 'berhasil']);
+                        }
+
                         $pemesanan = $pembayaran->pemesanan;
-                        if($pemesanan){
+                        if ($pemesanan && $pemesanan->status !== 'dibayar') {
                             $pemesanan->update(['status' => 'dibayar']);
                             $updated++;
                         }

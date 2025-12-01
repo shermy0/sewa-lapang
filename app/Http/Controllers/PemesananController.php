@@ -30,7 +30,10 @@ class PemesananController extends Controller
     }
 
     // tidak boleh pindah jika sudah discan / sudah selesai
-    if ($pemesanan->status === 'dibayar' && $pemesanan->status_scan === 'sudah_scan') {
+    if (
+        $pemesanan->status === 'dibayar'
+        && in_array($pemesanan->status_scan, ['sudah_scan', 'masuk_lapang'], true)
+    ) {
         return response()->json(['error' => 'Sudah discan, tidak bisa dipindah.'], 422);
     }
 
@@ -172,7 +175,7 @@ public function ajukanPerubahan(Request $request, $pemesananId)
     }
 
     // Tidak boleh ubah bila sudah scan
-    if ($pemesanan->status_scan === 'sudah_scan') {
+    if (in_array($pemesanan->status_scan, ['sudah_scan', 'masuk_lapang'], true)) {
         return response()->json([
             'error' => 'Tiket sudah discan dan tidak bisa diubah.',
         ], 403);

@@ -65,7 +65,7 @@
             $bolehUlas = (clone $pemesananDasar)
                 ->where(function ($query) {
                     if (\Illuminate\Support\Facades\Schema::hasColumn('pemesanan', 'status_scan')) {
-                        $query->where('status_scan', 'sudah_scan');
+                        $query->whereIn('status_scan', ['sudah_scan', 'masuk_lapang']);
                     } else {
                         $query->where('is_scanned', true);
                     }
@@ -867,7 +867,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         @endif
 
                         <div class="position-absolute top-0 start-0 m-3">
-                            <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> {{ $totalSections }} Section</span>
+                            <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> {{ $totalSections }} Lapangan</span>
                         </div>
                         <div class="position-absolute top-0 end-0 m-3">
                             <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-calendar me-1"></i> {{ $totalJadwal }} Jadwal</span>

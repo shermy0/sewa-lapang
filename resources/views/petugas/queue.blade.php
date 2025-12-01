@@ -20,21 +20,20 @@
     </div>
 
     <div class="col-lg-4">
-  <div class="cart">
-
-    <!-- INPUT NAMA PENYEWA -->
-    <div class="mb-3 position-relative">
-      <label class="fw-semibold mb-1">Nama Penyewa</label>
-      <input 
-        type="text" 
-        id="searchPenyewa" 
-        class="form-control" 
-        placeholder="Cari nama penyewa..."
-        autocomplete="off"
-        required>
-      <ul id="penyewaResults" class="list-group position-absolute w-100" 
-          style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
-    </div>
+      <div class="cart">
+        <!-- INPUT NAMA PENYEWA -->
+        <div class="mb-3 position-relative">
+          <label class="fw-semibold mb-1">Nama Penyewa</label>
+          <input 
+            type="text" 
+            id="searchPenyewa" 
+            class="form-control" 
+            placeholder="Cari nama penyewa..."
+            autocomplete="off"
+            required>
+          <ul id="penyewaResults" class="list-group position-absolute w-100" 
+              style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+        </div>
 
     <div class="d-flex justify-content-between mb-2">
       <h6 class="mb-0">Daftar Pesanan</h6>
@@ -103,34 +102,60 @@
   </div>
 </div>
 
-<!-- MODAL PEMBAYARAN -->
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="paymentModalLabel">Pilih Metode Pembayaran</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <ul class="list-group">
-          <li class="list-group-item">
-            <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
-            <label for="payCash">Cash</label>
-          </li>
-          <li class="list-group-item">
-            <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
-            <label for="payMidtrans">Midtrans</label>
-          </li>
-        </ul>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-success" id="confirmPaymentBtn">Bayar</button>
+  <!-- MODAL PEMBAYARAN -->
+  <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="paymentModalLabel">Pilih Metode Pembayaran</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="border rounded p-2 mb-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Total yang harus dibayar</span>
+              <span class="fs-5 fw-bold text-success" id="paymentTotal">Rp 0</span>
+            </div>
+          </div>
+
+          <ul class="list-group mb-3">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
+                <label for="payCash" class="fw-semibold mb-0">Cash</label>
+                <div class="small text-muted">Bayar tunai di kasir</div>
+              </div>
+              <i class="fa-solid fa-money-bill-wave text-success"></i>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
+                <label for="payMidtrans" class="fw-semibold mb-0">Midtrans</label>
+                <div class="small text-muted">Bayar via payment gateway</div>
+              </div>
+              <i class="fa-solid fa-credit-card text-primary"></i>
+            </li>
+          </ul>
+
+          <div id="cashSection" class="border rounded p-3 bg-white">
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1">Uang diterima</label>
+              <input type="number" min="0" class="form-control" id="cashReceived" placeholder="Masukkan nominal">
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Kembalian</span>
+              <span class="fw-bold" id="cashChange">Rp 0</span>
+            </div>
+            <div class="small text-muted mt-1" id="cashHint">Pastikan uang diterima ≥ total.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-success" id="confirmPaymentBtn">Bayar</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
 @endsection
 
 @push('scripts')
@@ -191,8 +216,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const pg = document.getElementById("gridPagination");
     if(!pg) return; 
     
-    pg.innerHTML="";
-    const createPageItem = (num, active=false, disabled=false) => {
+    pg.innerHTML = "";
+    
+    const createPageItem = (num, active = false, disabled = false) => {
       const li = document.createElement("li");
       li.className="page-item "+(active?"active":"")+(disabled?" disabled":"");
       li.innerHTML=`<a href="#" class="page-link">${num}</a>`;
@@ -212,6 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======== CART ========
+  function getCartTotal(){
+    return cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+  }
+
   function addToCart(item){
     const exist = cart.find(c=>c.id===item.id && c.jam_mulai===item.jam_mulai && c.tanggal===item.tanggal);
     if(exist) exist.durasi+=item.durasi;
@@ -252,36 +282,79 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateTotals(){
-    const subtotal = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+    const subtotal = getCartTotal();
     document.getElementById("subtotal").innerText = "Rp " + subtotal.toLocaleString('id-ID');
     document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
+  }
+
+  // ======== PEMBAYARAN ========
+  const paymentTotalEl = document.getElementById('paymentTotal');
+  const cashSection = document.getElementById('cashSection');
+  const cashReceivedEl = document.getElementById('cashReceived');
+  const cashChangeEl = document.getElementById('cashChange');
+  const cashHintEl = document.getElementById('cashHint');
+
+  const swalWarn = (msg) => Swal.fire('Perhatian', msg, 'warning');
+  const swalError = (msg) => Swal.fire('Error', msg, 'error');
+  const swalInfo = (msg) => Swal.fire('Info', msg, 'info');
+  const swalSuccess = (msg) => Swal.fire('Berhasil', msg, 'success');
+
+  function renderCashSection(){
+    const total = getCartTotal();
+    if(paymentTotalEl) paymentTotalEl.textContent = "Rp " + total.toLocaleString('id-ID');
+    if(!cashReceivedEl) return;
+    const cash = Number(cashReceivedEl.value || 0);
+    const change = cash - total;
+    cashChangeEl.textContent = "Rp " + Math.max(change,0).toLocaleString('id-ID');
+    if(change < 0){
+      cashHintEl.textContent = "Uang kurang Rp " + Math.abs(change).toLocaleString('id-ID');
+      cashHintEl.classList.remove('text-muted');
+      cashHintEl.classList.add('text-danger');
+    } else {
+      cashHintEl.textContent = "Pastikan uang diterima ≥ total.";
+      cashHintEl.classList.remove('text-danger');
+      cashHintEl.classList.add('text-muted');
+    }
+  }
+
+  document.querySelectorAll('input[name=\"paymentMethod\"]').forEach(r => {
+    r.addEventListener('change', () => {
+      if(cashSection){
+        cashSection.style.display = r.value === 'cash' && r.checked ? 'block' : 'none';
+      }
+    });
+  });
+
+  if(cashReceivedEl){
+    cashReceivedEl.addEventListener('input', renderCashSection);
+    cashReceivedEl.addEventListener('change', renderCashSection);
   }
 
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const radioCash = document.getElementById('payCash');
+    const radioMidtrans = document.getElementById('payMidtrans');
     
-    if(!penyewaId) {
-        Swal.fire({
-            icon: "warning",
-            title: "Penyewa Belum Dipilih",
-            text: "Silakan pilih penyewa terlebih dahulu!",
-        }).then(() => {
-            penyewaInput.focus();
-        });
-        return;
+    if(!penyewaId) { 
+      swalWarn("Silakan pilih penyewa terlebih dahulu!");
+      penyewaInput.focus();
+      return; 
     }
-    if(cart.length === 0) {
-        Swal.fire({
-            icon: "warning",
-            title: "Keranjang Kosong",
-            text: "Silakan pilih jadwal terlebih dahulu!",
-        });
-        return;
+    if(cart.length === 0){ 
+      swalWarn("Keranjang kosong!");
+      return; 
     }
 
     const paymentModalEl = document.getElementById('paymentModal');
     const paymentModal = new bootstrap.Modal(paymentModalEl);
+    if(cashReceivedEl){
+      if(radioCash){ radioCash.checked = true; }
+      if(radioMidtrans){ radioMidtrans.checked = false; }
+      cashSection.style.display = 'block';
+      cashReceivedEl.value = getCartTotal();
+      renderCashSection();
+    }
     paymentModal.show();
   });
 
@@ -290,21 +363,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const total = getCartTotal();
     
-    // Validation already done before opening modal, but good to keep as safety
-    if(!penyewaId) { alert("Silakan pilih penyewa terlebih dahulu!"); return; }
-    if(cart.length===0){ alert("Keranjang kosong!"); return; }
+    if(!penyewaId) { 
+      swalWarn("Silakan pilih penyewa terlebih dahulu!");
+      return; 
+    }
+    if(cart.length === 0){ 
+      swalWarn("Keranjang kosong!");
+      return; 
+    }
+    if(method === 'cash'){
+      const cash = Number(cashReceivedEl?.value || 0);
+      if(cash < total){
+        swalWarn("Uang diterima kurang dari total.");
+        return;
+      }
+    }
 
     // Prepare data
     const itemsForServer = cart.map(i => ({
-        id: i.lapangan_id || i.id, 
-        jadwal_id: i.jadwal_id,
-        harga: i.harga,
-        durasi: i.durasi
+      id: i.lapangan_id || i.id, 
+      jadwal_id: i.jadwal_id,
+      harga: i.harga,
+      durasi: i.durasi
     }));
+    const cartSnapshot = cart.map(i => ({...i}));
     
-    const total = cart.reduce((s,i)=>s+i.harga*i.durasi,0);
-
     const payload = {
         penyewa_id: penyewaId,
         items: itemsForServer,
@@ -320,79 +405,70 @@ document.addEventListener("DOMContentLoaded", () => {
             url = "{{ route('petugas.store.midtrans') }}";
         }
 
-        const res = await fetch(url, {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json", 
-                "Accept": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
-            },
-            body: JSON.stringify(payload)
-        });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Accept": "application/json",
+          "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+        },
+        body: JSON.stringify(payload)
+      });
 
-        const data = await res.json();
+      const data = await res.json();
+      
+      if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+
+      if(method === 'cash'){
+        swalSuccess("Pemesanan cash berhasil!");
+        cart = [];
+        renderCart();
+        const paymentModalEl = document.getElementById('paymentModal');
+        const modal = bootstrap.Modal.getInstance(paymentModalEl);
+        if(modal) modal.hide();
         
-        if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+        if(typeof refreshJadwal === "function") refreshJadwal();
+      } else {
+        const paymentModalEl = document.getElementById('paymentModal');
+        const modal = bootstrap.Modal.getInstance(paymentModalEl);
+        if(modal) modal.hide();
 
-        if(method === 'cash'){
-            alert("Pemesanan Cash Berhasil!");
-            cart = [];
-            renderCart();
-            // Hide modal manually since we created a new instance
-            const paymentModalEl = document.getElementById('paymentModal');
-            const modal = bootstrap.Modal.getInstance(paymentModalEl);
-            if(modal) modal.hide();
-            
-            if(typeof refreshJadwal === "function") refreshJadwal();
-        } else {
-            // Midtrans
-            const paymentModalEl = document.getElementById('paymentModal');
-            const modal = bootstrap.Modal.getInstance(paymentModalEl);
-            if(modal) modal.hide();
-
-            if(data.snap_token){
-                snap.pay(data.snap_token, {
-                    onSuccess: function(result){
-                        // Call check status endpoint
-                        fetch("{{ route('petugas.payment.check') }}", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                            },
-                            body: JSON.stringify({ order_ids: data.orders })
-                        }).then(() => {
-                          Swal.fire({
-                              icon: 'success',
-                              title: 'Pembayaran Berhasil!',
-                              showConfirmButton: false,
-                              timer: 2000
-                          });
-                          cart = [];
-                          renderCart();
-                          if(typeof refreshJadwal === "function") refreshJadwal();
-                      });
-                    },
-                    onPending: function(result){
-                        alert("Menunggu Pembayaran...");
-                        cart = [];
-                        renderCart();
-                    },
-                    onError: function(result){
-                        alert("Pembayaran Gagal!");
-                    },
-                    onClose: function(){
-                        alert('Anda menutup popup tanpa menyelesaikan pembayaran');
-                    }
-                });
-            } else {
-                alert("Token pembayaran tidak ditemukan");
+        if(data.snap_token){
+          snap.pay(data.snap_token, {
+            onSuccess: function(result){
+              fetch("{{ route('petugas.payment.check') }}", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ order_ids: data.orders })
+              }).then(() => {
+                swalSuccess("Pembayaran berhasil!");
+                cart = [];
+                renderCart();
+                if(typeof refreshJadwal === "function") refreshJadwal();
+              });
+            },
+            onPending: function(result){
+              swalInfo("Menunggu Pembayaran...");
+              cart = [];
+              renderCart();
+            },
+            onError: function(result){
+              swalError("Pembayaran Gagal!");
+            },
+            onClose: function(){
+              swalWarn('Anda menutup popup tanpa menyelesaikan pembayaran');
             }
+          });
+        } else {
+          swalError("Token pembayaran tidak ditemukan");
         }
-
+      }
     } catch(err) {
-        console.error(err);
-        alert("Terjadi kesalahan: " + err.message);
+      console.error(err);
+      swalError("Terjadi kesalahan: " + err.message);
     }
   });
 
@@ -413,29 +489,97 @@ document.addEventListener("DOMContentLoaded", () => {
     const summaryEl = document.getElementById('paginationSummary');
     const pesanBtn = document.getElementById('pesanBtn');
 
-    document.getElementById('jadwalModalLabel').innerText = lapangan.nama;
+    // Hapus event listener lama jika ada
+    const newFilterTanggal = filterTanggal.cloneNode(true);
+    const newFilterJamMulai = filterJamMulai.cloneNode(true);
+    const newResetBtn = resetBtn.cloneNode(true);
+    
+    filterTanggal.parentNode.replaceChild(newFilterTanggal, filterTanggal);
+    filterJamMulai.parentNode.replaceChild(newFilterJamMulai, filterJamMulai);
+    resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
+
+    // Event listener untuk filter tanggal
+    newFilterTanggal.addEventListener('change', function() {
+      currentPage = 1;
+      const jamMulaiValue = isToday(this.value) ? getCurrentTime() : '';
+      document.getElementById('filterJamMulai').value = jamMulaiValue;
+      loadJadwalData(currentLapanganId, this.value, jamMulaiValue);
+    });
+
+    // Event listener untuk filter jam mulai
+    newFilterJamMulai.addEventListener('change', function() {
+      currentPage = 1;
+      loadJadwalData(currentLapanganId, document.getElementById('filterTanggal').value, this.value);
+    });
+
+    // Event listener untuk reset filter
+    newResetBtn.addEventListener('click', function() {
+      const today = getCurrentDate();
+      document.getElementById('filterTanggal').value = today;
+      document.getElementById('filterJamMulai').value = '';
+      currentPage = 1;
+      loadJadwalData(currentLapanganId, today, '');
+    });
+
+    // Event listener untuk tombol pesan
+    pesanBtn.onclick = function() {
+      const checkedSlots = document.querySelectorAll('.slot-checkbox:checked');
+      if (checkedSlots.length === 0) {
+        swalWarn('Pilih setidaknya satu jadwal untuk dipesan!');
+        return;
+      }
+
+      checkedSlots.forEach(chk => {
+        const card = chk.closest('.card');
+        const jamText = card.querySelector('.jam-text').textContent;
+        const jamParts = jamText.split(' - ');
+        const hargaText = card.querySelector('.harga-text').textContent.replace(/Rp\s|[.]/g,'');
+        const tanggalText = card.querySelector('.tanggal-text').textContent;
+
+        addToCart({
+          lapangan_id: lapangan.id,
+          nama: lapangan.nama,
+          harga: parseInt(hargaText),
+          jam_mulai: jamParts[0],
+          tanggal: tanggalText,
+          durasi: 1,
+          jadwal_id: parseInt(chk.dataset.jadwalId)
+        });
+      });
+
+      modal.hide();
+      renderCart();
+    };
+  }
+
+  function loadJadwalData(lapanganId, tanggal, jamMulai) {
+    const content = document.getElementById('jadwalContent');
     content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
-    filterTanggal.value = ''; filterJamMulai.value = '';
+    
+    // Build query parameters
+    let url = `/petugas/api/jadwal/${lapanganId}`;
+    const params = new URLSearchParams();
+    if (tanggal) params.append('tanggal', tanggal);
+    if (jamMulai) params.append('jam_mulai', jamMulai);
+    
+    if (params.toString()) {
+      url += '?' + params.toString();
+    }
 
-    modal.show();
-
-    // Clone to remove old event listeners
-    resetBtn.replaceWith(resetBtn.cloneNode(true));
-    filterTanggal.replaceWith(filterTanggal.cloneNode(true));
-    filterJamMulai.replaceWith(filterJamMulai.cloneNode(true));
-
-    const newResetBtn = document.getElementById('resetFilters');
-    const newFilterTanggal = document.getElementById('filterTanggal');
-    const newFilterJamMulai = document.getElementById('filterJamMulai');
-
-    fetch('{{ url("petugas/api/jadwal") }}/' + lapangan.id)
-      .then(res=>res.json())
-      .then(data=>{ 
-        jadwalData=data || [];
-        renderPage(1); 
+    fetch(url)
+      .then(res => res.json())
+      .then(data => { 
+        // Filter data berdasarkan waktu jika tanggal hari ini
+        let filteredData = data || [];
+        if (isToday(tanggal)) {
+          filteredData = filteredData.filter(j => shouldFilterByTime(j.tanggal, j.jam_mulai));
+        }
+        
+        jadwalData = filteredData;
+        renderJadwalPage(currentPage);
       })
-      .catch(err=>{ 
-        content.innerHTML='<p class="text-center text-danger">Gagal memuat jadwal</p>'; 
+      .catch(err => { 
+        content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>'; 
         console.error(err); 
         jadwalData = [];
       });
@@ -467,40 +611,65 @@ document.addEventListener("DOMContentLoaded", () => {
           const col = document.createElement('div');
           col.className = 'col-md-4';
 
-          let statusClass="", statusText="";
-          if(j.booking_status==="dibayar"){ 
-            statusClass="bg-success text-white"; 
-            statusText="Sudah Dibayar"; 
-          } else if(j.booking_status==="menunggu"){ 
-            statusClass="bg-warning text-dark"; 
-            statusText="Sedang Dibooking"; 
-          } else {
-            statusClass="bg-light text-dark";
-            const tanggalObj = new Date(j.tanggal);
-            statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
-          }
+        let statusClass="", statusText="";
+        if(j.booking_status==="dibayar"){
+          statusClass="bg-success text-white";
+          statusText="Sudah Dibayar";
+        } else if(j.booking_status==="menunggu"){
+          statusClass="bg-warning text-dark";
+          statusText="Sedang Dibooking";
+        } else if(j.booking_status==="tidak_tersedia"){
+          statusClass="bg-secondary text-white"; // Grey for unavailable
+          statusText="Tidak Tersedia";
+        } else {
+          statusClass="bg-light text-dark";
+          const tanggalObj = new Date(j.tanggal);
+          statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+        }
 
-          const card = document.createElement('div');
-          card.className = `card p-2 text-center ${statusClass}`;
-          card.style.cursor = (j.booking_status==="tersedia" || j.booking_status===undefined) ? 'pointer' : 'default';
-          card.style.borderRadius = '8px';
+        const card = document.createElement('div');
+        card.className = `card p-2 text-center ${statusClass}`;
+        // Only clickable if available
+        card.style.cursor = (j.booking_status==="tersedia" || j.booking_status===undefined) ? 'pointer' : 'default';
+        card.style.borderRadius = '8px';
+        card.style.minHeight = '120px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'center';
 
-          if(j.booking_status!=="dibayar" && j.booking_status!=="menunggu"){
-            card.innerHTML = `
-              <div>${j.jam_mulai} - ${j.jam_selesai}</div>
-              <div class="mt-1 fw-bold">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
-              <div class="form-check mt-1">
-                <input class="form-check-input slot-checkbox" type="checkbox" data-jadwal-id="${j.id}">
-                <label class="form-check-label small">${statusText}</label>
-              </div>
-            `;
-          } else {
-            card.innerHTML = `
-              <div>${j.jam_mulai} - ${j.jam_selesai}</div>
-              <div class="mt-1 fw-bold">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
-              <div class="small">${statusText}</div>
-            `;
-          }
+        if(j.booking_status!=="dibayar" && j.booking_status!=="menunggu" && j.booking_status!=="tidak_tersedia"){
+          card.innerHTML = `
+            <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
+            <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+            <div class="form-check mt-1">
+              <input class="form-check-input slot-checkbox" type="checkbox" data-jadwal-id="${j.id}">
+              <label class="form-check-label small tanggal-text">${statusText}</label>
+            </div>
+          `;
+          
+          // Toggle selection on card click
+          card.addEventListener('click', function(e) {
+            if (e.target.type !== 'checkbox') {
+              const checkbox = this.querySelector('.slot-checkbox');
+              checkbox.checked = !checkbox.checked;
+              
+              // Visual feedback
+              if (checkbox.checked) {
+                this.style.backgroundColor = '#e8f5e8';
+                this.style.borderColor = '#28a745';
+              } else {
+                this.style.backgroundColor = '';
+                this.style.borderColor = '';
+              }
+            }
+          });
+        } else {
+          card.innerHTML = `
+            <div class="jam-text">${j.jam_mulai} - ${j.jam_selesai}</div>
+            <div class="mt-1 fw-bold harga-text">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+            <div class="small">${statusText}</div>
+          `;
+        }
 
           col.appendChild(card);
           grid.appendChild(col);
@@ -566,41 +735,104 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======== SEARCH PENYEWA ========
   const penyewaInput = document.getElementById("searchPenyewa");
   const list = document.getElementById("penyewaResults");
+  let penyewaTimeout = null;
+  const MIN_PENYEWA_LEN = 2;
+
+  function renderPenyewaDropdown(data, options = {}) {
+    if (!list) return;
+    const headline = options.headline || "";
+    const emptyText = options.emptyText || "Penyewa tidak ditemukan";
+
+    list.innerHTML = "";
+
+    if (headline) {
+      const headItem = document.createElement("li");
+      headItem.className = "list-group-item text-muted small bg-light";
+      headItem.textContent = headline;
+      list.appendChild(headItem);
+    }
+
+    if (data.length === 0) {
+      const item = document.createElement("li");
+      item.className = "list-group-item text-muted small";
+      item.textContent = emptyText;
+      list.appendChild(item);
+      list.style.display = "block";
+      return;
+    }
+
+    data.forEach(p => {
+      const emailText = p.email ? p.email : "-";
+      const phoneText = p.no_hp ? ` • ${p.no_hp}` : "";
+      const item = document.createElement("li");
+      item.className = "list-group-item list-group-item-action";
+      item.dataset.penyewaId = p.id;
+      item.style.cursor = "pointer";
+      item.innerHTML = `
+        <div class="d-flex flex-column">
+          <span class="fw-semibold">${p.name}</span>
+          <small class="text-muted">${emailText}${phoneText}</small>
+        </div>
+      `;
+      item.addEventListener("click", () => selectPenyewa(p));
+      list.appendChild(item);
+    });
+
+    list.style.display = "block";
+  }
+
+  function selectPenyewa(penyewa) {
+    if (!penyewaInput) return;
+    penyewaInput.value = penyewa.name;
+    penyewaInput.dataset.id = penyewa.id;
+    list.style.display = "none";
+  }
+
+  function fetchPenyewa(keyword, options = {}) {
+    fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(keyword))
+      .then(res => res.json())
+      .then(data => renderPenyewaDropdown(data, options))
+      .catch(err => console.error(err));
+  }
+
+  penyewaInput.addEventListener("focus", function () {
+    // Saat input kosong, tampilkan 10 penyewa terbaru supaya petugas bisa pilih cepat
+    if (!this.value.trim()) {
+      this.removeAttribute('data-id');
+      fetchPenyewa("", { headline: "Penyewa terbaru" });
+    }
+  });
 
   penyewaInput.addEventListener("input", function () {
-      let q = this.value;
-      // Clear ID when user types to force selection
-      this.removeAttribute('data-id'); 
-      
-      if(q.length<1){ list.style.display="none"; return; }
+    const q = this.value.trim();
+    this.removeAttribute('data-id');
 
-      fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(q))
-        .then(res=>res.json())
-        .then(data=>{
-          list.innerHTML="";
-          
-          if(data.length===0){ 
-              let item = document.createElement("li");
-              item.className="list-group-item text-muted small";
-              item.textContent = "Penyewa tidak ditemukan";
-              list.appendChild(item);
-          } else {
-              data.forEach(p=>{
-                let item = document.createElement("li");
-                item.className="list-group-item list-group-item-action";
-                item.style.cursor = "pointer";
-                item.textContent = p.name;
-                item.onclick = ()=>{ 
-                  penyewaInput.value=p.name; 
-                  penyewaInput.dataset.id=p.id; 
-                  list.style.display="none"; 
-                };
-                list.appendChild(item);
-              });
-          }
-          list.style.display="block";
-        })
-        .catch(err => console.error(err));
+    if (penyewaTimeout) clearTimeout(penyewaTimeout);
+
+    if (!q) {
+      fetchPenyewa("", { headline: "Penyewa terbaru" });
+      return;
+    }
+
+    if (q.length < MIN_PENYEWA_LEN) {
+      renderPenyewaDropdown([], { emptyText: "Ketik minimal 2 huruf" });
+      return;
+    }
+
+    penyewaTimeout = setTimeout(() => {
+      fetchPenyewa(q);
+    }, 250);
+  });
+
+  // Enter otomatis memilih hasil pertama supaya petugas lebih cepat
+  penyewaInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      const firstItem = list.querySelector("li.list-group-item-action");
+      if (firstItem && firstItem.dataset.penyewaId) {
+        e.preventDefault();
+        firstItem.click();
+      }
+    }
   });
 
   // Hide dropdown when clicking outside
