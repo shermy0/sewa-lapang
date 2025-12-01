@@ -259,47 +259,65 @@ class PemesananController extends Controller
             \Log::info('📦 Request ke getSnapToken', $request->all());
 
             $lapangan = Lapangan::findOrFail($request->lapangan_id);
-            $jadwalId = $request->jadwal_id ?? (is_array($request->jadwal_ids ?? null) ? ($request->jadwal_ids[0] ?? null) : null);
-            if (! $jadwalId) {
+            $jadwalIds = [];
+            if ($request->filled('jadwal_id')) {
+                $jadwalIds[] = $request->jadwal_id;
+            }
+            if (is_array($request->jadwal_ids ?? null)) {
+                $jadwalIds = array_merge($jadwalIds, $request->jadwal_ids);
+            }
+            $jadwalIds = array_values(array_filter($jadwalIds));
+            if (empty($jadwalIds)) {
                 return response()->json(['error' => 'Jadwal tidak ditemukan.'], 404);
             }
-            $jadwal = JadwalLapangan::findOrFail($jadwalId);
 
-            // Cek apakah jadwal sedang dipakai oleh orang lain (pending/dibayar)
-            $pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
-                ->where('penyewa_id', '!=', Auth::id())
-                ->whereIn('status', ['menunggu', 'dibayar'])
-                ->whereHas('pembayaran', function ($q) {
-                    $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
-                })
-                ->exists();
-
-            if ($pendingFromOtherUser) {
-                return response()->json([
-                    'error' => 'Jadwal ini sedang menunggu pembayaran oleh penyewa lain.',
-                ], 409);
+            $jadwals = JadwalLapangan::whereIn('id', $jadwalIds)->get();
+            if ($jadwals->count() !== count($jadwalIds)) {
+                return response()->json(['error' => 'Ada jadwal yang tidak ditemukan.'], 404);
             }
 
-            if (! $jadwal->tersedia) {
-                return response()->json(['error' => 'Jadwal tidak tersedia.'], 400);
+            // Validasi setiap jadwal
+            foreach ($jadwals as $jadwal) {
+                // Cek apakah jadwal sedang dipakai oleh orang lain (pending/dibayar)
+                $pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
+                    ->where('penyewa_id', '!=', Auth::id())
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->whereHas('pembayaran', function ($q) {
+                        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+                    })
+                    ->exists();
+
+                if ($pendingFromOtherUser) {
+                    return response()->json([
+                        'error' => 'Ada jadwal yang sedang menunggu pembayaran oleh penyewa lain.',
+                    ], 409);
+                }
+
+                if (! $jadwal->tersedia) {
+                    return response()->json(['error' => 'Ada jadwal yang tidak tersedia.'], 400);
+                }
+
+                // Cegah user melakukan double booking pada jadwal yang sama
+                $existing = Pemesanan::where('penyewa_id', Auth::id())
+                    ->where('jadwal_id', $jadwal->id)
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->first();
+
+                if ($existing) {
+                    return response()->json([
+                        'error' => 'Kamu sudah memesan salah satu jadwal ini.',
+                        'redirect' => route('penyewa.pembayaran')
+                    ], 409);
+                }
             }
 
-            // Cegah user melakukan double booking pada jadwal yang sama
-            $existing = Pemesanan::where('penyewa_id', Auth::id())
-                ->where('jadwal_id', $jadwal->id)
-                ->whereIn('status', ['menunggu', 'dibayar'])
-                ->first();
-
-            if ($existing) {
-                return response()->json([
-                    'error' => 'Kamu sudah memesan jadwal ini.',
-                    'redirect' => route('penyewa.pembayaran')
-                ], 409);
-            }
-
-            $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
-            if ($hargaSewa <= 0) {
-                return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+            $totalBayar = 0;
+            foreach ($jadwals as $jadwal) {
+                $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+                if ($hargaSewa <= 0) {
+                    return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+                }
+                $totalBayar += $hargaSewa;
             }
 
             if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
@@ -307,12 +325,12 @@ class PemesananController extends Controller
                 return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
             }
 
-            $orderId = sprintf('TMP-%s-%s', Auth::id(), now()->timestamp);
+            $transactionId = sprintf('TMP-%s-%s-%s', Auth::id(), now()->timestamp, Str::upper(Str::random(4)));
 
             $snapToken = Snap::getSnapToken([
                 'transaction_details' => [
-                    'order_id' => $orderId,
-                    'gross_amount' => $hargaSewa,
+                    'order_id' => $transactionId,
+                    'gross_amount' => $totalBayar,
                 ],
                 'customer_details' => [
                     'first_name' => Auth::user()->name,
@@ -323,37 +341,46 @@ class PemesananController extends Controller
             // Simpan pemesanan & pembayaran sementara
             DB::beginTransaction();
             try {
-                $pemesanan = Pemesanan::create([
-                    'penyewa_id' => Auth::id(),
-                    'lapangan_id' => $lapangan->id,
-                    'jadwal_id' => $jadwal->id,
-                    'status' => 'menunggu',
-                    'expires_at' => now()->addMinutes(15),
-                ]);
+                $pemesananIds = [];
 
-                Pembayaran::create([
-                    'pemesanan_id' => $pemesanan->id,
-                    'metode' => 'midtrans',
-                    'jumlah' => $hargaSewa,
-                    'status' => 'pending',
-                    'order_id' => $orderId,
-                    'snap_token' => $snapToken,
-                ]);
+                foreach ($jadwals as $jadwal) {
+                    $pemesanan = Pemesanan::create([
+                        'penyewa_id' => Auth::id(),
+                        'lapangan_id' => $lapangan->id,
+                        'jadwal_id' => $jadwal->id,
+                        'status' => 'menunggu',
+                        'expires_at' => now()->addMinutes(15),
+                    ]);
 
-                // Lock jadwal hanya setelah pemesanan tercatat
-                $jadwal->update(['tersedia' => false]);
+                    Pembayaran::create([
+                        'pemesanan_id' => $pemesanan->id,
+                        'metode' => 'midtrans',
+                        'jumlah' => $this->resolveHargaSewa($jadwal, $lapangan),
+                        'status' => 'pending',
+                        // order_id unik per pembayaran untuk hindari constraint,
+                        // tetap merujuk ke transactionId Midtrans.
+                        'order_id' => $transactionId . '-' . $pemesanan->id,
+                        'snap_token' => $snapToken,
+                    ]);
+
+                    $jadwal->update(['tersedia' => false]);
+                    $pemesananIds[] = $pemesanan->id;
+                }
 
                 DB::commit();
 
                 return response()->json([
                     'snap_token' => $snapToken,
-                    'pemesanan_id' => $pemesanan->id,
+                    'pemesanan_ids' => $pemesananIds,
+                    'transaction_id' => $transactionId,
                 ]);
 
             } catch (\Exception $e) {
                 DB::rollBack();
                 // unlock jadwal jika gagal menyimpan
-                $jadwal->update(['tersedia' => true]);
+                foreach ($jadwals as $jadwal) {
+                    $jadwal->update(['tersedia' => true]);
+                }
                 throw $e;
             }
 
