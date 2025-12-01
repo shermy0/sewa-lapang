@@ -259,7 +259,11 @@ class PemesananController extends Controller
             \Log::info('📦 Request ke getSnapToken', $request->all());
 
             $lapangan = Lapangan::findOrFail($request->lapangan_id);
-            $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
+            $jadwalId = $request->jadwal_id ?? (is_array($request->jadwal_ids ?? null) ? ($request->jadwal_ids[0] ?? null) : null);
+            if (! $jadwalId) {
+                return response()->json(['error' => 'Jadwal tidak ditemukan.'], 404);
+            }
+            $jadwal = JadwalLapangan::findOrFail($jadwalId);
 
             // Cek apakah jadwal sedang dipakai oleh orang lain (pending/dibayar)
             $pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
@@ -293,11 +297,16 @@ class PemesananController extends Controller
                 ], 409);
             }
 
-            // Lock jadwal DENGAN SEGERA
-            $jadwal->update(['tersedia' => false]);
-
-            // Generate Midtrans snap token
             $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+            if ($hargaSewa <= 0) {
+                return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+            }
+
+            if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
+                \Log::error('⚠ MIDTRANS belum dikonfigurasi saat getSnapToken');
+                return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
+            }
+
             $orderId = sprintf('TMP-%s-%s', Auth::id(), now()->timestamp);
 
             $snapToken = Snap::getSnapToken([
@@ -331,6 +340,9 @@ class PemesananController extends Controller
                     'snap_token' => $snapToken,
                 ]);
 
+                // Lock jadwal hanya setelah pemesanan tercatat
+                $jadwal->update(['tersedia' => false]);
+
                 DB::commit();
 
                 return response()->json([
@@ -347,6 +359,10 @@ class PemesananController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('🔥 ERROR getSnapToken: ' . $e->getMessage());
+            // Pastikan jadwal tidak terkunci jika token gagal
+            if (isset($jadwal) && $jadwal->exists) {
+                $jadwal->update(['tersedia' => true]);
+            }
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
