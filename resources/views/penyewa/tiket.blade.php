@@ -147,7 +147,9 @@
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
                             <p class="mt-2 mb-0">
                                 @if($p->status_scan === 'sudah_scan')
-                                    <span class="ticket-status-scan sudah"><i class="fa-solid fa-check-circle me-1"></i>Sudah Discan</span>
+                                    <span class="ticket-status-scan sudah"><i class="fa-solid fa-check-circle me-1"></i>Masuk Lapang</span>
+                                @elseif($p->status_scan === 'scan_lobby')
+                                    <span class="ticket-status-scan" style="color: #0dcaf0;"><i class="fa-solid fa-check-circle me-1"></i>Masuk Arena</span>
                                 @else
                                     <span class="ticket-status-scan belum"><i class="fa-solid fa-hourglass-half me-1"></i>Belum Discan</span>
                                 @endif

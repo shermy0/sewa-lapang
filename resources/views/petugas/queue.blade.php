@@ -261,17 +261,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
     
-    if(!penyewa_id){
-    Swal.fire({
-        icon: "warning",
-        title: "Penyewa Belum Dipilih",
-        text: "Silakan pilih penyewa terlebih dahulu!",
-    });
-    return;
-  }
-    if(cart.length===0){ 
-        alert("Keranjang kosong!"); 
-        return; 
+    if(!penyewaId) {
+        Swal.fire({
+            icon: "warning",
+            title: "Penyewa Belum Dipilih",
+            text: "Silakan pilih penyewa terlebih dahulu!",
+        }).then(() => {
+            penyewaInput.focus();
+        });
+        return;
+    }
+    if(cart.length === 0) {
+        Swal.fire({
+            icon: "warning",
+            title: "Keranjang Kosong",
+            text: "Silakan pilih jadwal terlebih dahulu!",
+        });
+        return;
     }
 
     const paymentModalEl = document.getElementById('paymentModal');
@@ -356,11 +362,16 @@ document.addEventListener("DOMContentLoaded", () => {
                             },
                             body: JSON.stringify({ order_ids: data.orders })
                         }).then(() => {
-                            alert("Pembayaran Berhasil!");
-                            cart = [];
-                            renderCart();
-                            if(typeof refreshJadwal === "function") refreshJadwal();
-                        });
+                          Swal.fire({
+                              icon: 'success',
+                              title: 'Pembayaran Berhasil!',
+                              showConfirmButton: false,
+                              timer: 2000
+                          });
+                          cart = [];
+                          renderCart();
+                          if(typeof refreshJadwal === "function") refreshJadwal();
+                      });
                     },
                     onPending: function(result){
                         alert("Menunggu Pembayaran...");
