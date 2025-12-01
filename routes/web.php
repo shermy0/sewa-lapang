@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikCo
 use App\Http\Controllers\BandingPemilikController;
 use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\PemilikPetugasController;
+use App\Http\Controllers\CartTempController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -219,8 +220,8 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
 
         // CART TEMP — FULL DB AUTO SAVE
-        Route::get('/cart-temp', [CartTempController::class, 'index']);
-        Route::post('/cart-temp', [CartTempController::class, 'store']);
+        Route::post('/cart-temp', [CartTempController::class, 'store'])->name('cart-temp.store');
+        Route::get('/cart-temp', [CartTempController::class, 'index'])->name('cart-temp.index');
         Route::delete('/cart-temp/{id}', [CartTempController::class, 'destroy']);
         Route::delete('/cart-temp', [CartTempController::class, 'clear']);
         Route::post('/cart-temp/nama', [CartTempController::class, 'updateNama']);

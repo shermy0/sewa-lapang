@@ -24,15 +24,18 @@
 
     <div class="col-lg-4">
       <div class="cart">
-        <!-- Input Nama Penyewa -->
+        <!-- INPUT NAMA PENYEWA -->
         <div class="mb-3 position-relative">
           <label class="fw-semibold mb-1">Nama Penyewa</label>
           <input 
             type="text" 
             id="searchPenyewa" 
             class="form-control" 
-            placeholder="Cari nama penyewa..." 
-            autocomplete="off">
+            placeholder="Cari nama penyewa..."
+            autocomplete="off"
+            required>
+          <ul id="penyewaResults" class="list-group position-absolute w-100" 
+              style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
         </div>
 
         <div class="d-flex justify-content-between mb-2">
@@ -48,15 +51,23 @@
             <span id="subtotal">Rp 0</span>
           </div>
           <hr>
-          <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex justify-content-between align-items-center mb-2">
             <small class="text-muted">Total</small>
             <div class="fs-5 fw-bold" id="totalPrice">Rp 0</div>
           </div>
+
+          <!-- Input Tunai -->
+          <div id="cashInputWrapper" class="mb-2" style="display:none;">
+            <label for="cashGiven" class="form-label">Uang Diterima</label>
+            <input type="number" id="cashGiven" class="form-control" placeholder="Masukkan nominal uang">
+            <small class="text-success">Kembalian: <span id="cashChange">Rp 0</span></small>
+          </div>
+
           <button id="payBtn" class="btn btn-pay w-100 mt-2">Bayar</button>
         </div>
       </div>
     </div>
-
+  </div>
 
   <!-- MODAL JADWAL -->
   <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
@@ -94,10 +105,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-          <button onclick="addToCart({{ $lapangan->id }}, '{{ $lapangan->nama }}', {{ $lapangan->harga }})" 
-                  class="btn btn-success">
-              Tambah ke Cart
-          </button>
+          <button type="button" class="btn btn-success btn-sm" id="pesanBtn">Pesan</button>
         </div>
       </div>
     </div>
@@ -142,6 +150,24 @@ let page = 1;
 let filterKategori = "all";
 
 document.addEventListener("DOMContentLoaded", () => {
+
+cart = []; // array global
+
+// Ambil cart dari DB saat halaman load
+fetch('/petugas/cart-temp')  // endpoint Laravel yang mengembalikan cart user
+  .then(res => res.json())
+  .then(data => {
+    cart = data.map(i => ({
+      lapangan_id: i.lapangan_id,
+      nama: i.lapangan_name,
+      harga: i.harga,
+      jam_mulai: i.jam_mulai || '',
+      durasi: i.durasi || 1,
+      jadwal_id: i.jadwal_id
+    }));
+    renderCart(); // render cart setelah ambil dari DB
+  })
+  .catch(err => console.error('Gagal ambil cart:', err));
 
   // ======== FUNGSI UTILITAS ========
   function getCurrentTime() {
@@ -261,61 +287,49 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======== CART ========
-  function addToCart(lapangan_id, lapangan_name, harga) {
-      $.ajax({
-          url: "/cart/add",
-          type: "POST",
-          data: {
-              _token: "{{ csrf_token() }}",
-              lapangan_id: lapangan_id,
-              lapangan_name: lapangan_name,
-              harga: harga,
-              nama_penyewa: document.getElementById("searchPenyewa").value || null
-          },
-          success: function(res) {
-              console.log("Masuk DB:", res);
-              alert("Berhasil masuk keranjang!");
-
-              // Optional: simpan localStorage biar tampilan ga delay
-              let cart = JSON.parse(localStorage.getItem("cartDB")) || [];
-              cart.push(res.cart);
-              localStorage.setItem("cartDB", JSON.stringify(cart));
-          }
-      });
+  function addToCart(item){
+    const exist = cart.find(
+      c => c.lapangan_id === item.lapangan_id && c.jam_mulai === item.jam_mulai && c.tanggal === item.tanggal
+    );
+    
+    if(exist) {
+      exist.durasi += item.durasi;
+    } else {
+      cart.push({...item});
+    }
+    renderCart();
   }
 
-  function renderCartFromDB() {
-      fetch('/petugas/cart-temp')
-          .then(res => res.json())
-          .then(data => {
-              const list = document.getElementById('orderList');
-              list.innerHTML = '';
-              cart = data;
+  function renderCart(){
+    const list = document.getElementById("orderList");
+    list.innerHTML = "";
 
-              if(cart.length === 0){
-                  list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-              } else {
-                  cart.forEach((it, index) => {
-                      const li = document.createElement('li');
-                      li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
-                      li.innerHTML = `
-                          <div>
-                              <div class="fw-bold">${it.lapangan_name}</div>
-                              <div class="small text-muted">${it.jam_mulai || ''} • ${it.tanggal || ''}</div>
-                              <div class="fw-bold">Rp ${Number(it.harga).toLocaleString('id-ID')}</div>
-                          </div>
-                          <button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button>
-                      `;
-                      li.querySelector('.btn-remove').addEventListener('click', () => {
-                          fetch(`/petugas/cart-temp/${it.id}`, { method: 'DELETE', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'} })
-                              .then(() => renderCartFromDB());
-                      });
-                      list.appendChild(li);
-                  });
-              }
-              document.getElementById('cartCount').innerText = cart.length + ' item';
-              updateTotals();
-          });
+    if(cart.length === 0){
+      list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
+    } else {
+      cart.forEach((it, index) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
+        li.innerHTML = `
+          <div>
+            <div class="fw-bold">${it.nama}</div>
+            <div class="small text-muted">${it.jam_mulai} • ${it.tanggal}</div>
+            <div class="fw-bold">Rp ${Number(it.harga).toLocaleString('id-ID')}</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button>
+        `;
+
+        li.querySelector('.btn-remove').addEventListener('click', () => {
+          cart.splice(index, 1);
+          renderCart();
+        });
+
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("cartCount").innerText = cart.length + " item";
+    updateTotals();
   }
 
   function updateTotals(){
@@ -325,96 +339,114 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======== PEMBAYARAN ========
-  document.getElementById('payBtn').addEventListener('click', function () {
+document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
-    
+
     if(!penyewaId) { 
-      alert("Silakan pilih penyewa terlebih dahulu!"); 
-      penyewaInput.focus();
-      return; 
+        alert("Silakan pilih penyewa terlebih dahulu!"); 
+        penyewaInput.focus();
+        return; 
     }
     if(cart.length === 0){ 
-      alert("Keranjang kosong!"); 
-      return; 
+        alert("Keranjang kosong!"); 
+        return; 
+    }
+
+    // Validasi: semua item harus punya jadwal_id
+    const missingJadwal = cart.filter(i => !i.jadwal_id);
+    if(missingJadwal.length > 0){
+        const names = missingJadwal.map(i => i.nama).join(", ");
+        alert(`Item berikut belum memilih jadwal: ${names}. Silakan pilih jadwal terlebih dahulu.`);
+        return;
     }
 
     const paymentModalEl = document.getElementById('paymentModal');
     const paymentModal = new bootstrap.Modal(paymentModalEl);
     paymentModal.show();
-  });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const searchPenyewa = document.getElementById('searchPenyewa');
-    const orderList = document.getElementById('orderList');
-    const cartCount = document.getElementById('cartCount');
-    const subtotalEl = document.getElementById('subtotal');
-    const totalPriceEl = document.getElementById('totalPrice');
-
-    // Load cart dari DB
-    fetch('/petugas/cart-temp')
-      .then(res => res.json())
-      .then(cart => {
-          cart.forEach(item => addOrderToDOM(item));
-          updateCartInfo();
-          if(cart.length && cart[0].nama_penyewa) {
-              searchPenyewa.value = cart[0].nama_penyewa;
-          }
-      });
-
-    // Update nama penyewa di DB
-    searchPenyewa.addEventListener('input', () => {
-      fetch('/petugas/cart-temp/nama', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({nama_penyewa: searchPenyewa.value})
-        });
-    });
-
-    // Tambah item lapangan (contoh)
-    function addOrder(item) {
-        fetch('/cart-temp', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(item)
-        })
-        .then(res => res.json())
-        .then(item => {
-            addOrderToDOM(item);
-            updateCartInfo();
-        });
-    }
-
-    function addOrderToDOM(item) {
-        const li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between';
-        li.textContent = `${item.lapangan_name} x ${item.qty}`;
-        const priceSpan = document.createElement('span');
-        priceSpan.textContent = `Rp ${item.harga * item.qty}`;
-        li.appendChild(priceSpan);
-        orderList.appendChild(li);
-    }
-
-    function updateCartInfo() {
-        const items = orderList.querySelectorAll('li');
-        let totalItems = 0, totalPrice = 0;
-        items.forEach(li => {
-            const harga = parseInt(li.textContent.split('Rp ')[1]);
-            totalItems += 1;
-            totalPrice += harga;
-        });
-        cartCount.textContent = `${totalItems} item`;
-        subtotalEl.textContent = `Rp ${totalPrice}`;
-        totalPriceEl.textContent = `Rp ${totalPrice}`;
-    }
 });
 
+document.getElementById('confirmPaymentBtn').addEventListener('click', async function() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const penyewaInput = document.getElementById('searchPenyewa');
+    const penyewaId = penyewaInput.dataset.id;
+
+    if(!penyewaId) { 
+        alert("Silakan pilih penyewa terlebih dahulu!"); 
+        return; 
+    }
+    if(cart.length === 0){ 
+        alert("Keranjang kosong!"); 
+        return; 
+    }
+
+    // Validasi ulang sebelum submit
+    const missingJadwal = cart.filter(i => !i.jadwal_id);
+    if(missingJadwal.length > 0){
+        const names = missingJadwal.map(i => i.nama).join(", ");
+        alert(`Item berikut belum memilih jadwal: ${names}. Silakan pilih jadwal terlebih dahulu.`);
+        return;
+    }
+
+    // Prepare data
+    const itemsForServer = cart.map(i => ({
+        id: i.lapangan_id || i.id, 
+        jadwal_id: i.jadwal_id,
+        harga: i.harga,
+        durasi: i.durasi
+    }));
+
+    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+
+    const payload = {
+        penyewa_id: penyewaId,
+        items: itemsForServer,
+        total: total,
+        kasir: '{{ Auth::user()->name }}'
+    };
+
+    try {
+        let url = method === 'cash' 
+            ? "{{ route('petugas.store.cash') }}" 
+            : "{{ route('petugas.store.midtrans') }}";
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}" 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+
+        // Sukses
+        alert(method === 'cash' ? "Pemesanan Cash Berhasil!" : "Pembayaran Midtrans Berhasil!");
+        cart = [];
+        renderCart();
+        const paymentModalEl = document.getElementById('paymentModal');
+        const modal = bootstrap.Modal.getInstance(paymentModalEl);
+        if(modal) modal.hide();
+        if(typeof refreshJadwal === "function") refreshJadwal();
+
+        // Midtrans payment
+        if(method === 'midtrans' && data.snap_token){
+            snap.pay(data.snap_token, {
+                onSuccess: () => { alert("Pembayaran Berhasil!"); },
+                onPending: () => { alert("Menunggu Pembayaran..."); },
+                onError: () => { alert("Pembayaran Gagal!"); },
+                onClose: () => { alert('Anda menutup popup tanpa menyelesaikan pembayaran'); }
+            });
+        }
+
+    } catch(err) {
+        console.error(err);
+        alert("Terjadi kesalahan: " + err.message);
+    }
+});
 
   // ======== MODAL JADWAL & CART HANDLING ========
   let jadwalData = [];
@@ -481,34 +513,60 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Event listener untuk tombol pesan
-    pesanBtn.onclick = function() {
-      const checkedSlots = document.querySelectorAll('.slot-checkbox:checked');
-      if (checkedSlots.length === 0) {
+    pesanBtn.onclick = async function() {
+    const checkedSlots = document.querySelectorAll('.slot-checkbox:checked');
+    if (checkedSlots.length === 0) {
         alert('Pilih setidaknya satu jadwal untuk dipesan!');
         return;
-      }
+    }
 
-      checkedSlots.forEach(chk => {
+    for (let chk of checkedSlots) {
         const card = chk.closest('.card');
         const jamText = card.querySelector('.jam-text').textContent;
         const jamParts = jamText.split(' - ');
         const hargaText = card.querySelector('.harga-text').textContent.replace(/Rp\s|[.]/g,'');
         const tanggalText = card.querySelector('.tanggal-text').textContent;
 
-        addToCart({
-          lapangan_id: lapangan.id,
-          nama: lapangan.nama,
-          harga: parseInt(hargaText),
-          jam_mulai: jamParts[0],
-          tanggal: tanggalText,
-          durasi: 1,
-          jadwal_id: parseInt(chk.dataset.jadwalId)
-        });
-      });
+        const payload = {
+            lapangan_id: currentLapanganId,
+            lapangan_name: document.getElementById('jadwalModalLabel').innerText,
+            harga: parseInt(hargaText),
+            jam_mulai: jamParts[0],
+            jadwal_id: parseInt(chk.dataset.jadwalId),
+            nama_penyewa: document.getElementById('searchPenyewa').value || null
+        };
 
-      modal.hide();
-      renderCartFromDB();
-    };
+        try {
+            const res = await fetch('/petugas/cart-temp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            addToCart({
+                lapangan_id: data.lapangan_id,
+                nama: data.lapangan_name || 'Lapangan',
+                harga: data.harga,
+                jam_mulai: data.jam_mulai || '',
+                durasi: 1,
+                jadwal_id: data.jadwal_id || null,
+                tanggal: data.tanggal || document.getElementById('filterTanggal').value // fallback ke tanggal filter
+            });
+        } catch(err) {
+            console.error(err);
+            alert('Gagal menambahkan item ke cart');
+        }
+    }
+
+    renderCart();
+    const modal = bootstrap.Modal.getInstance(document.getElementById('jadwalModal'));
+    if(modal) modal.hide();
+};
+
   }
 
   function loadJadwalData(lapanganId, tanggal, jamMulai) {
@@ -770,7 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======== INIT ========
   renderGrid();
-  renderCartFromDB();
+  renderCart();
 });
 </script>
 @endpush

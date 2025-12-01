@@ -11,32 +11,36 @@ class CartTempController extends Controller
     // Ambil semua cart berdasarkan user login
     public function index()
     {
-        return DB::table('cart_temp')
-            ->where('user_id', Auth::id())
-            ->orderBy('id','desc')
+        $carts = DB::table('cart_temp')
+            ->where('user_id', auth()->id())
             ->get();
-    }
+    
+        return response()->json($carts);
+    }    
 
     // Tambah item otomatis saat user klik "Pesan"
-    public function store(Request $r)
+    public function store(Request $request)
     {
-        $id = DB::table('cart_temp')->insertGetId([
-            'user_id'       => Auth::id(),
-            'nama_penyewa'  => $r->nama_penyewa, // boleh null
-            'lapangan_id'   => $r->lapangan_id,
-            'lapangan_name' => $r->lapangan_name ?? $r->nama,
-            'qty'           => 1,
-            'harga'         => $r->harga,
-            'tanggal'       => $r->tanggal,
-            'jam_mulai'     => $r->jam_mulai,
-            'jadwal_id'     => $r->jadwal_id,
-            'created_at'    => now(),
-            'updated_at'    => now(),
+        $validated = $request->validate([
+            'lapangan_id' => 'required|integer',
+            'lapangan_name' => 'required|string',
+            'harga' => 'required|numeric',
+            'nama_penyewa' => 'nullable|string',
         ]);
 
-        return response()->json(
-            DB::table('cart_temp')->find($id)
-        );
+        // Tambahkan user_id
+        $validated['user_id'] = auth()->id(); // ambil user yang login
+        $validated['created_at'] = now();
+        $validated['updated_at'] = now();
+
+        $cart = DB::table('cart_temp')->insertGetId($validated);
+
+        $cartData = DB::table('cart_temp')->where('id', $cart)->first();
+
+        return response()->json([
+            'success' => true,
+            'cart' => $cartData
+        ]);
     }
 
     // Hapus item cart
