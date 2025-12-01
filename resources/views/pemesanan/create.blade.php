@@ -34,12 +34,12 @@
             </p>
         @endif
 
-        <p class="text-muted">Pilih section dan jadwal bermain sesuai ketersediaan.</p>
+        <p class="text-muted">Pilih lapangan dan jadwal bermain sesuai ketersediaan.</p>
     </div>
 
     {{-- ================== SECTION LIST ================== --}}
     <div class="mb-5">
-        <h5 class="fw-bold mb-3 text-secondary">Pilih Section Lapangan</h5>
+        <h5 class="fw-bold mb-3 text-secondary">Pilih Lapangan</h5>
         <div class="row g-3">
             @foreach($lapangan->sections as $section)
             <div class="col-md-3">

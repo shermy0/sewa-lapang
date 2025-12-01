@@ -17,9 +17,6 @@
         </select>
       </div>
       <div id="grid" class="row g-3"></div>
-      <nav class="mt-3">
-        <ul id="gridPagination" class="pagination pagination-sm justify-content-center"></ul>
-      </nav>
     </div>
 
     <div class="col-lg-4">
@@ -38,70 +35,72 @@
               style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
         </div>
 
-        <div class="d-flex justify-content-between mb-2">
-          <h6 class="mb-0">Daftar Pesanan</h6>
-          <small id="cartCount">0 item</small>
+    <div class="d-flex justify-content-between mb-2">
+      <h6 class="mb-0">Daftar Pesanan</h6>
+      <small id="cartCount">0 item</small>
+    </div>
+
+    <ul id="orderList" class="list-group list-group-flush mb-2"></ul>
+
+    <div>
+      <div class="d-flex justify-content-between">
+        <span>Subtotal</span>
+        <span id="subtotal">Rp 0</span>
+      </div>
+      <hr>
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">Total</small>
+        <div class="fs-5 fw-bold" id="totalPrice">Rp 0</div>
+      </div>
+      <button id="payBtn" class="btn btn-pay w-100 mt-2">Bayar</button>
+    </div>
+  </div>
+</div>
+
+  </div>
+
+
+<!-- MODAL JADWAL -->
+<div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="jadwalModalLabel">Jadwal Tersedia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-4">
+            <label for="filterTanggal" class="form-label fw-semibold mb-1">Tanggal</label>
+            <input type="date" id="filterTanggal" class="form-control form-control-sm">
+          </div>
+          <div class="col-4">
+            <label for="filterJamMulai" class="form-label fw-semibold mb-1">Jam Mulai</label>
+            <input type="time" id="filterJamMulai" class="form-control form-control-sm">
+          </div>
+          <div class="col-4 d-flex">
+            <button class="btn btn-success w-100 form-control-sm" id="resetFilters">
+              <i class="fa fa-rotate-left me-1"></i> Reset Filter
+            </button>
+          </div>
         </div>
 
-        <ul id="orderList" class="list-group list-group-flush mb-2"></ul>
-
-        <div>
-          <div class="d-flex justify-content-between">
-            <span>Subtotal</span>
-            <span id="subtotal">Rp 0</span>
-          </div>
-          <hr>
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">Total</small>
-            <div class="fs-5 fw-bold" id="totalPrice">Rp 0</div>
-          </div>
-          <button id="payBtn" class="btn btn-pay w-100 mt-2">Bayar</button>
+        <div id="jadwalContent">
+          <p class="text-center text-muted">Memuat jadwal...</p>
         </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <div id="paginationSummary"></div>
+          <ul id="jadwalPagination" class="pagination pagination-sm mb-0"></ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-success btn-sm" id="pesanBtn">Pesan</button>
       </div>
     </div>
   </div>
-
-  <!-- MODAL JADWAL -->
-  <div class="modal fade" id="jadwalModal" tabindex="-1" aria-labelledby="jadwalModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="jadwalModalLabel">Jadwal Tersedia</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row g-2 mb-3 align-items-end">
-            <div class="col-4">
-              <label for="filterTanggal" class="form-label fw-semibold mb-1">Tanggal</label>
-              <input type="date" id="filterTanggal" class="form-control form-control-sm">
-            </div>
-            <div class="col-4">
-              <label for="filterJamMulai" class="form-label fw-semibold mb-1">Jam Mulai</label>
-              <input type="time" id="filterJamMulai" class="form-control form-control-sm">
-            </div>
-            <div class="col-4 d-flex">
-              <button class="btn btn-success w-100 form-control-sm" id="resetFilters">
-                <i class="fa fa-rotate-left me-1"></i> Reset Filter
-              </button>
-            </div>
-          </div>
-
-          <div id="jadwalContent">
-            <p class="text-center text-muted">Memuat jadwal...</p>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mt-2">
-            <div id="paginationSummary"></div>
-            <ul id="jadwalPagination" class="pagination pagination-sm mb-0"></ul>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-          <button type="button" class="btn btn-success btn-sm" id="pesanBtn">Pesan</button>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 
   <!-- MODAL PEMBAYARAN -->
   <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
@@ -170,90 +169,43 @@ let filterKategori = "all";
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ======== FUNGSI UTILITAS ========
-  function getCurrentTime() {
-    const now = new Date();
-    return now.toTimeString().slice(0, 5); // Format HH:MM
-  }
-
-  function getCurrentDate() {
-    const now = new Date();
-    return now.toISOString().split('T')[0]; // Format YYYY-MM-DD
-  }
-
-  function isToday(dateString) {
-    return dateString === getCurrentDate();
-  }
-
-  function isFutureDate(dateString) {
-    return dateString > getCurrentDate();
-  }
-
-  function shouldFilterByTime(dateString, jamMulai) {
-    // Hanya filter berdasarkan waktu jika tanggalnya hari ini
-    if (isToday(dateString)) {
-      const currentTime = getCurrentTime();
-      return jamMulai >= currentTime;
-    }
-    // Untuk tanggal besok atau seterusnya, tampilkan semua jam
-    return true;
-  }
-
   // ======== RENDER GRID LAPANGAN ========
   function renderGrid(){
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
     const q = document.getElementById("searchInput").value.toLowerCase();
 
-    let items = lapanganData.map(l => ({ 
-      ...l, 
-      foto: l.foto || [], 
-      hargaRataRata: l.hargaRataRata, 
-      kategori_nama: l.kategori_nama || 'Tidak ada'
-    }));
-    
-    if(filterKategori !== "all") items = items.filter(l => l.id_kategori == filterKategori);
-    if(q) items = items.filter(l => l.nama.toLowerCase().includes(q));
+    let items = lapanganData.map(l => ({ ...l, foto: l.foto || [], hargaRataRata: l.hargaRataRata, kategori_nama: l.kategori_nama || 'Tidak ada'}));
+    if(filterKategori!=="all") items = items.filter(l=>l.id_kategori==filterKategori);
+    if(q) items = items.filter(l=>l.nama.toLowerCase().includes(q));
 
-    const totalPages = Math.ceil(items.length / perPage) || 1;
-    page = Math.min(page, totalPages);
-    const start = (page - 1) * perPage;
-    const pageItems = items.slice(start, start + perPage);
+    const totalPages = Math.ceil(items.length/perPage) || 1;
+    page = Math.min(page,totalPages);
+    const start = (page-1)*perPage;
+    const pageItems = items.slice(start,start+perPage);
 
-    pageItems.forEach(l => {
+    pageItems.forEach(l=>{
       const col = document.createElement("div");
       col.className = "col-md-4";
-      
-      let fotoHTML = l.foto.length > 1 ? `
+      let fotoHTML = l.foto.length>1?`
         <div id="carousel${l.id}" class="carousel slide">
           <div class="carousel-inner">
-            ${l.foto.map((f,idx) => `
-              <div class="carousel-item ${idx === 0 ? 'active' : ''}">
-                <img src="/storage/${f}" class="lapangan-img">
-              </div>
-            `).join('')}
+            ${l.foto.map((f,idx)=>`<div class="carousel-item ${idx===0?'active':''}"><img src="/storage/${f}" class="lapangan-img"></div>`).join('')}
           </div>
-        </div>` : l.foto.length === 1 ? 
-        `<img src="/storage/${l.foto[0]}" class="lapangan-img">` : 
-        `<img src="/no-image.jpg" class="lapangan-img">`;
+        </div>` : l.foto.length===1?`<img src="/storage/${l.foto[0]}" class="lapangan-img">`:`<img src="/no-image.jpg" class="lapangan-img">`;
 
-      col.innerHTML = `
-        <div class="card lapangan-card" data-id="${l.id}">
-          ${fotoHTML}
-          <div class="card-body py-2 px-2">
-            <h6 class="card-title mb-1">${l.nama}</h6>
-            ${l.deskripsi ? `<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>` : ''}
-            <div class="mt-1 d-flex justify-content-between">
-              <small>Harga: </small>
-              <small style="color:#41A67E;font-weight:600;">
-                ${l.hargaRataRata ? `Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam` : '-'}
-              </small>
-            </div>
+      col.innerHTML = `<div class="card lapangan-card" data-id="${l.id}">${fotoHTML}
+        <div class="card-body py-2 px-2">
+          <h6 class="card-title mb-1">${l.nama}</h6>
+          ${l.deskripsi?`<p class="text-truncate mb-1" style="font-size:0.85rem;">${l.deskripsi}</p>`:''}
+          <div class="mt-1 d-flex justify-content-between">
+            <small>Harga: </small>
+            <small style="color:#41A67E;font-weight:600;">${l.hargaRataRata?`Rp. ${l.hargaRataRata.toLocaleString('id-ID')} /jam`:'-'}</small>
           </div>
         </div>
-      `;
+      </div>`;
 
-      col.querySelector(".lapangan-card").addEventListener("click", () => openJadwalModal(l));
+      col.querySelector(".lapangan-card").addEventListener("click",()=>openJadwalModal(l));
       grid.appendChild(col);
     });
 
@@ -268,23 +220,21 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const createPageItem = (num, active = false, disabled = false) => {
       const li = document.createElement("li");
-      li.className = "page-item " + (active ? "active" : "") + (disabled ? " disabled" : "");
-      li.innerHTML = `<a href="#" class="page-link">${num}</a>`;
+      li.className="page-item "+(active?"active":"")+(disabled?" disabled":"");
+      li.innerHTML=`<a href="#" class="page-link">${num}</a>`;
       if(!disabled && !active){
-        li.querySelector('a').addEventListener("click", e => {
-          e.preventDefault(); 
-          page = num; 
-          renderGrid();
+        li.querySelector('a').addEventListener("click",e=>{
+          e.preventDefault(); page=num; renderGrid();
         });
       }
       return li;
     }
 
-    pg.appendChild(createPageItem("«", false, page === 1));
-    for(let i = 1; i <= totalPages; i++){
-      pg.appendChild(createPageItem(i, i === page));
+    pg.appendChild(createPageItem("«", false, page===1));
+    for(let i=1;i<=totalPages;i++){
+      pg.appendChild(createPageItem(i,i===page));
     }
-    pg.appendChild(createPageItem("»", false, page === totalPages));
+    pg.appendChild(createPageItem("»", false, page===totalPages));
   }
 
   // ======== CART ========
@@ -293,17 +243,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function addToCart(item){
-    const exist = cart.find(c => 
-      c.id === item.id && 
-      c.jam_mulai === item.jam_mulai && 
-      c.tanggal === item.tanggal
-    );
-    
-    if(exist) {
-      exist.durasi += item.durasi;
-    } else {
-      cart.push({...item});
-    }
+    const exist = cart.find(c=>c.id===item.id && c.jam_mulai===item.jam_mulai && c.tanggal===item.tanggal);
+    if(exist) exist.durasi+=item.durasi;
+    else cart.push({...item});
     renderCart();
   }
 
@@ -326,9 +268,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button>
         `;
 
-        li.querySelector('.btn-remove').addEventListener('click', () => {
-          cart.splice(index, 1);
-          renderCart();
+        li.querySelector('.btn-remove').addEventListener('click', ()=>{
+            cart.splice(index, 1);
+            renderCart();
         });
 
         list.appendChild(li);
@@ -416,6 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
     paymentModal.show();
   });
 
+  // tombol konfirmasi di dalam modal
   document.getElementById('confirmPaymentBtn').addEventListener('click', async function() {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
@@ -448,19 +391,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const cartSnapshot = cart.map(i => ({...i}));
     
     const payload = {
-      penyewa_id: penyewaId,
-      items: itemsForServer,
-      total: total,
-      kasir: '{{ Auth::user()->name }}'
+        penyewa_id: penyewaId,
+        items: itemsForServer,
+        total: total,
+        kasir: '{{ Auth::user()->name }}'
     };
 
     try {
-      let url = '';
-      if(method === 'cash') {
-        url = "{{ route('petugas.store.cash') }}";
-      } else {
-        url = "{{ route('petugas.store.midtrans') }}";
-      }
+        let url = '';
+        if(method === 'cash') {
+            url = "{{ route('petugas.store.cash') }}";
+        } else {
+            url = "{{ route('petugas.store.midtrans') }}";
+        }
 
       const res = await fetch(url, {
         method: "POST",
@@ -529,36 +472,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+
   // ======== MODAL JADWAL & CART HANDLING ========
   let jadwalData = [];
   let currentPage = 1;
   const rowsPerPage = 6;
-  let currentLapanganId = null;
 
   function openJadwalModal(lapangan){
     const modalEl = document.getElementById('jadwalModal');
-    currentLapanganId = lapangan.id;
     modalEl.dataset.lapanganId = lapangan.id;
     const modal = new bootstrap.Modal(modalEl);
-    
-    document.getElementById('jadwalModalLabel').innerText = lapangan.nama;
-    
-    // Set tanggal default ke hari ini
-    const today = getCurrentDate();
-    document.getElementById('filterTanggal').value = today;
-    document.getElementById('filterJamMulai').value = '';
-    
-    modal.show();
-    loadJadwalData(lapangan.id, today, '');
-
-    // Event listeners untuk modal
-    setupModalEventListeners(lapangan, modal);
-  }
-
-  function setupModalEventListeners(lapangan, modal) {
+    const content = document.getElementById('jadwalContent');
     const filterTanggal = document.getElementById('filterTanggal');
     const filterJamMulai = document.getElementById('filterJamMulai');
     const resetBtn = document.getElementById('resetFilters');
+    const summaryEl = document.getElementById('paginationSummary');
     const pesanBtn = document.getElementById('pesanBtn');
 
     // Hapus event listener lama jika ada
@@ -655,33 +583,33 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error(err); 
         jadwalData = [];
       });
-  }
 
-  function renderJadwalPage(page) {
-    const content = document.getElementById('jadwalContent');
-    const summaryEl = document.getElementById('paginationSummary');
-    
-    const totalPages = Math.ceil(jadwalData.length / rowsPerPage) || 1;
-    currentPage = Math.min(Math.max(1, page), totalPages);
-    const start = (currentPage - 1) * rowsPerPage;
-    const pageData = jadwalData.slice(start, start + rowsPerPage);
+    function getFilteredData(){
+      return jadwalData.filter(j=>{
+        let ok=true;
+        if(newFilterTanggal.value) ok=ok && j.tanggal===newFilterTanggal.value;
+        if(newFilterJamMulai.value) ok=ok && j.jam_mulai>=newFilterJamMulai.value;
+        return ok;
+      });
+    }
 
-    content.innerHTML = '';
-    
-    if (pageData.length === 0) {
-      content.innerHTML = `
-        <div class="text-center text-muted py-4">
-          <i class="fas fa-calendar-times fa-3x mb-3"></i>
-          <p>Tidak ada jadwal tersedia untuk kriteria yang dipilih</p>
-        </div>
-      `;
-    } else {
-      const grid = document.createElement('div');
-      grid.className = 'row g-3';
+    function renderPage(page){
+      const filtered = getFilteredData();
+      const totalPages = Math.ceil(filtered.length/rowsPerPage) || 1;
+      currentPage = Math.min(Math.max(1,page),totalPages);
+      const start = (currentPage-1)*rowsPerPage;
+      const pageData = filtered.slice(start,start+rowsPerPage);
 
-      pageData.forEach(j => {
-        const col = document.createElement('div');
-        col.className = 'col-md-4';
+      content.innerHTML = '';
+      if(pageData.length === 0){
+        content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
+      } else {
+        const grid = document.createElement('div');
+        grid.className = 'row g-3';
+
+        pageData.forEach(j => {
+          const col = document.createElement('div');
+          col.className = 'col-md-4';
 
         let statusClass="", statusText="";
         if(j.booking_status==="dibayar"){
@@ -743,77 +671,57 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
         }
 
-        col.appendChild(card);
-        grid.appendChild(col);
-      });
-
-      content.appendChild(grid);
-    }
-
-    // Update pagination summary
-    const startItem = jadwalData.length > 0 ? start + 1 : 0;
-    const endItem = Math.min(start + rowsPerPage, jadwalData.length);
-    summaryEl.textContent = jadwalData.length === 0 
-      ? 'Tidak ada jadwal tersedia' 
-      : `Menampilkan ${startItem} - ${endItem} dari ${jadwalData.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
-
-    // Render pagination
-    renderJadwalPagination(totalPages);
-  }
-
-  function renderJadwalPagination(totalPages) {
-    const paginationEl = document.getElementById('jadwalPagination');
-    paginationEl.innerHTML = '';
-
-    if (totalPages <= 1) return;
-
-    // Previous button
-    const prevLi = document.createElement('li');
-    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous">&laquo;</a>`;
-    if (currentPage > 1) {
-      prevLi.querySelector('a').addEventListener('click', (e) => {
-        e.preventDefault();
-        renderJadwalPage(currentPage - 1);
-      });
-    }
-    paginationEl.appendChild(prevLi);
-
-    // Page numbers
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      const pageLi = document.createElement('li');
-      pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
-      pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
-      
-      if (i !== currentPage) {
-        pageLi.querySelector('a').addEventListener('click', (e) => {
-          e.preventDefault();
-          renderJadwalPage(i);
+          col.appendChild(card);
+          grid.appendChild(col);
         });
+
+        content.appendChild(grid);
       }
-      
-      paginationEl.appendChild(pageLi);
+
+      summaryEl.textContent = filtered.length===0 ? 'Jadwal tidak tersedia' :
+        `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, filtered.length)} dari ${filtered.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
     }
 
-    // Next button
-    const nextLi = document.createElement('li');
-    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next">&raquo;</a>`;
-    if (currentPage < totalPages) {
-      nextLi.querySelector('a').addEventListener('click', (e) => {
-        e.preventDefault();
-        renderJadwalPage(currentPage + 1);
+    newFilterTanggal.addEventListener('change',()=>renderPage(1));
+    newFilterJamMulai.addEventListener('change',()=>renderPage(1));
+    newResetBtn.addEventListener('click',()=>{
+      newFilterTanggal.value=''; newFilterJamMulai.value='';
+      renderPage(1);
+    });
+
+    pesanBtn.onclick = ()=>{
+      const grid = content.querySelector('.row');
+      if(!grid) return;
+
+      const checkedSlots = grid.querySelectorAll('.slot-checkbox:checked');
+      checkedSlots.forEach(chk => {
+          const card = chk.closest('.card');
+          const jam = card.querySelector('div').textContent.split(' - ')[0];
+          const hargaText = card.querySelector('.fw-bold').textContent.replace(/Rp\s|[.]/g,'');
+          const tanggal = card.querySelector('label').textContent;
+
+          // ✅ pastikan chk.dataset.jadwalId berisi ID yang valid di DB
+          addToCart({
+              lapangan_id: lapangan.id,
+              nama: lapangan.nama,
+              harga: parseInt(hargaText),
+              jam_mulai: jam,
+              tanggal: tanggal,
+              durasi: 1,
+              jadwal_id: parseInt(chk.dataset.jadwalId)
+          });
       });
-    }
-    paginationEl.appendChild(nextLi);
+
+      modal.hide();
+      renderCart();
+    };
+
+    window.refreshJadwal = function(){
+      fetch(`/petugas/api/jadwal/${lapangan.id}`)
+        .then(res => res.json())
+        .then(data => { jadwalData = data; renderPage(1); })
+        .catch(err => console.error(err));
+    };
   }
 
   // ======== EVENT FILTER & SEARCH ========
@@ -822,11 +730,7 @@ document.addEventListener("DOMContentLoaded", () => {
     page = 1;
     renderGrid();
   });
-  
-  document.getElementById("searchInput").addEventListener("input", () => { 
-    page = 1; 
-    renderGrid(); 
-  });
+  document.getElementById("searchInput").addEventListener("input", () => { page = 1; renderGrid(); });
 
   // ======== SEARCH PENYEWA ========
   const penyewaInput = document.getElementById("searchPenyewa");
@@ -933,9 +837,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Hide dropdown when clicking outside
   document.addEventListener('click', function(e) {
-    if (!penyewaInput.contains(e.target) && !list.contains(e.target)) {
-      list.style.display = 'none';
-    }
+      if (!penyewaInput.contains(e.target) && !list.contains(e.target)) {
+          list.style.display = 'none';
+      }
   });
 
   // ======== INIT ========

@@ -124,7 +124,7 @@ class PetugasController extends Controller
             ->join('users as u', 'p.penyewa_id', '=', 'u.id')
             ->join('kategori as k', 'l.id_kategori', '=', 'k.id')
             ->whereIn('l.id', $lapanganIds)
-            ->whereIn('p.status', ['menunggu', 'dibayar'])
+            ->whereIn('p.status', ['dibayar'])
             ->where(function ($q) use ($today, $nowTime) {
                 $q->whereDate('j.tanggal', '>', $today)
                   ->orWhere(function ($q2) use ($today, $nowTime) {
