@@ -421,6 +421,63 @@ class PemesananController extends Controller
         return response()->json(['success' => true]);
     }
 
+    /**
+     * Webhook/callback dari Midtrans: tandai semua pembayaran dengan order_id ini sebagai berhasil,
+     * dan update semua pemesanan terkait ke status dibayar.
+     */
+    public function midtransCallback(Request $request)
+    {
+        $orderId = $request->input('order_id');
+        $transactionStatus = $request->input('transaction_status');
+        $fraudStatus = $request->input('fraud_status');
+
+        if (! $orderId) {
+            return response()->json(['message' => 'order_id kosong'], 400);
+        }
+
+        $isPaid = false;
+        if ($transactionStatus === 'capture') {
+            $isPaid = ($fraudStatus === 'accept');
+        } elseif ($transactionStatus === 'settlement') {
+            $isPaid = true;
+        }
+
+        if (! $isPaid) {
+            return response()->json([
+                'message' => 'Status belum dibayar',
+                'transaction_status' => $transactionStatus,
+            ], 200);
+        }
+
+        $pembayarans = Pembayaran::where('order_id', $orderId)
+            ->orWhere('order_id', 'like', $orderId . '-%')
+            ->get();
+
+        if ($pembayarans->isEmpty()) {
+            return response()->json(['message' => 'Pembayaran tidak ditemukan'], 404);
+        }
+
+        foreach ($pembayarans as $pembayaran) {
+            if ($pembayaran->status !== 'berhasil') {
+                $pembayaran->update(['status' => 'berhasil']);
+            }
+
+            $pemesanan = $pembayaran->pemesanan;
+            if ($pemesanan && $pemesanan->status !== 'dibayar') {
+                $pemesanan->update([
+                    'status' => 'dibayar',
+                    'kode_tiket' => $pemesanan->kode_tiket ?: $this->generateShortTicketCode(),
+                ]);
+
+                if ($pemesanan->jadwal) {
+                    $pemesanan->jadwal->update(['tersedia' => false]);
+                }
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     // ==================== BATALKAN PEMESANAN ====================
     public function batalkan(Request $request, $id)
     {
@@ -616,7 +673,6 @@ public function pindahLangsung(Request $request, $pemesananId)
     public function riwayatBelum()
     {
         $userId = Auth::id();
-
         $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
             ->where('penyewa_id', $userId)
             ->get();
@@ -641,11 +697,89 @@ public function pindahLangsung(Request $request, $pemesananId)
             ->latest()
             ->get();
 
+        // Sinkronisasi status pending dengan Midtrans jika ada pembayaran pending
+        $this->syncPendingPayments($belumDibayar);
+
         return view('penyewa.pembayaran', [
             'belumDibayar' => $belumDibayar,
             'semuaPemesananUser' => $semuaPemesananUser,
             'userOrders' => $userOrders
         ]);
+    }
+
+    /**
+     * Cek status pembayaran pending ke Midtrans dan perbarui pemesanan + pembayaran.
+     */
+    private function syncPendingPayments($pemesananCollection): void
+    {
+        if (!config('midtrans.server_key')) {
+            return; // konfigurasi belum siap
+        }
+
+        $pendingPayments = [];
+        foreach ($pemesananCollection as $p) {
+            if ($p->pembayaran && $p->pembayaran->status === 'pending') {
+                $pendingPayments[] = $p->pembayaran;
+            }
+        }
+
+        if (empty($pendingPayments)) {
+            return;
+        }
+
+        $baseOrderIds = collect($pendingPayments)
+            ->map(function ($pay) {
+                return preg_replace('/-\d+$/', '', $pay->order_id);
+            })
+            ->unique()
+            ->values();
+
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production', false);
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        foreach ($baseOrderIds as $baseOrderId) {
+            try {
+                $status = \Midtrans\Transaction::status($baseOrderId);
+                $transactionStatus = $status->transaction_status ?? null;
+                $fraudStatus = $status->fraud_status ?? null;
+
+                $paid = false;
+                if ($transactionStatus === 'capture') {
+                    $paid = ($fraudStatus === 'accept');
+                } elseif ($transactionStatus === 'settlement') {
+                    $paid = true;
+                }
+
+                if ($paid) {
+                    $pembayarans = Pembayaran::where('order_id', $baseOrderId)
+                        ->orWhere('order_id', 'like', $baseOrderId . '-%')
+                        ->get();
+
+                    foreach ($pembayarans as $pay) {
+                        if ($pay->status !== 'berhasil') {
+                            $pay->update(['status' => 'berhasil']);
+                        }
+
+                        $pemesanan = $pay->pemesanan;
+                        if ($pemesanan && $pemesanan->status !== 'dibayar') {
+                            $pemesanan->update([
+                                'status' => 'dibayar',
+                                'kode_tiket' => $pemesanan->kode_tiket ?: $this->generateShortTicketCode(),
+                            ]);
+
+                            if ($pemesanan->jadwal) {
+                                $pemesanan->jadwal->update(['tersedia' => false]);
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Midtrans status check failed for '.$baseOrderId.' : '.$e->getMessage());
+                continue;
+            }
+        }
     }
 
     public function riwayatBatal()
