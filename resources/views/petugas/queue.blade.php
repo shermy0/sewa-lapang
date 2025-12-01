@@ -270,12 +270,16 @@ document.addEventListener("DOMContentLoaded", () => {
               lapangan_name: item.nama,
               harga: item.harga,
               durasi: item.durasi,
-              nama_penyewa: document.getElementById('searchPenyewa').value || null
+              nama_penyewa: document.getElementById('searchPenyewa').value || null,
+
+              jam_mulai: item.jam_mulai,
+              tanggal: item.tanggal,
+              jadwal_id: item.jadwal_id
           })
       })
       .then(res => res.json())
       .then(savedItem => {
-          renderCartFromDB(); // reload cart dari DB
+          renderCartFromDB();
       });
   }
 
@@ -347,7 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalPriceEl = document.getElementById('totalPrice');
 
     // Load cart dari DB
-    fetch('/cart-temp')
+    fetch('/petugas/cart-temp')
       .then(res => res.json())
       .then(cart => {
           cart.forEach(item => addOrderToDOM(item));
@@ -359,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Update nama penyewa di DB
     searchPenyewa.addEventListener('input', () => {
-        fetch('/cart-temp/nama', {
+      fetch('/petugas/cart-temp/nama', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -502,7 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       modal.hide();
-      renderCart();
+      renderCartFromDB();
     };
   }
 
@@ -765,7 +769,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======== INIT ========
   renderGrid();
-  renderCart();
+  renderCartFromDB();
 });
 </script>
 @endpush
