@@ -552,13 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch(url)
       .then(res => res.json())
       .then(data => { 
-        // Filter data berdasarkan waktu jika tanggal hari ini
-        let filteredData = data || [];
-        if (isToday(tanggal)) {
-          filteredData = filteredData.filter(j => shouldFilterByTime(j.tanggal, j.jam_mulai));
-        }
-        
-        jadwalData = filteredData;
+        jadwalData = data || [];
         renderJadwalPage(currentPage);
       })
       .catch(err => { 

@@ -162,13 +162,26 @@ class PetugasController extends Controller
                     'label' => $first->nama_section ?? 'Section',
                     'lapangan' => $first->nama_lapangan ?? '-',
                     'queue' => $items->map(function ($row) {
+                        $statusFromScan = match ($row->status_scan) {
+                            'masuk_arena' => 'masuk_arena',
+                            'masuk_lapang', 'sudah_scan' => 'sedang_main',
+                            default => null,
+                        };
+                        $status = $statusFromScan ?? $row->status;
+                        $statusScanLabel = match ($row->status_scan) {
+                            'masuk_arena' => 'Masuk Arena',
+                            'masuk_lapang', 'sudah_scan' => 'Masuk Lapang',
+                            default => 'Belum Scan',
+                        };
+
                         return [
                             'penyewa' => $row->penyewa,
                             'tanggal' => Carbon::parse($row->tanggal)->format('d M Y'),
                             'jam_mulai' => substr($row->jam_mulai, 0, 5),
                             'jam_selesai' => substr($row->jam_selesai, 0, 5),
-                            'status' => $row->status_scan === 'sudah_scan' ? 'sedang_main' : $row->status,
+                            'status' => $status,
                             'status_scan' => $row->status_scan,
+                            'status_scan_label' => $statusScanLabel,
                             'kode_tiket' => $row->kode_tiket,
                             'lokasi' => $row->lokasi,
                             'kategori' => $row->nama_kategori,
@@ -399,14 +412,46 @@ public function storeMidtrans(Request $request)
                 $join->on('p.jadwal_id', '=', 'j.id')
                     ->whereIn('p.status', ['menunggu', 'dibayar']);
             })
+            ->leftJoin('pembayaran as pay', 'pay.pemesanan_id', '=', 'p.id')
             ->select('j.*', 'p.status as pemesanan_status')
+            ->addSelect([
+                'p.id as pemesanan_id',
+                'p.created_at as pemesanan_created_at',
+                'pay.status as payment_status',
+                'pay.created_at as payment_created_at',
+            ])
             ->orderBy('j.tanggal')
             ->orderBy('j.jam_mulai')
             ->get();
 
         // Format data sesuai JS
-        $jadwalFormatted = $jadwal->map(function($j){
-            $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'menunggu');
+        $jadwalFormatted = $jadwal->map(function($j) use ($now){
+            $status = 'tersedia';
+            $statusScan = $j->status_scan ?? 'belum_scan';
+
+            if ($j->pemesanan_status === 'dibayar') {
+                $status = 'dibayar';
+            } elseif ($j->pemesanan_status === 'menunggu') {
+                $paymentStatus = $j->payment_status;
+                $paymentCreated = $j->payment_created_at ? Carbon::parse($j->payment_created_at) : null;
+                $orderCreated = $j->pemesanan_created_at ? Carbon::parse($j->pemesanan_created_at) : null;
+
+                $isExpired =
+                    in_array($paymentStatus, ['kadaluarsa', 'batal', 'gagal'], true) ||
+                    ($paymentStatus === 'pending' && $paymentCreated && $paymentCreated->addMinutes(15)->lt($now)) ||
+                    (!$paymentStatus && $orderCreated && $orderCreated->addMinutes(15)->lt($now));
+
+                $status = $isExpired ? 'tersedia' : 'menunggu';
+            } else {
+                $status = $j->tersedia ? 'tersedia' : 'tidak_tersedia';
+            }
+
+            // Mapping status_scan ke status tampil
+            if ($statusScan === 'masuk_arena') {
+                $status = 'masuk_arena';
+            } elseif (in_array($statusScan, ['masuk_lapang', 'sudah_scan'], true)) {
+                $status = 'sedang_main';
+            }
 
             return [
                 'id' => $j->id,
@@ -415,6 +460,12 @@ public function storeMidtrans(Request $request)
                 'tanggal' => $j->tanggal,
                 'harga_sewa' => $j->harga_sewa ?? 0,
                 'booking_status' => $status,
+                'status_scan' => $statusScan,
+                'status_scan_label' => match ($statusScan) {
+                    'masuk_arena' => 'Masuk Arena',
+                    'masuk_lapang', 'sudah_scan' => 'Masuk Lapang',
+                    default => 'Belum Scan',
+                },
             ];
         });
 

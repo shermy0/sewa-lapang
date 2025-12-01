@@ -510,14 +510,26 @@
     <div class="active-queue-panel">
       <!-- We can show the very first queue item here as the "Active" one being called -->
       @php
-        // Find the first section with a queue
         $activeQueue = null;
         $activeSectionName = 'Menunggu...';
+        // 1) Prioritaskan yang sedang main / masuk arena
         foreach($sectionQueues as $section) {
-            if($section['queue']->isNotEmpty()) {
-                $activeQueue = $section['queue']->first();
-                $activeSectionName = $section['label'];
-                break;
+            foreach($section['queue'] as $item) {
+                if(in_array($item['status'], ['sedang_main', 'masuk_arena'], true)) {
+                    $activeQueue = $item;
+                    $activeSectionName = $section['label'];
+                    break 2;
+                }
+            }
+        }
+        // 2) Jika tidak ada, ambil antrean pertama yang ada
+        if(!$activeQueue) {
+            foreach($sectionQueues as $section) {
+                if($section['queue']->isNotEmpty()) {
+                    $activeQueue = $section['queue']->first();
+                    $activeSectionName = $section['label'];
+                    break;
+                }
             }
         }
       @endphp
@@ -539,6 +551,12 @@
                         <i class="fa-solid fa-tag me-1"></i>
                         {{ $activeQueue['kategori'] ?? 'Lapangan' }}
                     </span>
+                    @if(!empty($activeQueue['status_scan_label']))
+                    <span class="info-badge" style="background: rgba(59,130,246,0.12); color:#2563eb;">
+                        <i class="fa-solid fa-person-running me-1"></i>
+                        {{ $activeQueue['status_scan_label'] }}
+                    </span>
+                    @endif
                 </div>
 
                 <!-- Countdown Timer -->
@@ -606,10 +624,16 @@
                     @php
                         $currentQueue = $section['queue']->first();
                         $statusRaw = $currentQueue['status'] ?? 'menunggu';
-                        $statusLabel = $currentQueue ? strtoupper($statusRaw) : 'MENUNGGU';
+                        $statusLabel = match($statusRaw) {
+                            'sedang_main' => 'SEDANG MAIN',
+                            'masuk_arena' => 'MASUK ARENA',
+                            'dibayar' => 'DIBAYAR',
+                            default => strtoupper($statusRaw)
+                        };
                         $statusClass = match($statusRaw) {
                             'dibayar' => 'status-paid',
                             'sedang_main' => 'status-playing',
+                            'masuk_arena' => 'status-playing',
                             default => 'status-waiting'
                         };
                         $jamRange = $currentQueue ? ($currentQueue['jam_mulai'] . ' - ' . $currentQueue['jam_selesai']) : '';
