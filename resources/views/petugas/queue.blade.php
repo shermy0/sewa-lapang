@@ -2,6 +2,99 @@
 
 @section('title', 'Petugas Kasir')
 
+@push('styles')
+<style>
+  /* Receipt styling */
+  .receipt-content {
+    font-family: 'Courier New', monospace;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* Print styles */
+  @media print {
+    /* Hide browser URL and other page elements */
+    @page {
+      margin: 0;
+      size: auto;
+    }
+    
+    body * {
+      visibility: hidden;
+    }
+    
+    #receiptModal, #receiptModal * {
+      visibility: visible;
+    }
+    
+    #receiptModal {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    
+    .modal-header, .modal-footer, .d-print-none {
+      display: none !important;
+    }
+    
+    .modal-dialog {
+      max-width: 100%;
+      margin: 0;
+    }
+    
+    .modal-content {
+      border: none;
+      box-shadow: none;
+    }
+    
+    .receipt-content {
+      max-width: 100%;
+      font-size: 11pt;
+      padding: 10mm;
+    }
+    
+    /* Optimize table layout */
+    .receipt-content table {
+      font-size: 10pt;
+      width: 100%;
+    }
+    
+    .receipt-content table th,
+    .receipt-content table td {
+      padding: 4px 2px;
+      word-wrap: break-word;
+    }
+    
+    /* Adjust column widths for better spacing */
+    .receipt-content table th:nth-child(1),
+    .receipt-content table td:nth-child(1) {
+      width: 5%;
+    }
+    
+    .receipt-content table th:nth-child(2),
+    .receipt-content table td:nth-child(2) {
+      width: 35%;
+    }
+    
+    .receipt-content table th:nth-child(3),
+    .receipt-content table td:nth-child(3) {
+      width: 22%;
+    }
+    
+    .receipt-content table th:nth-child(4),
+    .receipt-content table td:nth-child(4) {
+      width: 13%;
+    }
+    
+    .receipt-content table th:nth-child(5),
+    .receipt-content table td:nth-child(5) {
+      width: 25%;
+    }
+  }
+</style>
+@endpush
+
 @section('content')
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
@@ -112,20 +205,55 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <ul class="list-group">
+          <ul class="list-group mb-3">
             <li class="list-group-item">
               <input type="radio" name="paymentMethod" value="cash" id="payCash" checked>
-              <label for="payCash">Cash</label>
+              <label for="payCash" class="ms-2">Cash</label>
             </li>
             <li class="list-group-item">
               <input type="radio" name="paymentMethod" value="midtrans" id="payMidtrans">
-              <label for="payMidtrans">Midtrans</label>
+              <label for="payMidtrans" class="ms-2">Midtrans</label>
             </li>
           </ul>
+
+          <!-- Cash Payment Details -->
+          <div id="cashPaymentDetails" style="display: block;">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Total Tagihan</label>
+              <input type="text" id="totalBillDisplay" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+              <label for="amountPaid" class="form-label fw-bold">Jumlah Bayar</label>
+              <input type="number" id="amountPaid" class="form-control" placeholder="Masukkan jumlah uang" min="0" step="1000">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Kembalian</label>
+              <input type="text" id="changeAmount" class="form-control" readonly style="font-size: 1.25rem; font-weight: bold; color: #28a745;">
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
           <button type="button" class="btn btn-success" id="confirmPaymentBtn">Bayar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL STRUK -->
+  <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="receiptModalLabel">Struk Pembayaran</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="receiptContent">
+          <!-- Receipt content will be generated here -->
+        </div>
+        <div class="modal-footer d-print-none">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+          <button type="button" class="btn btn-primary" onclick="window.print()"><i class="fa fa-print me-1"></i> Cetak Struk</button>
         </div>
       </div>
     </div>
@@ -315,6 +443,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======== PEMBAYARAN ========
+  // Toggle cash payment details based on payment method
+  document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      const cashDetails = document.getElementById('cashPaymentDetails');
+      if(this.value === 'cash') {
+        cashDetails.style.display = 'block';
+      } else {
+        cashDetails.style.display = 'none';
+      }
+    });
+  });
+
+  // Calculate change when amount paid changes
+  document.getElementById('amountPaid').addEventListener('input', function() {
+    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+    const paid = parseFloat(this.value) || 0;
+    const change = paid - total;
+    
+    const changeInput = document.getElementById('changeAmount');
+    if(change >= 0) {
+      changeInput.value = 'Rp ' + change.toLocaleString('id-ID');
+      changeInput.style.color = '#28a745';
+    } else {
+      changeInput.value = 'Kurang Rp ' + Math.abs(change).toLocaleString('id-ID');
+      changeInput.style.color = '#dc3545';
+    }
+  });
+
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
@@ -328,6 +484,18 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Keranjang kosong!"); 
       return; 
     }
+
+    // Calculate and display total
+    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+    document.getElementById('totalBillDisplay').value = 'Rp ' + total.toLocaleString('id-ID');
+    
+    // Reset payment inputs
+    document.getElementById('amountPaid').value = '';
+    document.getElementById('changeAmount').value = '';
+    
+    // Show cash details by default
+    document.getElementById('payCash').checked = true;
+    document.getElementById('cashPaymentDetails').style.display = 'block';
 
     const paymentModalEl = document.getElementById('paymentModal');
     const paymentModal = new bootstrap.Modal(paymentModalEl);
@@ -348,6 +516,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return; 
     }
 
+    // Validate cash payment
+    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
+    let amountPaid = 0;
+    let change = 0;
+    
+    if(method === 'cash') {
+      amountPaid = parseFloat(document.getElementById('amountPaid').value) || 0;
+      if(amountPaid < total) {
+        alert('Jumlah bayar kurang! Total tagihan: Rp ' + total.toLocaleString('id-ID'));
+        return;
+      }
+      change = amountPaid - total;
+    }
+
     // Prepare data
     const itemsForServer = cart.map(i => ({
       id: i.lapangan_id || i.id, 
@@ -355,8 +537,6 @@ document.addEventListener("DOMContentLoaded", () => {
       harga: i.harga,
       durasi: i.durasi
     }));
-    
-    const total = cart.reduce((s, i) => s + i.harga * i.durasi, 0);
 
     const payload = {
       penyewa_id: penyewaId,
@@ -388,12 +568,26 @@ document.addEventListener("DOMContentLoaded", () => {
       if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
 
       if(method === 'cash'){
-        alert("Pemesanan Cash Berhasil!");
-        cart = [];
-        renderCart();
+        // Hide payment modal
         const paymentModalEl = document.getElementById('paymentModal');
         const modal = bootstrap.Modal.getInstance(paymentModalEl);
         if(modal) modal.hide();
+        
+        // Generate and show receipt
+        generateReceipt({
+          orderId: data.pemesanan_ids ? data.pemesanan_ids.join(', ') : 'N/A',
+          items: cart,
+          penyewa: penyewaInput.value,
+          kasir: '{{ Auth::user()->name }}',
+          total: total,
+          amountPaid: amountPaid,
+          change: change,
+          timestamp: new Date()
+        });
+        
+        // Clear cart
+        cart = [];
+        renderCart();
         
         if(typeof refreshJadwal === "function") refreshJadwal();
       } else {
@@ -785,6 +979,112 @@ document.addEventListener("DOMContentLoaded", () => {
       list.style.display = 'none';
     }
   });
+
+  // ======== GENERATE RECEIPT ========
+  function generateReceipt(data) {
+    const receiptContent = document.getElementById('receiptContent');
+    const formatDate = (date) => {
+      return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    };
+
+    let itemsHtml = '';
+    data.items.forEach((item, idx) => {
+      const itemTotal = item.harga * item.durasi;
+      itemsHtml += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>
+            <strong>${item.nama}</strong><br>
+            <small class="text-muted">${item.tanggal} • ${item.jam_mulai}</small>
+          </td>
+          <td class="text-end">Rp ${item.harga.toLocaleString('id-ID')}</td>
+          <td class="text-center">${item.durasi} jam</td>
+          <td class="text-end">Rp ${itemTotal.toLocaleString('id-ID')}</td>
+        </tr>
+      `;
+    });
+
+    receiptContent.innerHTML = `
+      <div class="receipt-content">
+        <div class="text-center mb-4">
+          <h3 class="fw-bold mb-1">SEWALAP</h3>
+          <p class="text-muted mb-0" style="font-size: 0.9rem;">Sistem Sewa Lapangan</p>
+          <hr class="my-3">
+        </div>
+
+        <div class="mb-3">
+          <div class="row mb-1">
+            <div class="col-4 text-muted">No. Transaksi</div>
+            <div class="col-8">: ${data.orderId}</div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 text-muted">Tanggal</div>
+            <div class="col-8">: ${formatDate(data.timestamp)}</div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 text-muted">Kasir</div>
+            <div class="col-8">: ${data.kasir}</div>
+          </div>
+          <div class="row mb-1">
+            <div class="col-4 text-muted">Pelanggan</div>
+            <div class="col-8">: ${data.penyewa}</div>
+          </div>
+        </div>
+
+        <hr>
+
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th width="5%">#</th>
+              <th width="40%">Item</th>
+              <th width="20%" class="text-end">Harga</th>
+              <th width="15%" class="text-center">Qty</th>
+              <th width="20%" class="text-end">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <hr>
+
+        <div class="mb-2">
+          <div class="row mb-2">
+            <div class="col-6 text-end"><strong>TOTAL</strong></div>
+            <div class="col-6 text-end"><strong>Rp ${data.total.toLocaleString('id-ID')}</strong></div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-6 text-end">Jumlah Bayar</div>
+            <div class="col-6 text-end">Rp ${data.amountPaid.toLocaleString('id-ID')}</div>
+          </div>
+          <div class="row">
+            <div class="col-6 text-end"><strong>Kembalian</strong></div>
+            <div class="col-6 text-end"><strong style="color: #28a745;">Rp ${data.change.toLocaleString('id-ID')}</strong></div>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="text-center mt-4">
+          <p class="mb-1"><small>Terima kasih atas kunjungan Anda</small></p>
+          <p class="mb-0"><small class="text-muted">Simpan struk ini sebagai bukti pembayaran</small></p>
+        </div>
+      </div>
+    `;
+
+    // Show receipt modal
+    const receiptModalEl = document.getElementById('receiptModal');
+    const receiptModal = new bootstrap.Modal(receiptModalEl);
+    receiptModal.show();
+  }
 
   // ======== INIT ========
   renderGrid();
