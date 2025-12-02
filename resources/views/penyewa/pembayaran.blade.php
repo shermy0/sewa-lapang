@@ -293,7 +293,9 @@ document.querySelectorAll('.btn-pay-again').forEach(btn => {
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({ result })
-                        }).then(() => window.location.reload());
+                        }).catch(()=>{}).finally(() => {
+                            window.location.href = "{{ route('penyewa.tiket') }}";
+                        });
                     },
                     onPending: function(){
                         Swal.fire('Menunggu Pembayaran', 'Silakan selesaikan pembayaranmu.', 'info')

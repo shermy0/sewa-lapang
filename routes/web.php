@@ -141,7 +141,7 @@ Route::patch('/pemesanan/{pemesanan}/pindah', [PemesananController::class, 'pind
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection']);
-    Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
+    Route::post('/midtrans/callback', [PemesananController::class, 'midtransCallback']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
     Route::post('/pemesanan/{pemesanan}/expire', [PemesananController::class, 'expireNow'])->name('pemesanan.expire');

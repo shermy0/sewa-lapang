@@ -38,6 +38,17 @@
               style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
         </div>
 
+        <!-- INPUT NAMA KOMUNITAS -->
+        <div class="mb-3">
+          <label class="fw-semibold mb-1">Nama Komunitas (Opsional)</label>
+          <input 
+            type="text" 
+            id="namaKomunitas" 
+            class="form-control" 
+            placeholder="Masukkan nama komunitas..."
+            autocomplete="off">
+        </div>
+
         <div class="d-flex justify-content-between mb-2">
           <h6 class="mb-0">Daftar Pesanan</h6>
           <small id="cartCount">0 item</small>
@@ -338,6 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const namaKomunitas = document.getElementById('namaKomunitas').value;
     
     if(!penyewaId) { 
       alert("Silakan pilih penyewa terlebih dahulu!"); 
@@ -360,6 +372,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const payload = {
       penyewa_id: penyewaId,
+      nama_komunitas: namaKomunitas, // Tambahkan nama komunitas ke payload
       items: itemsForServer,
       total: total,
       kasir: '{{ Auth::user()->name }}'
@@ -391,6 +404,8 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Pemesanan Cash Berhasil!");
         cart = [];
         renderCart();
+        // Reset input komunitas setelah berhasil
+        document.getElementById('namaKomunitas').value = '';
         const paymentModalEl = document.getElementById('paymentModal');
         const modal = bootstrap.Modal.getInstance(paymentModalEl);
         if(modal) modal.hide();
@@ -415,6 +430,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Pembayaran Berhasil!");
                 cart = [];
                 renderCart();
+                // Reset input komunitas setelah berhasil
+                document.getElementById('namaKomunitas').value = '';
                 if(typeof refreshJadwal === "function") refreshJadwal();
               });
             },
