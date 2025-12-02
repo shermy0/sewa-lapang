@@ -41,6 +41,34 @@
       background-color: #d4edda;
       border-color: #28a745;
   }
+
+  #sectionTabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: none;
+  }
+  #sectionTabs .nav-link {
+      border: 1px solid #dee2e6;
+      border-radius: 999px;
+      padding: 4px 16px;
+      color: #0d6efd;
+      background-color: #fff;
+  }
+  #sectionTabs .nav-link.active {
+      background-color: #0d6efd;
+      color: #fff;
+  }
+  #sectionContent .section-pane {
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: #f8f9fa;
+      margin-bottom: 10px;
+  }
+  #sectionContent .section-pane.d-none {
+      display: none;
+  }
 </style>
 
   <div class="row gx-4">
@@ -216,82 +244,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function onLapanganClick(lapangan) {
         selectedLapangan = lapangan;
-        loadSections(lapangan.id);
+        return loadSections(lapangan.id);
     }
 
     function loadSections(lapanganId) {
-    fetch(`/petugas/sections/${lapanganId}`)
+    return fetch(`/petugas/sections/${lapanganId}`)
         .then(res => res.json())
         .then(sections => {
             const tabs = document.getElementById("sectionTabs");
             const content = document.getElementById("sectionContent");
 
-            if (sections.length === 0) {
+            if(sections.length === 0) {
                 tabs.innerHTML = '';
                 content.innerHTML = `<p class="text-muted">Tidak ada section untuk lapangan ini.</p>`;
+                currentSectionId = null;
+                currentSectionName = null;
                 return;
             }
 
+            // buat tabs
             tabs.innerHTML = '';
             content.innerHTML = '';
-
             sections.forEach((section, i) => {
-
-                // --- TAB BUTTON ---
+                const sectionName = section.nama_section || 'Section';
+                const safeNameAttr = sectionName.replace(/"/g, '&quot;');
+                if(i === 0){
+                    currentSectionId = section.id;
+                    currentSectionName = sectionName;
+                }
+                // tab button
                 tabs.innerHTML += `
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link ${i === 0 ? 'active' : ''}"
-                                data-section-id="${section.id}" 
+                        <button class="nav-link ${i==0 ? 'active' : ''}"
+                                data-section-id="${section.id}"
+                                data-section-name="${safeNameAttr}"
                                 type="button">
-                            ${section.nama_section}
+                            ${sectionName}
                         </button>
                     </li>
                 `;
 
-                // --- TAB CONTENT ---
+                // content per section (bisa custom, misal info harga)
                 content.innerHTML += `
-                    <div class="section-pane ${i === 0 ? '' : 'd-none'}" 
-                         id="section-${section.id}">
-                        <p><strong>${section.nama_section}</strong></p>
-                        ${section.harga_per_jam 
-                            ? `<p>Harga: Rp ${Number(section.harga_per_jam).toLocaleString()}</p>` 
-                            : ''}
+                    <div class="section-pane ${i==0 ? 'active' : 'd-none'}" id="section-${section.id}">
+                        <p><strong>${sectionName}</strong></p>
+                        ${section.harga_per_jam ? `<p>Harga: Rp ${Number(section.harga_per_jam).toLocaleString()}</p>` : ''}
                     </div>
                 `;
-
-                // Set section default
-                if (i === 0) currentSectionId = section.id;
             });
 
-            // --- EVENT CLICK TAB ---
+            // add click event tab
             document.querySelectorAll('#sectionTabs button').forEach(btn => {
-                btn.addEventListener('click', function() {
+    btn.addEventListener('click', function() {
+        // aktifkan tab
+        document.querySelectorAll('#sectionTabs button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
 
-                    // aktifkan tab
-                    document.querySelectorAll('#sectionTabs button')
-                        .forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
+        // tampilkan content sesuai tab
+        const id = this.dataset.sectionId;
+        currentSectionId = id; // simpan section terpilih
+        currentSectionName = this.dataset.sectionName || null;
+        document.querySelectorAll('.section-pane').forEach(p => p.classList.add('d-none'));
+        document.getElementById('section-'+id).classList.remove('d-none');
 
-                    // tampilkan content
-                    const id = this.dataset.sectionId;
-                    currentSectionId = id;
-
-                    document.querySelectorAll('.section-pane')
-                        .forEach(p => p.classList.add('d-none'));
-
-                    document.getElementById("section-" + id)
-                        .classList.remove('d-none');
-
-                    // RESET PAGE + FETCH JADWAL TERSARING
-                    currentPage = 1;
-                    fetchJadwal();
-                });
-            });
-
-            // fetch jadwal pertama kali
-            fetchJadwal();
+        // fetch jadwal ulang sesuai section + tanggal
+        currentPage = 1;
+        if(typeof window.refreshJadwal === 'function'){
+            window.refreshJadwal();
+        }
+    });
+});
+        if(typeof window.refreshJadwal === 'function'){
+            window.refreshJadwal();
+        }
         })
-        .catch(err => console.error("Gagal load section:", err));
+        .catch(err => {
+            console.error("Gagal load section:", err);
+            throw err;
+        });
 }
 
   // ======== RENDER GRID LAPANGAN ========
@@ -331,8 +361,9 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>`;
 
       col.querySelector(".lapangan-card").addEventListener("click",()=>{
-    onLapanganClick(l);
-    openJadwalModal(l);
+    onLapanganClick(l)
+        .then(() => openJadwalModal(l))
+        .catch(() => openJadwalModal(l));
 });
       grid.appendChild(col);
     });
@@ -460,9 +491,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
+    const penyewaId = penyewaInput.dataset.id;
     const radioCash = document.getElementById('payCash');
     const radioMidtrans = document.getElementById('payMidtrans');
     const paymentModalEl = document.getElementById('paymentModal');
+
+    if(cart.length === 0){
+      swalWarn("Keranjang kosong!");
+      return;
+    }
+
+    if(!penyewaId){
+      swalWarn("Pilih penyewa terlebih dahulu sebelum melakukan pembayaran.");
+      penyewaInput.focus();
+      return;
+    }
 
     // Tampilkan modal dulu
     const paymentModal = new bootstrap.Modal(paymentModalEl);
@@ -494,12 +537,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const penyewaId = penyewaInput.dataset.id;
     const total = getCartTotal();
 
-    if(!penyewaId) {
-      swalWarn("Silakan pilih penyewa terlebih dahulu!");
-      return;
-    }
     if(cart.length === 0){
       swalWarn("Keranjang kosong!");
+      return;
+    }
+
+    if(!penyewaId){
+      swalWarn("Pilih penyewa terlebih dahulu sebelum melakukan pembayaran.");
+      penyewaInput.focus();
       return;
     }
     if(method === 'cash'){
@@ -513,9 +558,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Prepare data
     const itemsForServer = cart.map(i => ({
       id: i.lapangan_id || i.id,
+      lapangan_id: i.lapangan_id || i.id,
       jadwal_id: i.jadwal_id,
       harga: i.harga,
-      durasi: i.durasi
+      durasi: i.durasi,
+      cart_item_id: i.id || null
     }));
     const cartSnapshot = cart.map(i => ({...i}));
 
@@ -523,7 +570,8 @@ document.addEventListener("DOMContentLoaded", () => {
         penyewa_id: penyewaId,
         items: itemsForServer,
         total: total,
-        kasir: '{{ Auth::user()->name }}'
+        kasir: '{{ Auth::user()->name }}',
+        nama_penyewa: penyewaInput.value || null
     };
 
     try {
@@ -604,10 +652,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======== MODAL JADWAL & CART HANDLING ========
   let jadwalData = [];
+let currentPage = 1;
 const rowsPerPage = 6;
 let currentLapanganId = null;
 let currentSectionId = null;
-let currentPage = 1;
+let currentSectionName = null;
 
 function openJadwalModal(lapangan) {
     currentLapanganId = lapangan.id;
@@ -621,6 +670,7 @@ function openJadwalModal(lapangan) {
     const resetBtn = document.getElementById('resetFilters');
     const pesanBtn = document.getElementById('pesanBtn');
     const summaryEl = document.getElementById('paginationSummary');
+    const paginationEl = document.getElementById('jadwalPagination');
 
   // ===== Set default tanggal hari ini =====
     const today = new Date().toISOString().split('T')[0];
@@ -634,7 +684,7 @@ function openJadwalModal(lapangan) {
         const jamMulai = filterJamMulai.value;
         let url = `/petugas/api/jadwal/${currentLapanganId}?tanggal=${tanggal}`;
         if (jamMulai) url += `&jam_mulai=${jamMulai}`;
-        if (currentSectionId) url += `&section_id=${currentSectionId}`;
+        if (currentSectionName) url += `&section_name=${encodeURIComponent(currentSectionName)}`;
 
         content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
 
@@ -650,6 +700,7 @@ function openJadwalModal(lapangan) {
                 console.error(err);
             });
     }
+    window.refreshJadwal = fetchJadwal;
 
     // ===== Fungsi render halaman jadwal =====
     function renderJadwalPage(page) {
@@ -665,6 +716,7 @@ function openJadwalModal(lapangan) {
         if (pageData.length === 0) {
             content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
             summaryEl.textContent = '';
+            renderJadwalPagination(totalPages);
             return;
         }
 
@@ -709,11 +761,11 @@ function openJadwalModal(lapangan) {
                 <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
                 <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
                 <div class="form-check mt-1">
-                    <input class="form-check-input slot-checkbox" 
-                           type="checkbox" 
-                           data-jadwal-id="${j.id}" 
-                           data-tanggal="${j.tanggal}" 
-                           data-jam-mulai="${j.jam_mulai}" 
+                    <input class="form-check-input slot-checkbox"
+                           type="checkbox"
+                           data-jadwal-id="${j.id}"
+                           data-tanggal="${j.tanggal}"
+                           data-jam-mulai="${j.jam_mulai}"
                            data-harga="${j.harga_sewa}"
                            ${isInCart ? 'disabled' : ''}>
                     <label class="form-check-label small">
@@ -757,6 +809,45 @@ function openJadwalModal(lapangan) {
 
         summaryEl.textContent = jadwalData.length === 0 ? 'Jadwal tidak tersedia' :
             `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, jadwalData.length)} dari ${jadwalData.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
+
+        renderJadwalPagination(totalPages);
+    }
+
+    function renderJadwalPagination(totalPages){
+        if(!paginationEl) return;
+        paginationEl.innerHTML = '';
+
+        if(totalPages <= 1){
+            paginationEl.style.display = 'none';
+            return;
+        }
+
+        paginationEl.style.display = 'flex';
+
+        const createItem = (label, targetPage, disabled = false, active = false) => {
+            const li = document.createElement('li');
+            li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = label;
+            if(!disabled){
+                a.addEventListener('click', e => {
+                    e.preventDefault();
+                    renderJadwalPage(targetPage);
+                });
+            }
+
+            li.appendChild(a);
+            paginationEl.appendChild(li);
+        };
+
+        createItem('«', currentPage - 1, currentPage === 1);
+        for(let i = 1; i <= totalPages; i++){
+            createItem(i, i, false, currentPage === i);
+        }
+        createItem('»', currentPage + 1, currentPage === totalPages);
     }
 
     // ===== Event listener filter tanggal & jam =====
@@ -926,14 +1017,17 @@ function openJadwalModal(lapangan) {
     .then(res => res.json())
     .then(carts => {
       cart = carts.map(item => ({
+        id: item.id,
         lapangan_id: item.lapangan_id,
+        lapangan_name: item.lapangan_name,
         jam_mulai: item.jam_mulai,
         tanggal: item.tanggal,
         durasi: item.durasi || 1,
-        harga: Number(item.harga),
+        harga: Number(item.harga) || 0,
         nama: item.lapangan_name,         // nama lapangan
-        nama_penyewa: item.nama_penyewa,
-        jadwal_id: item.jadwal_id  // nama penyewa
+        nama_penyewa: item.nama_penyewa,  // nama penyewa
+        jadwal_id: item.jadwal_id,
+        persisted: true
     }));
 
         const list = document.getElementById("orderList");
