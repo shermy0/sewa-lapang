@@ -218,6 +218,8 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
         Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
+        Route::post('/pemesanan/{pemesanan}/midtrans/token', [PetugasController::class, 'midtransPayAgain'])->name('pemesanan.midtrans.token');
+        Route::post('/pemesanan/{pemesanan}/midtrans/success', [PetugasController::class, 'midtransSuccess'])->name('pemesanan.midtrans.success');
 
         // CART TEMP — FULL DB AUTO SAVE
         Route::post('/cart-temp', [CartTempController::class, 'store'])->name('cart-temp.store');
