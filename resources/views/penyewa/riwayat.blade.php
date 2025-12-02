@@ -4,6 +4,7 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
+<link rel="stylesheet" href="{{ asset('css/tiket.css') }}">
 <div class="container py-4">
     <div class="penyewa-page-header">
         <div>
@@ -74,21 +75,29 @@
 
                 <div class="history-card__content">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-1">{{ $p->lapangan->nama_lapangan }}</h5>
+    <h5 class="mb-1">{{ $p->lapangan->nama_lapangan }}</h5>
 
-                        @if($p->status == 'batal')
-                            <span class="status-chip status-chip--danger">Dibatalkan</span>
-                        @elseif($p->status == 'kadaluarsa')
-                            <span class="status-chip status-chip--secondary">
-                                Kadaluarsa
-                                @if(optional($p->pembayaran)->status === 'berhasil')
-                                    <small class="ms-1 text-success">(Tidak Dipakai)</small>
-                                @else
-                                    <small class="ms-1 text-muted">(Pembayaran Tidak Selesai)</small>
-                                @endif
-                            </span>
-                        @endif
-                    </div>
+    @if($p->status == 'batal')
+        <span class="status-chip status-chip--danger">Dibatalkan</span>
+    @elseif($p->status == 'kadaluarsa')
+        <span class="status-chip status-chip--secondary">
+            Kadaluarsa
+            @if(optional($p->pembayaran)->status === 'berhasil')
+                <small class="ms-1 text-success">(Tidak Dipakai)</small>
+            @else
+                <small class="ms-1 text-muted">(Pembayaran Tidak Selesai)</small>
+            @endif
+        </span>
+    @endif
+</div>
+
+{{-- Tampilkan nama komunitas --}}
+@if($p->nama_komunitas)
+    <p class="text-primary mb-1" style="font-weight: 600;">
+        <i class="fa-solid fa-users me-1"></i> {{ $p->nama_komunitas }}
+    </p>
+@endif
+
 
                     <p class="text-muted mb-2">
                         <i class="fa-regular fa-calendar me-1"></i>

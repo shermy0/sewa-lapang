@@ -7,6 +7,34 @@
   --border: #ddd;
   --shadow: rgba(0, 0, 0, 0.1);
 }
+#riwayatTabs .nav-link,
+#scanTabs .nav-link {
+    background: var(--gray-bg);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 8px 18px;
+    margin-right: 6px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    transition: 0.25s ease;
+}
+
+#riwayatTabs .nav-link:hover,
+#scanTabs .nav-link:hover {
+    background: var(--green);
+    color: var(--white);
+    border-color: var(--green);
+    box-shadow: 0 3px 6px var(--shadow);
+}
+
+#riwayatTabs .nav-link.active,
+#scanTabs .nav-link.active {
+    background: var(--green);
+    color: var(--white);
+    border-color: var(--green);
+    box-shadow: 0 4px 10px var(--shadow);
+}
+
 .jadwal-item.active-modal {
     border: 3px dashed #41A67E !important;
     position: relative;
