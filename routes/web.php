@@ -214,6 +214,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
 
+        // Section 
+        Route::get('/sections/{lapanganId}', [PetugasController::class, 'getSections'])->name('petugas.getSections');
+
         // Payment
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');

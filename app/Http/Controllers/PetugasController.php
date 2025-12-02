@@ -7,9 +7,10 @@ use App\Models\Kategori;
 use App\Models\Pemesanan;
 use App\Models\Pembayaran;
 use App\Models\JadwalLapangan;
+use App\Models\SectionLapangan;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
-use App\Models\User; 
+use App\Models\User;
 use Carbon\Carbon;
 use Midtrans\Snap;
 use Midtrans\Config;
@@ -262,7 +263,7 @@ class PetugasController extends Controller
             ], 500);
         }
     }
-    
+
 
 public function storeMidtrans(Request $request)
     {
@@ -488,29 +489,47 @@ public function storeMidtrans(Request $request)
     {
         $sectionIds = DB::table('section_lapangan')
             ->where('lapangan_id', $lapanganId)
+            ->when($sectionName, fn($q) => $q->where('nama_section', $sectionName))
             ->pluck('id');
+
+        if ($sectionIds->isEmpty()) {
+            // Jika section tidak ditemukan, return kosong
+            return response()->json([]);
+        }
 
         $now = Carbon::now('Asia/Jakarta');
 
-        // Hapus jadwal lewat
+        // Hapus jadwal yang lewat
         DB::table('jadwal_lapangan')
             ->whereIn('section_id', $sectionIds)
             ->where('tanggal', '<', $now->toDateString())
             ->delete();
 
-        $jadwal = DB::table('jadwal_lapangan as j')
+        $jadwalQuery = DB::table('jadwal_lapangan as j')
             ->whereIn('j.section_id', $sectionIds)
-            ->where('j.tanggal', '>=', $now->toDateString())
             ->leftJoin('pemesanan as p', function ($join) {
                 $join->on('p.jadwal_id', '=', 'j.id')
                     ->whereIn('p.status', ['menunggu', 'dibayar']);
-            })
+            });
+
+        // Filter tanggal jika ada
+        if ($tanggal) {
+            $jadwalQuery->whereDate('j.tanggal', $tanggal);
+        } else {
+            $jadwalQuery->where('j.tanggal', '>=', $now->toDateString());
+        }
+
+        // Filter jam mulai jika ada
+        if ($jamMulai) {
+            $jadwalQuery->where('j.jam_mulai', '>=', $jamMulai);
+        }
+
+        $jadwal = $jadwalQuery
             ->select('j.*', 'p.status as pemesanan_status')
             ->orderBy('j.tanggal')
             ->orderBy('j.jam_mulai')
             ->get();
 
-        // Format data sesuai JS
         $jadwalFormatted = $jadwal->map(function($j){
             $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'tidak_tersedia');
 
@@ -520,6 +539,7 @@ public function storeMidtrans(Request $request)
                 'jam_selesai' => $j->jam_selesai,
                 'tanggal' => $j->tanggal,
                 'harga_sewa' => $j->harga_sewa ?? 0,
+                'section_id' => $j->section_id,
                 'booking_status' => $status,
             ];
         });
@@ -555,7 +575,7 @@ public function storeMidtrans(Request $request)
                 $carouselImages->push($l->foto);
             }
         }
-        
+
         return view('petugas.display', [
             'sectionQueues' => $sectionQueues,
             'carouselImages' => $carouselImages,
@@ -595,15 +615,15 @@ public function storeMidtrans(Request $request)
     public function penyewa()
     {
         $petugas = auth()->user();
-    
+
         // Ambil penyewa milik pemilik dari petugas
         $penyewa = User::where('role', 'penyewa')
                        ->where('pemilik_id', $petugas->pemilik_id)
                        ->orderBy('created_at', 'desc')
                        ->get();
-    
+
         return view('petugas.penyewa', compact('penyewa'));
-    }    
+    }
 
     public function storePenyewa(Request $request)
     {
@@ -611,9 +631,9 @@ public function storeMidtrans(Request $request)
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
         ]);
-    
+
         $petugas = auth()->user(); // petugas yang login
-    
+
         User::create([
             'name'        => $request->name,
             'email'       => $request->email,
@@ -622,9 +642,9 @@ public function storeMidtrans(Request $request)
             'pemilik_id'  => $petugas->pemilik_id,   // <-- INI KUNCI!
             'status'      => 'aktif',
         ]);
-    
+
         return back()->with('success', 'Penyewa berhasil ditambahkan');
-    }    
+    }
 
     public function destroyPenyewa($id)
     {
@@ -668,7 +688,7 @@ public function storeMidtrans(Request $request)
 
     public function checkPaymentStatus(Request $request)
     {
-        $orderIds = $request->order_ids; 
+        $orderIds = $request->order_ids;
         if(!is_array($orderIds)) return response()->json(['success'=>false]);
 
         Config::$serverKey = config('midtrans.server_key');
