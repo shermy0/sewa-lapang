@@ -221,7 +221,7 @@ document.querySelectorAll('.btn-pay-again').forEach(btn => {
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({ result })
-                        }).then(() => {
+                        }).catch(()=>{}).finally(() => {
                             window.location.href = "{{ route('penyewa.tiket') }}";
                         });
                     },

@@ -402,16 +402,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             title: 'Pembayaran Berhasil!',
                             text: 'Transaksi kamu berhasil diselesaikan.',
                             confirmButtonColor: '#41A67E'
-                        }).then(() => {
-                            fetch('/pemesanan/success/' + data.pemesanan_id, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ result })
-                            }).then(() => window.location.href = '/penyewa/tiket');
-                        });
+                    }).then(() => {
+                        fetch('/pemesanan/success/' + data.pemesanan_id, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ result })
+                        }).catch(()=>{}).finally(() => window.location.href = '/penyewa/tiket');
+                    });
                     },
                     onPending: function(result){
                         Swal.fire({
@@ -848,7 +848,7 @@ document.getElementById('pay-button').onclick = async function() {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ result })
-                    }).then(() => window.location.href = '/penyewa/tiket');
+                    }).catch(()=>{}).finally(() => window.location.href = '/penyewa/tiket');
                 });
             },
             onPending: function(result) {
