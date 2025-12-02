@@ -49,10 +49,10 @@
                         <label for="nama_komunitas" class="form-label fw-semibold">
                             Nama Komunitas
                         </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="nama_komunitas" 
-                               name="nama_komunitas" 
+                        <input type="text"
+                               class="form-control"
+                               id="nama_komunitas"
+                               name="nama_komunitas"
                                placeholder="Contoh: Komunitas Futsal Jakarta, Badminton Club Bandung, dll."
                                maxlength="255">
                     </div>
@@ -60,7 +60,11 @@
             </div>
         </div>
     </div>
-
+  @error('nama_komunitas')
+        <div class="invalid-feedback">
+            {{ $message }}
+        </div>
+    @enderror
     {{-- ================== SECTION LIST ================== --}}
     <div class="mb-5">
         <h5 class="fw-bold mb-3 text-secondary">Pilih Lapangan</h5>
@@ -99,7 +103,7 @@
                 </span>
             </div>
         </div>
-        
+
         <div class="card border-success">
             <div class="card-body">
                 <div class="row align-items-center">
@@ -109,9 +113,9 @@
                                 <i class="fa-solid fa-calendar-alt me-1"></i> Pilih Tanggal
                             </label>
                             <div class="input-group">
-                                <input type="date" 
-                                       id="inputTanggal" 
-                                       class="form-control" 
+                                <input type="date"
+                                       id="inputTanggal"
+                                       class="form-control"
                                        min="{{ date('Y-m-d') }}">
                                 <button class="btn btn-outline-success" type="button" id="tombolHariIni">
                                     Hari Ini
@@ -126,7 +130,7 @@
                 </div>
             </div>
         </div>
-        
+
         {{-- LOADING TANGGAL --}}
         <div id="loadingTanggal" class="text-center py-5" style="display:none;">
             <div class="spinner-border text-success" role="status">
@@ -154,7 +158,7 @@
                 </button>
             </div>
         </div>
-        
+
         {{-- LOADING JADWAL --}}
         <div id="loadingJadwal" class="text-center py-5" style="display:none;">
             <div class="spinner-border text-success" role="status">
@@ -162,10 +166,10 @@
             </div>
             <p class="mt-3 text-muted">Memuat jadwal tersedia...</p>
         </div>
-        
+
         {{-- JADWAL LIST --}}
         <div id="jadwalList" class="mb-4"></div>
-        
+
         {{-- PESAN KOSONG --}}
         <div id="noJadwalMessage" class="text-center py-5" style="display:none;">
             <i class="fa-solid fa-calendar-times fa-3x text-muted mb-3"></i>
@@ -192,13 +196,13 @@
                         <strong>Komunitas:</strong> <span id="displayNamaKomunitas"></span>
                     </div>
                 </div>
-                
+
                 {{-- INFO TANGGAL --}}
                 <div class="alert alert-info py-2 mb-3">
                     <i class="fa-solid fa-calendar-day me-2"></i>
                     <strong>Tanggal:</strong> <span id="displayTanggal"></span>
                 </div>
-                
+
                 <div id="daftarJadwalTerpilih"></div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div>
@@ -235,7 +239,7 @@
                         <strong>Komunitas:</strong> <span id="summaryNamaKomunitas"></span>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <strong>Section:</strong>
                     <p class="mb-0" id="summarySection"></p>
@@ -252,7 +256,7 @@
                     <strong>Total Bayar:</strong>
                     <p class="mb-0 fw-bold text-warning fs-5" id="summaryTotal"></p>
                 </div>
-                
+
                 {{-- KONFIRMASI KOMUNITAS --}}
                 <div class="alert alert-warning py-2 mb-0">
                     <i class="fa-solid fa-check-circle me-2"></i>
@@ -302,9 +306,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener untuk input tanggal - AUTO LOAD JADWAL
     inputTanggal.addEventListener('change', function() {
         if (!this.value) return;
-        
+
         selectedTanggal = this.value;
-        
+
         // Validasi: pastikan sudah pilih section
         if (!selectedSection) {
             Swal.fire({
@@ -316,9 +320,9 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = '';
             return;
         }
-        
+
         updateTanggalDisplay();
-        
+
         // Langsung load jadwal OTOMATIS
         loadJadwalAuto(selectedTanggal);
     });
@@ -455,16 +459,16 @@ document.querySelectorAll('.section-card').forEach(card => {
         // Reset state
         selectedJadwals = [];
         selectedTanggal = null;
-        
+
         // Reset input tanggal
         document.getElementById('inputTanggal').value = '';
-        
+
         // Tampilkan container pilih tanggal
         document.getElementById('pilihTanggalContainer').style.display = 'block';
         document.getElementById('jadwalContainer').style.display = 'none';
         document.getElementById('ringkasanJadwal').style.display = 'none';
         document.getElementById('jadwalList').innerHTML = '';
-        
+
         // Fokus ke input tanggal
         setTimeout(() => {
             document.getElementById('inputTanggal').focus();
@@ -475,38 +479,38 @@ document.querySelectorAll('.section-card').forEach(card => {
 // ========== LOAD JADWAL OTOMATIS SETELAH PILIH TANGGAL ==========
 async function loadJadwalAuto(tanggal) {
     if (!selectedSection || !tanggal || isLoadingJadwal) return;
-    
+
     isLoadingJadwal = true;
-    
+
     // Tampilkan loading di container tanggal
     document.getElementById('loadingTanggal').style.display = 'block';
-    
+
     try {
         const response = await fetch(`/jadwal/section/${selectedSection}?tanggal=${tanggal}`);
         const data = await response.json();
-        
+
         // Filter hanya jadwal dengan tanggal yang dipilih
         const jadwals = data.filter(j => j.tanggal === tanggal);
         allJadwals = jadwals;
-        
+
         // Sembunyikan loading tanggal
         document.getElementById('loadingTanggal').style.display = 'none';
-        
+
         // Tampilkan container jadwal
         document.getElementById('pilihTanggalContainer').style.display = 'none';
         document.getElementById('jadwalContainer').style.display = 'block';
-        
+
         // Render jadwal
         renderJadwal(jadwals);
-        
+
         // Reset pilihan jadwal
         selectedJadwals = [];
         updateRingkasan();
-        
+
     } catch (error) {
         console.error('Error loading jadwal:', error);
         document.getElementById('loadingTanggal').style.display = 'none';
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Gagal memuat jadwal',
@@ -521,7 +525,7 @@ async function loadJadwalAuto(tanggal) {
 // ========== UPDATE DISPLAY TANGGAL ==========
 function updateTanggalDisplay() {
     if (!selectedTanggal) return;
-    
+
     const dateObj = new Date(selectedTanggal);
     const formattedDate = dateObj.toLocaleDateString('id-ID', {
         weekday: 'long',
@@ -529,13 +533,13 @@ function updateTanggalDisplay() {
         month: 'long',
         year: 'numeric'
     });
-    
+
     // Update display di berbagai tempat
     document.getElementById('currentDateDisplay').textContent = formattedDate;
     document.getElementById('tanggalDipilihText').textContent = formattedDate;
     document.getElementById('displayTanggal').textContent = formattedDate;
     document.getElementById('summaryTanggal').textContent = formattedDate;
-    
+
     document.getElementById('tanggalTerpilihInfo').style.display = 'inline-block';
 }
 
@@ -544,18 +548,18 @@ function renderJadwal(jadwals) {
     const jadwalList = document.getElementById('jadwalList');
     const loadingJadwal = document.getElementById('loadingJadwal');
     const noJadwalMessage = document.getElementById('noJadwalMessage');
-    
+
     // Sembunyikan loading jadwal
     loadingJadwal.style.display = 'none';
-    
+
     if (jadwals.length === 0) {
         jadwalList.innerHTML = '';
         noJadwalMessage.style.display = 'block';
         return;
     }
-    
+
     noJadwalMessage.style.display = 'none';
-    
+
     // Kelompokkan berdasarkan jam
     const groupByTime = {};
     jadwals.forEach(j => {
@@ -570,7 +574,7 @@ function renderJadwal(jadwals) {
             };
         }
     });
-    
+
     // Tampilkan jadwal
     jadwalList.innerHTML = `
         <div class="row g-3">
@@ -596,7 +600,7 @@ function renderJadwal(jadwals) {
             `).join('')}
         </div>
     `;
-    
+
     // Event listener untuk pilih jadwal
     document.querySelectorAll('.jadwal-item.available').forEach(item => {
         item.addEventListener('click', function() {
@@ -631,17 +635,17 @@ function showPilihTanggal() {
     document.getElementById('jadwalList').innerHTML = '';
     document.getElementById('noJadwalMessage').style.display = 'none';
     document.getElementById('loadingJadwal').style.display = 'none';
-    
+
     // Tampilkan pilih tanggal container
     document.getElementById('pilihTanggalContainer').style.display = 'block';
     document.getElementById('loadingTanggal').style.display = 'none';
-    
+
     // Sembunyikan ringkasan
     document.getElementById('ringkasanJadwal').style.display = 'none';
-    
+
     // Reset pilihan jadwal
     selectedJadwals = [];
-    
+
     // Fokus ke input tanggal
     setTimeout(() => {
         document.getElementById('inputTanggal').focus();
@@ -730,9 +734,9 @@ document.getElementById('lanjutBayar').addEventListener('click', function() {
     namaKomunitas = document.getElementById('nama_komunitas').value.trim();
 
     // Update modal summary
-    document.getElementById('summarySection').innerText = 
+    document.getElementById('summarySection').innerText =
         document.querySelector('.section-card.active h6').innerText;
-    
+
     const tanggalText = new Date(selectedTanggal).toLocaleDateString('id-ID', {
         weekday: 'long',
         day: 'numeric',
@@ -740,7 +744,7 @@ document.getElementById('lanjutBayar').addEventListener('click', function() {
         year: 'numeric'
     });
     document.getElementById('summaryTanggal').innerText = tanggalText;
-    
+
     const summaryJadwal = document.getElementById('summaryJadwal');
     summaryJadwal.innerHTML = selectedJadwals.map(jadwal => `
         <div class="mb-1">
@@ -748,7 +752,7 @@ document.getElementById('lanjutBayar').addEventListener('click', function() {
             <span class="ms-2">Rp ${jadwal.harga.toLocaleString('id-ID')}</span>
         </div>
     `).join('');
-    
+
     const totalHarga = selectedJadwals.reduce((total, jadwal) => total + jadwal.harga, 0);
     document.getElementById('summaryTotal').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
 
@@ -791,7 +795,7 @@ document.getElementById('pay-button').onclick = async function() {
     try {
         const jadwalIds = selectedJadwals.map(j => parseInt(j.id));
         namaKomunitas = document.getElementById('nama_komunitas').value.trim();
-        
+
         const res = await fetch('{{ route("midtrans.token") }}', {
             method: 'POST',
             headers: {
