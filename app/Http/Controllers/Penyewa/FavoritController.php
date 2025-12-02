@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 class FavoritController extends Controller
 {
-    /** 
+    /**
      * Daftar lapangan favorit penyewa.
      */
     public function index(Request $request): View

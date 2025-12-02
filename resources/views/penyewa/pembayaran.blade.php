@@ -165,6 +165,14 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
     let expiresAtMs = target.dataset.expiresAt ? new Date(target.dataset.expiresAt).getTime() : null;
     const orderId = target.dataset.orderId;
     const card = target.closest('.ticket-card');
+    const container = document.getElementById('ticketContainer');
+
+    const removeCardIfEmpty = () => {
+        if (card) card.remove();
+        if (container && container.querySelectorAll('.ticket-card').length === 0) {
+            container.innerHTML = '<p class="text-muted">Belum ada pesanan menunggu pembayaran.</p>';
+        }
+    };
 
     const markStatus = (status) => {
         const badge = target.closest('.ticket-right')?.querySelector('.ticket-status-pay');
@@ -194,6 +202,7 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
     const markExpired = (message = '⛔ Waktu pembayaran sudah habis.') => {
         markStatus('kadaluarsa');
         disableActions(message);
+        removeCardIfEmpty();
     };
 
     const expireOnServer = () => {
