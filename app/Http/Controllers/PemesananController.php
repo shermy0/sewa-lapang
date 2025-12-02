@@ -148,6 +148,7 @@ class PemesananController extends Controller
             'lapangan_id' => 'required|exists:lapangan,id',
             'jadwal_id' => 'required|exists:jadwal_lapangan,id',
             'snap_token' => 'required',
+            'nama_komunitas' => 'nullable|string|max:255',
         ]);
 
         $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
@@ -214,6 +215,10 @@ class PemesananController extends Controller
 
     public function getSnapTokenAgain(Pemesanan $pemesanan)
 {
+    $request->validate([
+    'nama_komunitas' => 'nullable|string|max:255',
+]);
+
     try {
         $lapangan = $pemesanan->lapangan;
         $jadwal = $pemesanan->jadwal;

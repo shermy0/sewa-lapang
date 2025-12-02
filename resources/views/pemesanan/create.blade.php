@@ -717,6 +717,17 @@ function hapusJadwal(jadwalId) {
 
 // ========== LANJUT KE PEMBAYARAN ==========
 document.getElementById('lanjutBayar').addEventListener('click', function() {
+            const namaKomunitasInput = document.getElementById('nama_komunitas').value.trim();
+
+    if (!namaKomunitasInput) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Nama Komunitas Kosong!',
+            text: 'Isi nama komunitas sebelum melakukan pembayaran.',
+            confirmButtonColor: '#41A67E'
+        });
+        return;
+    }
     if (selectedJadwals.length === 0) {
         Swal.fire({
             icon: 'warning',
