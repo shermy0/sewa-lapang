@@ -197,7 +197,8 @@ class PetugasController extends Controller
     public function storeCash(Request $request)
     {
         $validated = $request->validate([
-            'penyewa_id' => 'required|integer',
+            'penyewa_id' => 'nullable|integer',
+            'nama_penyewa' => 'nullable|string',
             'total' => 'required|numeric',
             'items' => 'required|array|min:1',
             'kasir' => 'required|string',
@@ -206,14 +207,35 @@ class PetugasController extends Controller
         DB::beginTransaction();
 
         try {
+            $penyewaId = $validated['penyewa_id'] ?? null;
+            if (! $penyewaId) {
+                $guestName = $validated['nama_penyewa'] ?? 'Tamu';
+                $guestEmail = 'guest-' . Str::uuid() . '@guest.local';
+                $guest = User::create([
+                    'name' => $guestName,
+                    'email' => $guestEmail,
+                    'password' => bcrypt('12345678'),
+                    'role' => 'penyewa',
+                    'pemilik_id' => Auth::user()->pemilik_id,
+                    'status' => 'aktif',
+                ]);
+                $penyewaId = $guest->id;
+            }
+
             $createdIds = [];
 
             foreach ($validated['items'] as $item) {
-                if (empty($item['jadwal_id'])) {
+                $jadwalId = $item['jadwal_id'] ?? null;
+                if (! $jadwalId && isset($item['cart_item_id'])) {
+                    $cartRow = DB::table('cart_temp')->where('id', $item['cart_item_id'])->first();
+                    $jadwalId = $cartRow->jadwal_id ?? null;
+                }
+
+                if (! $jadwalId) {
                     throw new \InvalidArgumentException('Jadwal tidak ditemukan.');
                 }
 
-                $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);
+                $jadwal = JadwalLapangan::findOrFail($jadwalId);
 
                 if (! $jadwal->tersedia) {
                     throw new \RuntimeException('Jadwal sudah dibooking.');
@@ -225,7 +247,7 @@ class PetugasController extends Controller
                 }
 
                 $pemesanan = Pemesanan::create([
-                    'penyewa_id' => $validated['penyewa_id'],
+                    'penyewa_id' => $penyewaId,
                     'lapangan_id' => $lapanganId,
                     'jadwal_id' => $jadwal->id,
                     'status' => 'dibayar',
@@ -268,7 +290,8 @@ class PetugasController extends Controller
 public function storeMidtrans(Request $request)
     {
         $validated = $request->validate([
-            'penyewa_id' => 'required|integer',
+            'penyewa_id' => 'nullable|integer',
+            'nama_penyewa' => 'nullable|string',
             'total' => 'required|numeric',
             'items' => 'required|array|min:1',
             // 'kasir' => 'required|string', // Optional
@@ -277,16 +300,37 @@ public function storeMidtrans(Request $request)
         DB::beginTransaction();
 
         try {
+            $penyewaId = $validated['penyewa_id'] ?? null;
+            if (! $penyewaId) {
+                $guestName = $validated['nama_penyewa'] ?? 'Tamu';
+                $guestEmail = 'guest-' . Str::uuid() . '@guest.local';
+                $guest = User::create([
+                    'name' => $guestName,
+                    'email' => $guestEmail,
+                    'password' => bcrypt('12345678'),
+                    'role' => 'penyewa',
+                    'pemilik_id' => Auth::user()->pemilik_id,
+                    'status' => 'aktif',
+                ]);
+                $penyewaId = $guest->id;
+            }
+
             $grossAmount = 0;
             $orderIds = [];
             $transactionId = 'TRX-' . time() . '-' . strtoupper(Str::random(4));
 
             foreach ($validated['items'] as $item) {
-                if (empty($item['jadwal_id'])) {
+                $jadwalId = $item['jadwal_id'] ?? null;
+                if (! $jadwalId && isset($item['cart_item_id'])) {
+                    $cartRow = DB::table('cart_temp')->where('id', $item['cart_item_id'])->first();
+                    $jadwalId = $cartRow->jadwal_id ?? null;
+                }
+
+                if (! $jadwalId) {
                     throw new \InvalidArgumentException('Jadwal tidak ditemukan.');
                 }
 
-                $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);
+                $jadwal = JadwalLapangan::findOrFail($jadwalId);
 
                 if (! $jadwal->tersedia) {
                     throw new \RuntimeException('Jadwal sudah dibooking.');
@@ -298,7 +342,7 @@ public function storeMidtrans(Request $request)
                 }
 
                 $pemesanan = Pemesanan::create([
-                    'penyewa_id' => $validated['penyewa_id'],
+                    'penyewa_id' => $penyewaId,
                     'lapangan_id' => $lapanganId,
                     'jadwal_id' => $jadwal->id,
                     'status' => 'menunggu', // tunggu pembayaran Midtrans
@@ -485,8 +529,13 @@ public function storeMidtrans(Request $request)
         return response()->json(['success' => true]);
     }
 
-    public function getJadwalLapangan($lapanganId)
+    public function getJadwalLapangan(Request $request, $lapanganId)
     {
+        $tanggal   = $request->query('tanggal');      // ?tanggal=YYYY-MM-DD
+        $jamMulai  = $request->query('jam_mulai');   // ?jam_mulai=HH:MM
+        $sectionName = $request->query('section_name'); // ?section_name=VIP
+
+        // Ambil section sesuai nama & lapangan
         $sectionIds = DB::table('section_lapangan')
             ->where('lapangan_id', $lapanganId)
             ->when($sectionName, fn($q) => $q->where('nama_section', $sectionName))
@@ -733,5 +782,15 @@ public function storeMidtrans(Request $request)
         }
 
         return response()->json(['success' => true, 'updated' => $updated]);
+    }
+
+    public function getSections($lapanganId)
+    {
+        $sections = DB::table('section_lapangan') // ganti table
+            ->where('lapangan_id', $lapanganId)
+            ->select('id', 'nama_section')
+            ->get();
+
+        return response()->json($sections);
     }
 }
