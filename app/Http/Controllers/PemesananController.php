@@ -374,6 +374,7 @@ class PemesananController extends Controller
                 return response()->json([
                     'snap_token' => $snapToken,
                     'pemesanan_ids' => $pemesananIds,
+                    'pemesanan_id' => $pemesananIds[0] ?? null, // fallback untuk client lama
                     'transaction_id' => $transactionId,
                 ]);
 

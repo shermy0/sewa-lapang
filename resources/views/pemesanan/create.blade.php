@@ -841,14 +841,17 @@ document.getElementById('pay-button').onclick = async function() {
                     text: 'Transaksi kamu berhasil diselesaikan.',
                     confirmButtonColor: '#41A67E'
                 }).then(() => {
-                    fetch('/pemesanan/success/' + data.pemesanan_id, {
+                    const ids = data.pemesanan_ids ?? (data.pemesanan_id ? [data.pemesanan_id] : []);
+                    const requests = ids.map(id => fetch('/pemesanan/success/' + id, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ result })
-                    }).catch(()=>{}).finally(() => window.location.href = '/penyewa/tiket');
+                    }).catch(()=>{}));
+
+                    Promise.all(requests).finally(() => window.location.href = '/penyewa/tiket');
                 });
             },
             onPending: function(result) {
