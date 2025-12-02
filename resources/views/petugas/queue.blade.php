@@ -3,6 +3,46 @@
 @section('title', 'Petugas Kasir')
 
 @section('content')
+<style>
+  /* Slot yang sudah dipilih / di cart */
+  .slot-in-cart {
+      background-color: #f8d7da !important; /* merah muda / light red */
+      border: 1px solid #f5c2c7;
+      color: #721c24;
+      cursor: not-allowed;
+      border-radius: 8px;
+      transition: background-color 0.3s, border-color 0.3s;
+      padding: 10px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+  }
+
+  /* Slot yang baru dipilih saat klik */
+  .slot-selected {
+      background-color: #e8f5e8 !important; /* hijau muda / light green */
+      border: 1px solid #28a745 !important;
+      color: #155724;
+      border-radius: 8px;
+      transition: background-color 0.3s, border-color 0.3s;
+      cursor: pointer;
+      padding: 10px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+  }
+
+  /* Optional: hover untuk slot yang bisa dipilih */
+  .card:not(.slot-in-cart):hover {
+      background-color: #d4edda;
+      border-color: #28a745;
+  }
+</style>
+
   <div class="row gx-4">
     <!-- GRID LAPANGAN -->
     <div class="col-lg-8">
@@ -80,6 +120,13 @@
               <i class="fa fa-rotate-left me-1"></i> Reset Filter
             </button>
           </div>
+
+          <!-- TAB SECTION CONTAINER -->
+          <div class="col-12">
+            <label class="fw-semibold">Pilih Section</label>
+            <ul class="nav nav-tabs mb-2" id="sectionTabs"></ul>
+            <div id="sectionContent"></div>
+          </div>
         </div>
 
         <div id="jadwalContent">
@@ -156,6 +203,7 @@
 @endsection
 
 @push('scripts')
+
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 const lapanganData = @json($lapangan);
@@ -165,6 +213,69 @@ let page = 1;
 let filterKategori = "all";
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  function onLapanganClick(lapangan) {
+        selectedLapangan = lapangan;
+        loadSections(lapangan.id);
+    }
+
+    function loadSections(lapanganId) {
+    fetch(`/petugas/sections/${lapanganId}`)
+        .then(res => res.json())
+        .then(sections => {
+            const tabs = document.getElementById("sectionTabs");
+            const content = document.getElementById("sectionContent");
+
+            if(sections.length === 0) {
+                tabs.innerHTML = '';
+                content.innerHTML = `<p class="text-muted">Tidak ada section untuk lapangan ini.</p>`;
+                return;
+            }
+
+            // buat tabs
+            tabs.innerHTML = '';
+            content.innerHTML = '';
+            sections.forEach((section, i) => {
+                // tab button
+                tabs.innerHTML += `
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link ${i==0 ? 'active' : ''}" 
+                                data-section-id="${section.id}" type="button">
+                            ${section.nama_section}
+                        </button>
+                    </li>
+                `;
+
+                // content per section (bisa custom, misal info harga)
+                content.innerHTML += `
+                    <div class="section-pane ${i==0 ? 'active' : 'd-none'}" id="section-${section.id}">
+                        <p><strong>${section.nama_section}</strong></p>
+                        ${section.harga_per_jam ? `<p>Harga: Rp ${Number(section.harga_per_jam).toLocaleString()}</p>` : ''}
+                    </div>
+                `;
+            });
+
+            // add click event tab
+            document.querySelectorAll('#sectionTabs button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // aktifkan tab
+        document.querySelectorAll('#sectionTabs button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        // tampilkan content sesuai tab
+        const id = this.dataset.sectionId;
+        currentSectionId = id; // simpan section terpilih
+        document.querySelectorAll('.section-pane').forEach(p => p.classList.add('d-none'));
+        document.getElementById('section-'+id).classList.remove('d-none');
+
+        // fetch jadwal ulang sesuai section + tanggal
+        currentPage = 1;
+        fetchJadwal();
+    });
+});
+        })
+        .catch(err => console.error("Gagal load section:", err));
+}
 
   // ======== RENDER GRID LAPANGAN ========
   function renderGrid(){
@@ -202,7 +313,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       </div>`;
 
-      col.querySelector(".lapangan-card").addEventListener("click",()=>openJadwalModal(l));
+      col.querySelector(".lapangan-card").addEventListener("click",()=>{
+    onLapanganClick(l);
+    openJadwalModal(l);
+});
       grid.appendChild(col);
     });
 
@@ -476,6 +590,7 @@ document.addEventListener("DOMContentLoaded", () => {
 let currentPage = 1;
 const rowsPerPage = 6;
 let currentLapanganId = null;
+let currentSectionId = null;
 
 function openJadwalModal(lapangan) {
     currentLapanganId = lapangan.id;
@@ -490,188 +605,183 @@ function openJadwalModal(lapangan) {
     const pesanBtn = document.getElementById('pesanBtn');
     const summaryEl = document.getElementById('paginationSummary');
 
-    // Set default tanggal hari ini
+  // ===== Set default tanggal hari ini =====
     const today = new Date().toISOString().split('T')[0];
-    filterTanggal.value = today;
-    filterJamMulai.value = '';
+    if (!filterTanggal.value) filterTanggal.value = today
 
+    // ===== Fungsi fetch jadwal =====
     function fetchJadwal() {
-        let url = `/petugas/api/jadwal/${currentLapanganId}?tanggal=${filterTanggal.value}`;
-        if (filterJamMulai.value) url += `&jam_mulai=${filterJamMulai.value}`;
+        if (!currentLapanganId) return;
+
+        const tanggal = filterTanggal.value;
+        const jamMulai = filterJamMulai.value;
+        let url = `/petugas/api/jadwal/${currentLapanganId}?tanggal=${tanggal}`;
+        if (jamMulai) url += `&jam_mulai=${jamMulai}`;
 
         content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
 
         fetch(url)
-        .then(res => res.json())
-        .then(data => {
-            jadwalData = data || [];
-            currentPage = 1;
-            renderJadwalPage(currentPage);
-        })
-        .catch(err => {
-            content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>';
-            console.error(err);
-        });
+            .then(res => res.json())
+            .then(data => {
+                jadwalData = data || [];
+                currentPage = 1;
+                renderJadwalPage(currentPage);
+            })
+            .catch(err => {
+                content.innerHTML = '<p class="text-center text-danger">Gagal memuat jadwal</p>';
+                console.error(err);
+            });
     }
 
+    // ===== Fungsi render halaman jadwal =====
     function renderJadwalPage(page) {
         const totalPages = Math.ceil(jadwalData.length / rowsPerPage) || 1;
         currentPage = Math.min(Math.max(1, page), totalPages);
         const start = (currentPage - 1) * rowsPerPage;
         const pageData = jadwalData.slice(start, start + rowsPerPage);
 
+        const bookedSlots = cart.map(c => `${c.lapangan_id}_${c.jam_mulai}_${c.tanggal}`);
+
         content.innerHTML = '';
+
         if (pageData.length === 0) {
             content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
-        } else {
-            const grid = document.createElement('div');
-            grid.className = 'row g-3';
+            summaryEl.textContent = '';
+            return;
+        }
 
-            pageData.forEach(j => {
-                const col = document.createElement('div');
-                col.className = 'col-md-4';
+        const grid = document.createElement('div');
+        grid.className = 'row g-3';
 
-                let statusClass = '', statusText = '';
-                if (j.booking_status === "dibayar") {
-                    statusClass = "bg-success text-white"; statusText = "Sudah Dibayar";
-                } else if (j.booking_status === "menunggu") {
-                    statusClass = "bg-warning text-dark"; statusText = "Sedang Dibooking";
-                } else if (j.booking_status === "tidak_tersedia") {
-                    statusClass = "bg-secondary text-white"; statusText = "Tidak Tersedia";
-                } else {
-                    statusClass = "bg-light text-dark";
-                    const tanggalObj = new Date(j.tanggal);
-                    statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
-                }
+        pageData.forEach(j => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4';
 
-                const card = document.createElement('div');
-                card.className = `card p-2 text-center ${statusClass}`;
-                card.style.cursor = (j.booking_status === "tersedia" || !j.booking_status) ? 'pointer' : 'default';
-                card.style.borderRadius = '8px';
-                card.style.minHeight = '120px';
-                card.style.display = 'flex';
-                card.style.flexDirection = 'column';
-                card.style.justifyContent = 'center';
+            // Tentukan status slot
+            let statusClass = '', statusText = '';
+            if (j.booking_status === "dibayar") {
+                statusClass = "bg-success text-white";
+                statusText = "Sudah Dibayar";
+            } else if (j.booking_status === "menunggu") {
+                statusClass = "bg-warning text-dark";
+                statusText = "Sedang Dibooking";
+            } else if (j.booking_status === "tidak_tersedia") {
+                statusClass = "bg-secondary text-white";
+                statusText = "Tidak Tersedia";
+            } else {
+                statusClass = "bg-light text-dark";
+                const tanggalObj = new Date(j.tanggal);
+                statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+            }
 
-                if(j.booking_status !== "dibayar" && j.booking_status !== "menunggu" && j.booking_status !== "tidak_tersedia") {
-                    card.innerHTML = `
-                        <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
-                        <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
-                        <div class="form-check mt-1">
-                            <input class="form-check-input slot-checkbox" 
-                                  type="checkbox" 
-                                  data-jadwal-id="${j.id}" 
-                                  data-tanggal="${j.tanggal}" 
-                                  data-jam-mulai="${j.jam_mulai}" 
-                                  data-harga="${j.harga_sewa}">
-                            <label class="form-check-label small">${statusText}</label>
-                        </div>
-                    `;
+            const card = document.createElement('div');
+            card.className = `card p-2 text-center ${statusClass}`;
+            card.style.borderRadius = '8px';
+            card.style.minHeight = '120px';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.justifyContent = 'center';
 
-                    card.addEventListener('click', function(e) {
-                        if(e.target.type !== 'checkbox') {
-                            const checkbox = this.querySelector('.slot-checkbox');
+            const slotKey = `${currentLapanganId}_${j.jam_mulai}_${j.tanggal}`;
+            const isInCart = bookedSlots.includes(slotKey);
+
+            if(j.booking_status === "tersedia") {
+                card.innerHTML = `
+                <div class="lapangan-name fw-bold mb-1">${lapangan.nama}</div>
+                <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
+                <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+                <div class="form-check mt-1">
+                    <input class="form-check-input slot-checkbox" 
+                           type="checkbox" 
+                           data-jadwal-id="${j.id}" 
+                           data-tanggal="${j.tanggal}" 
+                           data-jam-mulai="${j.jam_mulai}" 
+                           data-harga="${j.harga_sewa}"
+                           ${isInCart ? 'disabled' : ''}>
+                    <label class="form-check-label small">
+                        ${statusText}${isInCart ? ' (Sudah dipilih)' : ''}
+                    </label>
+                </div>
+                `;
+                if(!isInCart){
+                    card.addEventListener('click', e => {
+                        if(e.target.type !== 'checkbox'){
+                            const checkbox = card.querySelector('.slot-checkbox');
                             checkbox.checked = !checkbox.checked;
                             if(checkbox.checked){
-                                this.style.backgroundColor = '#e8f5e8';
-                                this.style.borderColor = '#28a745';
+                                card.style.backgroundColor = '#e8f5e8';
+                                card.style.borderColor = '#28a745';
                             } else {
-                                this.style.backgroundColor = '';
-                                this.style.borderColor = '';
+                                card.style.backgroundColor = '';
+                                card.style.borderColor = '';
                             }
                         }
                     });
                 } else {
-                    card.innerHTML = `
-                        <div class="jam-text">${j.jam_mulai} - ${j.jam_selesai}</div>
-                        <div class="mt-1 fw-bold harga-text">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
-                        <div class="small">${statusText}</div>
-                    `;
+                    card.style.backgroundColor = '#f8d7da';
+                    card.style.borderColor = '#f5c2c7';
+                    card.style.cursor = 'not-allowed';
                 }
+            } else {
+                card.innerHTML = `
+                    <div class="jam-text">${j.jam_mulai} - ${j.jam_selesai}</div>
+                    <div class="mt-1 fw-bold harga-text">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+                    <div class="small">${statusText}</div>
+                `;
+                card.style.cursor = 'not-allowed';
+            }
 
-                col.appendChild(card);
-                grid.appendChild(col);
-            });
+            col.appendChild(card);
+            grid.appendChild(col);
+        });
 
-            content.appendChild(grid);
-        }
+        content.appendChild(grid);
 
         summaryEl.textContent = jadwalData.length === 0 ? 'Jadwal tidak tersedia' :
             `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, jadwalData.length)} dari ${jadwalData.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
     }
 
-    filterTanggal.addEventListener('change', fetchJadwal);
-    filterJamMulai.addEventListener('change', fetchJadwal);
+    // ===== Event listener filter tanggal & jam =====
+    filterTanggal.addEventListener('change', () => { currentPage=1; fetchJadwal(); });
+    filterJamMulai.addEventListener('change', () => { currentPage=1; fetchJadwal(); });
+
+    // ===== Reset filter =====
     resetBtn.addEventListener('click', () => {
         filterTanggal.value = today;
         filterJamMulai.value = '';
+        currentPage = 1;
         fetchJadwal();
     });
 
+    // ===== Tombol pesan =====
     pesanBtn.onclick = async () => {
-    const selected = content.querySelectorAll('.slot-checkbox:checked');
-    if(selected.length === 0){
-        Swal.fire('Perhatian', 'Pilih setidaknya satu jadwal untuk dipesan!', 'warning');
-        return;
-    }
-
-    const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaName = penyewaInput.value || null;
-    const penyewaId = penyewaInput.dataset.id || null;
-
-    // Cari data lapangan
-    const lapangan = lapanganData.find(l => l.id === currentLapanganId);
-    if(!lapangan){
-        Swal.fire('Error', 'Data lapangan tidak ditemukan', 'error');
-        return;
-    }
-
-    for(const chk of selected){
-        const payload = {
-            lapangan_id: currentLapanganId,
-            lapangan_name: lapangan.nama,
-            harga: Number(chk.dataset.harga),
-            jam_mulai: chk.dataset.jamMulai,
-            tanggal: chk.dataset.tanggal,
-            nama_penyewa: penyewaName,
-            jadwal_id: chk.dataset.jadwalId
-        };
-
-        try{
-            const res = await fetch("{{ route('petugas.cart-temp.store') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await res.json();
-            if(!data.success) throw new Error('Gagal menambahkan ke cart');
-
-            addToCart({
-                lapangan_id: payload.lapangan_id,
-                nama: payload.lapangan_name,
-                harga: payload.harga,
-                jam_mulai: payload.jam_mulai,
-                tanggal: payload.tanggal,
-                durasi: 1,
-                jadwal_id: payload.jadwal_id
-            });
-        } catch(err){
-            console.error(err);
-            Swal.fire('Error', 'Gagal menambahkan jadwal ke cart', 'error');
+        const selected = content.querySelectorAll('.slot-checkbox:checked');
+        if(selected.length === 0){
+            Swal.fire('Perhatian', 'Pilih setidaknya satu jadwal untuk dipesan!', 'warning');
+            return;
         }
-    }
 
-    // Tutup modal & render cart
-    const modal = bootstrap.Modal.getInstance(document.getElementById('jadwalModal'));
-    if(modal) modal.hide();
+        const penyewaInput = document.getElementById('searchPenyewa');
+        const penyewaName = penyewaInput.value || null;
 
-    renderCart();
-};
+        for(const chk of selected){
+            const payload = {
+                lapangan_id: currentLapanganId,
+                lapangan_name: lapangan.nama,
+                harga: Number(chk.dataset.harga),
+                jam_mulai: chk.dataset.jamMulai,
+                tanggal: chk.dataset.tanggal,
+                nama_penyewa: penyewaName,
+                jadwal_id: chk.dataset.jadwalId
+            };
+            await addToCartFromModal(payload);
+        }
 
+        const modal = bootstrap.Modal.getInstance(document.getElementById('jadwalModal'));
+        if(modal) modal.hide();
+    };
+
+    // ===== Fetch jadwal pertama =====
     fetchJadwal();
 }
 
@@ -797,10 +907,20 @@ function openJadwalModal(lapangan) {
     fetch('/petugas/cart-temp')
     .then(res => res.json())
     .then(carts => {
+      cart = carts.map(item => ({
+        lapangan_id: item.lapangan_id,
+        jam_mulai: item.jam_mulai,
+        tanggal: item.tanggal,
+        durasi: item.durasi || 1,
+        harga: Number(item.harga),
+        nama: item.lapangan_name,         // nama lapangan
+        nama_penyewa: item.nama_penyewa  // nama penyewa
+    }));
+
         const list = document.getElementById("orderList");
         list.innerHTML = "";
 
-        if(carts.length === 0){
+        if(cart.length === 0){
             list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
         } else {
             let subtotal = 0;
@@ -811,7 +931,7 @@ function openJadwalModal(lapangan) {
                 li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
                 li.innerHTML = `
                     <div>
-                        <div class="fw-bold">${item.lapangan_name} - ${item.nama_penyewa || '-'}</div>
+                        <div class="fw-bold">${item.lapangan_name}</div>
                         <div class="small text-muted">${item.jam_mulai} • ${item.tanggal}</div>
                         <div class="fw-bold">Rp ${Number(item.harga).toLocaleString('id-ID')}</div>
                     </div>
@@ -828,13 +948,14 @@ function openJadwalModal(lapangan) {
                 list.appendChild(li);
             });
 
-            document.getElementById("cartCount").innerText = carts.length + " item";
+            document.getElementById("cartCount").innerText = cart.length + " item";
             document.getElementById("subtotal").innerText = "Rp " + subtotal.toLocaleString('id-ID');
             document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
         }
     })
     .catch(err => console.error(err));
 }
+
 
 // ======== INIT CART ========
 function initCart() {
@@ -899,10 +1020,6 @@ pesanBtn.onclick = async () => {
 initCart();
 renderGrid();
 
-
-  // ======== INIT ========
-  renderGrid();
-  renderCart();
 });
 </script>
 @endpush

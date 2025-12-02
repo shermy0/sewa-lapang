@@ -22,6 +22,7 @@
                             <th>Jam</th>
                             <th>Status Pesanan</th>
                             <th>Status Bayar</th>
+                            <th>Aksi</th>
                             <th>Status Scan</th>
                             <th>QR</th>
                         </tr>
@@ -66,6 +67,16 @@
                                 <td>{{ $jamMain }}</td>
                                 <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
                                 <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
+                                <td>
+                                    @if(($t->status === 'menunggu') || ($bayarStatus === 'pending'))
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-success pay-midtrans"
+                                            data-id="{{ $t->id }}">
+                                            <i class="fa-solid fa-credit-card"></i>
+                                        </button>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($scanStatus == 'sudah_scan')
                                         <span class="badge bg-success">MASUK LAPANG</span>
@@ -112,6 +123,7 @@
 
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const qrModalEl = document.getElementById('qrModal');
@@ -138,6 +150,58 @@ document.addEventListener('DOMContentLoaded', () => {
   qrModalEl.addEventListener('hidden.bs.modal', () => {
     qrContainer.innerHTML = '';
     qrInstance = null;
+  });
+
+  // Midtrans Pay Again (untuk penyewa tanpa HP)
+  document.querySelectorAll('.pay-midtrans').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (!id) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+      fetch(`/petugas/pemesanan/${id}/midtrans/token`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': '{{ csrf_token() }}',
+          'Accept': 'application/json'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error || !data.snap_token) {
+          throw new Error(data.error || 'Gagal membuat token');
+        }
+
+        snap.pay(data.snap_token, {
+          onSuccess: function(result) {
+            fetch(`/petugas/pemesanan/${id}/midtrans/success`, {
+              method: 'POST',
+              headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ result })
+            }).then(() => window.location.reload());
+          },
+          onPending: function() {
+            alert('Pembayaran masih pending.');
+          },
+          onError: function() {
+            alert('Pembayaran gagal atau dibatalkan.');
+          }
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Tidak bisa memproses Midtrans.');
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-credit-card"></i>';
+      });
+    });
   });
 });
 </script>

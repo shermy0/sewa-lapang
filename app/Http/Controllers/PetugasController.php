@@ -7,6 +7,7 @@ use App\Models\Kategori;
 use App\Models\Pemesanan;
 use App\Models\Pembayaran;
 use App\Models\JadwalLapangan;
+use App\Models\SectionLapangan;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use App\Models\User; 
@@ -365,33 +366,175 @@ public function storeMidtrans(Request $request)
         return 'TK' . strtoupper(Str::random(6));
     }
 
-    public function getJadwalLapangan($lapanganId)
+    private function resolveHargaSewa(?JadwalLapangan $jadwal, ?Lapangan $lapangan): int
     {
+        $candidates = [
+            optional($jadwal)->harga_sewa,
+            optional($lapangan)->harga_sewa,
+            optional($lapangan)->harga_per_jam,
+        ];
+
+        foreach ($candidates as $value) {
+            if (is_numeric($value) && $value > 0) {
+                return (int) round($value);
+            }
+        }
+
+        return 0;
+    }
+
+    public function midtransPayAgain(Pemesanan $pemesanan)
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        if ($pemilikId && optional($pemesanan->lapangan)->pemilik_id !== $pemilikId) {
+            abort(403, 'Tidak diizinkan.');
+        }
+
+        $lapangan = $pemesanan->lapangan;
+        $jadwal = $pemesanan->jadwal;
+        $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+
+        if ($hargaSewa <= 0) {
+            return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+        }
+
+        if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
+            return response()->json(['error' => 'Konfigurasi Midtrans belum siap.'], 500);
+        }
+
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        $uniqueOrderId = 'POS-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+
+        $snapToken = Snap::getSnapToken([
+            'transaction_details' => [
+                'order_id' => $uniqueOrderId,
+                'gross_amount' => $hargaSewa,
+            ],
+            'customer_details' => [
+                'first_name' => $pemesanan->penyewa->name ?? 'Penyewa',
+                'email' => $pemesanan->penyewa->email ?? 'no-reply@example.com',
+            ],
+        ]);
+
+        $pembayaran = $pemesanan->pembayaran;
+        if ($pembayaran) {
+            $pembayaran->update([
+                'snap_token' => $snapToken,
+                'status' => 'pending',
+                'order_id' => $uniqueOrderId,
+                'jumlah' => $hargaSewa,
+            ]);
+        } else {
+            Pembayaran::create([
+                'pemesanan_id' => $pemesanan->id,
+                'metode' => 'midtrans',
+                'jumlah' => $hargaSewa,
+                'status' => 'pending',
+                'order_id' => $uniqueOrderId,
+                'snap_token' => $snapToken,
+            ]);
+        }
+
+        $pemesanan->update(['status' => 'menunggu']);
+
+        return response()->json([
+            'snap_token' => $snapToken,
+            'pemesanan_id' => $pemesanan->id,
+            'order_id' => $uniqueOrderId,
+        ]);
+    }
+
+    public function midtransSuccess(Request $request, Pemesanan $pemesanan)
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        if ($pemilikId && optional($pemesanan->lapangan)->pemilik_id !== $pemilikId) {
+            abort(403, 'Tidak diizinkan.');
+        }
+
+        $hargaSewa = $this->resolveHargaSewa($pemesanan->jadwal, $pemesanan->lapangan);
+
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        $pemesanan->update([
+            'status' => 'dibayar',
+            'kode_tiket' => $pemesanan->kode_tiket ?: $this->generateTicketCode(),
+        ]);
+
+        if ($pemesanan->pembayaran) {
+            $pemesanan->pembayaran->update([
+                'status' => 'berhasil',
+                'jumlah' => $hargaSewa,
+            ]);
+        }
+
+        if ($pemesanan->jadwal) {
+            $pemesanan->jadwal->update(['tersedia' => false]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function getJadwalLapangan(Request $request, $lapanganId)
+    {
+        $tanggal   = $request->query('tanggal');      // ?tanggal=YYYY-MM-DD
+        $jamMulai  = $request->query('jam_mulai');   // ?jam_mulai=HH:MM
+        $sectionName = $request->query('section_name'); // ?section_name=VIP
+
+        // Ambil section sesuai nama & lapangan
         $sectionIds = DB::table('section_lapangan')
             ->where('lapangan_id', $lapanganId)
+            ->when($sectionName, fn($q) => $q->where('nama_section', $sectionName))
             ->pluck('id');
+
+        if ($sectionIds->isEmpty()) {
+            // Jika section tidak ditemukan, return kosong
+            return response()->json([]);
+        }
 
         $now = Carbon::now('Asia/Jakarta');
 
-        // Hapus jadwal lewat
+        // Hapus jadwal yang lewat
         DB::table('jadwal_lapangan')
             ->whereIn('section_id', $sectionIds)
             ->where('tanggal', '<', $now->toDateString())
             ->delete();
 
-        $jadwal = DB::table('jadwal_lapangan as j')
+        $jadwalQuery = DB::table('jadwal_lapangan as j')
             ->whereIn('j.section_id', $sectionIds)
-            ->where('j.tanggal', '>=', $now->toDateString())
             ->leftJoin('pemesanan as p', function ($join) {
                 $join->on('p.jadwal_id', '=', 'j.id')
                     ->whereIn('p.status', ['menunggu', 'dibayar']);
-            })
+            });
+
+        // Filter tanggal jika ada
+        if ($tanggal) {
+            $jadwalQuery->whereDate('j.tanggal', $tanggal);
+        } else {
+            $jadwalQuery->where('j.tanggal', '>=', $now->toDateString());
+        }
+
+        // Filter jam mulai jika ada
+        if ($jamMulai) {
+            $jadwalQuery->where('j.jam_mulai', '>=', $jamMulai);
+        }
+
+        $jadwal = $jadwalQuery
             ->select('j.*', 'p.status as pemesanan_status')
             ->orderBy('j.tanggal')
             ->orderBy('j.jam_mulai')
             ->get();
 
-        // Format data sesuai JS
         $jadwalFormatted = $jadwal->map(function($j){
             $status = $j->pemesanan_status ?? ($j->tersedia ? 'tersedia' : 'tidak_tersedia');
 
@@ -401,6 +544,7 @@ public function storeMidtrans(Request $request)
                 'jam_selesai' => $j->jam_selesai,
                 'tanggal' => $j->tanggal,
                 'harga_sewa' => $j->harga_sewa ?? 0,
+                'section_id' => $j->section_id,
                 'booking_status' => $status,
             ];
         });
@@ -595,4 +739,14 @@ public function storeMidtrans(Request $request)
 
         return response()->json(['success' => true, 'updated' => $updated]);
     }
+
+    public function getSections($lapanganId)
+    {
+        $sections = DB::table('section_lapangan') // ganti table
+            ->where('lapangan_id', $lapanganId)
+            ->select('id', 'nama_section')
+            ->get();
+    
+        return response()->json($sections);
+    }    
 }
