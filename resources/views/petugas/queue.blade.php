@@ -266,8 +266,21 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         li.querySelector('.btn-remove').addEventListener('click', ()=>{
-            cart.splice(index, 1);
-            renderCart();
+            // Jika item berasal dari DB, hapus via API agar tidak hilang saat refresh
+            if (it.persisted && it.id) {
+                fetch(`/petugas/cart-temp/${it.id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                })
+                .then(() => renderCartFromDB())
+                .catch(() => {
+                    cart.splice(index, 1);
+                    renderCart();
+                });
+            } else {
+                cart.splice(index, 1);
+                renderCart();
+            }
         });
 
         list.appendChild(li);
@@ -797,41 +810,18 @@ function openJadwalModal(lapangan) {
     fetch('/petugas/cart-temp')
     .then(res => res.json())
     .then(carts => {
-        const list = document.getElementById("orderList");
-        list.innerHTML = "";
+        // Sinkronkan cart lokal supaya tetap ada setelah refresh
+        cart = carts.map(c => ({
+            id: c.id,
+            nama: `${c.lapangan_name} - ${c.nama_penyewa || '-'}`,
+            jam_mulai: c.jam_mulai,
+            tanggal: c.tanggal,
+            harga: Number(c.harga) || 0,
+            durasi: c.durasi || 1,
+            persisted: true
+        }));
 
-        if(carts.length === 0){
-            list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-        } else {
-            let subtotal = 0;
-            carts.forEach((item, index) => {
-                subtotal += parseInt(item.harga) * (item.durasi || 1);
-
-                const li = document.createElement("li");
-                li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
-                li.innerHTML = `
-                    <div>
-                        <div class="fw-bold">${item.lapangan_name} - ${item.nama_penyewa || '-'}</div>
-                        <div class="small text-muted">${item.jam_mulai} • ${item.tanggal}</div>
-                        <div class="fw-bold">Rp ${Number(item.harga).toLocaleString('id-ID')}</div>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-danger btn-remove" data-id="${item.id}">&times;</button>
-                `;
-
-                li.querySelector('.btn-remove').addEventListener('click', () => {
-                    fetch(`/petugas/cart-temp/${item.id}`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-                    }).then(() => renderCartFromDB());
-                });
-
-                list.appendChild(li);
-            });
-
-            document.getElementById("cartCount").innerText = carts.length + " item";
-            document.getElementById("subtotal").innerText = "Rp " + subtotal.toLocaleString('id-ID');
-            document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
-        }
+        renderCart();
     })
     .catch(err => console.error(err));
 }
@@ -898,11 +888,6 @@ pesanBtn.onclick = async () => {
 // ======== INIT ========
 initCart();
 renderGrid();
-
-
-  // ======== INIT ========
-  renderGrid();
-  renderCart();
 });
 </script>
 @endpush
