@@ -191,10 +191,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-// PETUGAS KASIR
-Route::middleware(['auth', 'verified', 'role:petugas'])
-    ->prefix('petugas')->name('petugas.')
-    ->group(function () {
+    // PETUGAS KASIR
+    Route::middleware(['auth', 'verified', 'role:petugas'])
+        ->prefix('petugas')->name('petugas.')
+        ->group(function () {
 
         // Dashboard petugas
         Route::get('/', [PetugasController::class, 'index'])->name('index');

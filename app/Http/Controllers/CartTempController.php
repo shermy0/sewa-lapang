@@ -26,6 +26,8 @@ class CartTempController extends Controller
             'lapangan_name' => 'required|string',
             'harga' => 'required|numeric',
             'nama_penyewa' => 'nullable|string',
+            'jam_mulai' => 'nullable|string', // ditambah
+            'tanggal' => 'nullable|date',    // ditambah
         ]);
 
         // Tambahkan user_id
