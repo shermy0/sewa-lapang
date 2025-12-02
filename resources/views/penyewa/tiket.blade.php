@@ -85,13 +85,7 @@
                             <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">Dibayar</span></p>
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
                             
-                            {{-- TAMPILKAN JUGA DI BAGIAN INFORMASI --}}
-                            @if($p->nama_komunitas && $p->nama_komunitas !== 'Tidak ada komunitas')
-                            <p class="mb-1">
-                                <strong><i class="fa-solid fa-users me-1"></i> Komunitas:</strong> 
-                                <span class="text-success fw-semibold">{{ $p->nama_komunitas }}</span>
-                            </p>
-                            @endif
+                           
                             
                             <p class="mt-2 mb-0">
                                 @if($p->status_scan === 'sudah_scan')
