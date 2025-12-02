@@ -36,6 +36,15 @@
 @endif
 
                 </div>
+                
+                {{-- TAMBAHKAN NAMA KOMUNITAS --}}
+                @if($p->nama_komunitas && $p->nama_komunitas !== 'Tidak ada komunitas')
+                <p class="mb-2">
+                    <i class="fa-solid fa-users me-1"></i>
+                    <span>{{ $p->nama_komunitas }}</span>
+                </p>
+                @endif
+
                 <p class="text-muted mb-2">
                     <i class="fa-regular fa-calendar me-1"></i>
                     {{ \Carbon\Carbon::parse($p->jadwal->tanggal)->format('d M Y') }}

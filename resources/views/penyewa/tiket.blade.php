@@ -7,8 +7,6 @@
 <link rel="stylesheet" href="{{ asset('css/tiket.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
-
 <div class="container py-4">
     <h2 class="fw-bold mb-4 text-success">
         <i class="fa-solid fa-ticket me-2"></i>Tiket Saya
@@ -72,10 +70,29 @@
                     </div>
 
                     <div class="ticket-right p-4 bg-white flex-grow-1 position-relative">
+                        {{-- TAMPILKAN NAMA KOMUNITAS --}}
+                        @if($p->nama_komunitas && $p->nama_komunitas !== 'Tidak ada komunitas')
+                        <div class="komunitas-info mb-3">
+                            <div class="alert alert-success py-2 mb-0">
+                                <i class="fa-solid fa-users me-2"></i>
+                                <strong>Komunitas:</strong> {{ $p->nama_komunitas }}
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="ticket-info">
                             <p class="mb-1"><strong>Kode Tiket:</strong> {{ $p->kode_tiket }}</p>
                             <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">Dibayar</span></p>
                             <p class="mb-1"><strong>Harga:</strong> Rp {{ number_format($p->jadwal->harga_sewa, 0, ',', '.') }}</p>
+                            
+                            {{-- TAMPILKAN JUGA DI BAGIAN INFORMASI --}}
+                            @if($p->nama_komunitas && $p->nama_komunitas !== 'Tidak ada komunitas')
+                            <p class="mb-1">
+                                <strong><i class="fa-solid fa-users me-1"></i> Komunitas:</strong> 
+                                <span class="text-success fw-semibold">{{ $p->nama_komunitas }}</span>
+                            </p>
+                            @endif
+                            
                             <p class="mt-2 mb-0">
                                 @if($p->status_scan === 'sudah_scan')
                                     <span class="ticket-status-scan sudah"><i class="fa-solid fa-check-circle me-1"></i>Masuk Lapang</span>
@@ -98,30 +115,28 @@
                             <a href="{{ route('tiket.download', $p->id) }}" class="btn btn-outline-success btn-sm px-3">
                                 <i class="fa-solid fa-download me-1"></i> Download
                             </a>
-{{-- Tombol pindah lapang --}}
-@if($p->status_scan !== 'sudah_scan')
-@php
-    $jadwalAktifText = '-';
-    if($jadwalAktif){
-        $tanggalFormat = \Carbon\Carbon::parse($jadwalAktif->tanggal)->translatedFormat('l, d F Y');
-        $jadwalAktifText = $tanggalFormat . ' | ' . $jadwalAktif->jam_mulai . ' - ' . $jadwalAktif->jam_selesai;
-    }
-@endphp
+                            
+                            @if($p->status_scan !== 'sudah_scan')
+                            @php
+                                $jadwalAktifText = '-';
+                                if($jadwalAktif){
+                                    $tanggalFormat = \Carbon\Carbon::parse($jadwalAktif->tanggal)->translatedFormat('l, d F Y');
+                                    $jadwalAktifText = $tanggalFormat . ' | ' . $jadwalAktif->jam_mulai . ' - ' . $jadwalAktif->jam_selesai;
+                                }
+                            @endphp
 
-<button class="btn btn-warning btn-sm px-3"
-        onclick="pindahLapang(
-            {{ $p->id }}, 
-            {{ $p->lapangan->id }}, 
-            '{{ $p->lapangan->nama_lapangan }}', 
-            '{{ $sectionAktif?->nama_section ?? '-' }}', 
-            '{{ $jadwalAktifText }}', 
-            {{ $jadwalAktif?->id ?? 'null' }}
-        )">
-    <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
-</button>
-
-
-@endif
+                            <button class="btn btn-warning btn-sm px-3"
+                                    onclick="pindahLapang(
+                                        {{ $p->id }}, 
+                                        {{ $p->lapangan->id }}, 
+                                        '{{ $p->lapangan->nama_lapangan }}', 
+                                        '{{ $sectionAktif?->nama_section ?? '-' }}', 
+                                        '{{ $jadwalAktifText }}', 
+                                        {{ $jadwalAktif?->id ?? 'null' }}
+                                    )">
+                                <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
+                            </button>
+                            @endif
                         </div>
                     </div>
                 </div>

@@ -37,6 +37,35 @@
         <p class="text-muted">Pilih lapangan dan jadwal bermain sesuai ketersediaan. Anda dapat memilih lebih dari satu slot waktu.</p>
     </div>
 
+    {{-- ================== INPUT NAMA KOMUNITAS ================== --}}
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fa-solid fa-users me-2"></i> Silahkan isi Komunitas</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="nama_komunitas" class="form-label fw-semibold">
+                            Nama Komunitas
+                         
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nama_komunitas" 
+                               name="nama_komunitas" 
+                               placeholder="Contoh: Komunitas Futsal Jakarta, Badminton Club Bandung, dll."
+                               maxlength="255">
+                    
+                    </div>
+                </div>
+                <div class="col-md-4">
+                   
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- ================== SECTION LIST ================== --}}
     <div class="mb-5">
         <h5 class="fw-bold mb-3 text-secondary">Pilih Lapangan</h5>
@@ -62,23 +91,23 @@
     </div>
 
     {{-- ================== JADWAL ================== --}}
-<div id="jadwalContainer" class="mt-5" style="display:none;">
-    <h5 class="fw-bold mb-4 text-secondary">Pilih Jadwal Tersedia</h5>
+    <div id="jadwalContainer" class="mt-5" style="display:none;">
+        <h5 class="fw-bold mb-4 text-secondary">Pilih Jadwal Tersedia</h5>
 
-    <div class="mb-4 d-flex align-items-center gap-3" id="filterTanggalWrapper" style="display:none;">
-        <label class="fw-semibold text-secondary mb-0">
-            <i class="fa-solid fa-filter me-1"></i> Pilih Tanggal
-        </label>
+        <div class="mb-4 d-flex align-items-center gap-3" id="filterTanggalWrapper" style="display:none;">
+            <label class="fw-semibold text-secondary mb-0">
+                <i class="fa-solid fa-filter me-1"></i> Pilih Tanggal
+            </label>
 
-        <input type="date" id="filterTanggal" class="filter-tgl-input">
-        
-        <button class="btn btn-outline-success btn-sm px-3" id="resetFilter">
-            Reset
-        </button>
+            <input type="date" id="filterTanggal" class="filter-tgl-input">
+            
+            <button class="btn btn-outline-success btn-sm px-3" id="resetFilter">
+                Reset
+            </button>
+        </div>
     </div>
-</div>
 
-<div id="jadwalList"></div>
+    <div id="jadwalList"></div>
 
     {{-- RINGKASAN PEMILIHAN JADWAL --}}
     <div id="ringkasanJadwal" class="mt-4" style="display:none;">
@@ -88,9 +117,23 @@
                 <span class="badge bg-light text-dark" id="jumlahJadwal">0 Jadwal Dipilih</span>
             </div>
             <div class="card-body">
+                {{-- INFO KOMUNITAS --}}
+                <div id="komunitasInfo" class="mb-3" style="display:none;">
+                    <div class="alert alert-success py-2">
+                        <i class="fa-solid fa-users me-2"></i>
+                        <strong>Komunitas:</strong> <span id="displayNamaKomunitas"></span>
+                    </div>
+                </div>
+                
                 <div id="daftarJadwalTerpilih"></div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <h5>Total Bayar: <span class="text-success fw-bold" id="totalHarga">Rp 0</span></h5>
+                    <div>
+                        <h5>Total Bayar: <span class="text-success fw-bold" id="totalHarga">Rp 0</span></h5>
+                        <small class="text-muted" id="infoKomunitas" style="display:none;">
+                            <i class="fa-solid fa-info-circle me-1"></i>
+                            Nama komunitas akan disimpan bersama pemesanan.
+                        </small>
+                    </div>
                     <button id="lanjutBayar" class="btn btn-success">
                         <i class="fa-solid fa-money-bill-wave me-1"></i> Lanjut ke Pembayaran
                     </button>
@@ -111,6 +154,14 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                {{-- INFO KOMUNITAS DI MODAL --}}
+                <div id="summaryKomunitasInfo" class="mb-3" style="display:none;">
+                    <div class="alert alert-info py-2 mb-3">
+                        <i class="fa-solid fa-users me-2"></i>
+                        <strong>Komunitas:</strong> <span id="summaryNamaKomunitas"></span>
+                    </div>
+                </div>
+                
                 <div class="mb-3">
                     <strong>Section:</strong>
                     <p class="mb-0" id="summarySection"></p>
@@ -123,10 +174,16 @@
                     <strong>Total Bayar:</strong>
                     <p class="mb-0 fw-bold text-warning fs-5" id="summaryTotal"></p>
                 </div>
+                
+                {{-- KONFIRMASI KOMUNITAS --}}
+                <div class="alert alert-warning py-2 mb-0">
+                    <i class="fa-solid fa-check-circle me-2"></i>
+                    <small>Pastikan data di atas sudah benar sebelum melanjutkan pembayaran.</small>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fa-solid fa-xmark me-1"></i> Batal
+                    <i class="fa-solid fa-xmark me-1"></i> Periksa Kembali
                 </button>
                 <button id="pay-button" class="btn btn-success">
                     <i class="fa-solid fa-money-bill-wave me-1"></i> Pesan & Bayar
@@ -141,12 +198,19 @@
 
 <script>
 let selectedSection = null;
-let selectedJadwals = []; // Ubah dari selectedJadwal ke selectedJadwals (array)
+let selectedJadwals = [];
 let summaryModal;
+let namaKomunitas = '';
 
 // Initialize Bootstrap Modal
 document.addEventListener('DOMContentLoaded', function() {
     summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
+
+    // Event listener untuk input nama komunitas
+    document.getElementById('nama_komunitas').addEventListener('input', function() {
+        namaKomunitas = this.value.trim();
+        updateKomunitasDisplay();
+    });
 
     @if($pemesananPending)
     const pendingModal = new bootstrap.Modal(document.getElementById('pendingPaymentModal'));
@@ -247,6 +311,31 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
 });
 
+// ========== UPDATE DISPLAY KOMUNITAS ==========
+function updateKomunitasDisplay() {
+    const komunitasInfo = document.getElementById('komunitasInfo');
+    const displayNamaKomunitas = document.getElementById('displayNamaKomunitas');
+    const infoKomunitas = document.getElementById('infoKomunitas');
+    const summaryKomunitasInfo = document.getElementById('summaryKomunitasInfo');
+    const summaryNamaKomunitas = document.getElementById('summaryNamaKomunitas');
+
+    if (namaKomunitas) {
+        // Tampilkan di ringkasan
+        komunitasInfo.style.display = 'block';
+        displayNamaKomunitas.textContent = namaKomunitas;
+        infoKomunitas.style.display = 'block';
+        
+        // Tampilkan di modal
+        summaryKomunitasInfo.style.display = 'block';
+        summaryNamaKomunitas.textContent = namaKomunitas;
+    } else {
+        // Sembunyikan jika tidak ada komunitas
+        komunitasInfo.style.display = 'none';
+        infoKomunitas.style.display = 'none';
+        summaryKomunitasInfo.style.display = 'none';
+    }
+}
+
 // ========== PILIH SECTION ==========
 document.querySelectorAll('.section-card').forEach(card => {
     card.addEventListener('click', function() {
@@ -266,7 +355,6 @@ document.querySelectorAll('.section-card').forEach(card => {
 });
 
 // ========== TAMPILKAN JADWAL ==========
-// Tampilkan filter tanggal setelah section dipilih
 function showJadwal(jadwals){
     document.getElementById('filterTanggalWrapper').style.display = 'flex';
 
@@ -388,6 +476,9 @@ function updateRingkasan() {
     // Hitung total harga
     const totalHarga = selectedJadwals.reduce((total, jadwal) => total + jadwal.harga, 0);
     totalHargaEl.textContent = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+
+    // Update display komunitas
+    updateKomunitasDisplay();
 }
 
 // Hapus jadwal dari ringkasan
@@ -430,6 +521,9 @@ document.getElementById('lanjutBayar').addEventListener('click', function() {
         return;
     }
 
+    // Validasi nama komunitas (opsional)
+    namaKomunitas = document.getElementById('nama_komunitas').value.trim();
+
     // Update modal summary
     document.getElementById('summarySection').innerText = 
         document.querySelector('.section-card.active h6').innerText;
@@ -446,6 +540,14 @@ document.getElementById('lanjutBayar').addEventListener('click', function() {
     // Hitung total harga
     const totalHarga = selectedJadwals.reduce((total, jadwal) => total + jadwal.harga, 0);
     document.getElementById('summaryTotal').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+
+    // Update display komunitas di modal
+    if (namaKomunitas) {
+        document.getElementById('summaryKomunitasInfo').style.display = 'block';
+        document.getElementById('summaryNamaKomunitas').textContent = namaKomunitas;
+    } else {
+        document.getElementById('summaryKomunitasInfo').style.display = 'none';
+    }
 
     summaryModal.show();
 });
@@ -481,7 +583,9 @@ document.getElementById('pay-button').onclick = async function() {
 
     try {
         // Ambil ID jadwal yang dipilih
-    const jadwalIds = selectedJadwals.map(j => parseInt(j.id));
+        const jadwalIds = selectedJadwals.map(j => parseInt(j.id));
+        // Ambil nama komunitas dari input
+        namaKomunitas = document.getElementById('nama_komunitas').value.trim();
         
         const res = await fetch('{{ route("midtrans.token") }}', {
             method: 'POST',
@@ -491,7 +595,8 @@ document.getElementById('pay-button').onclick = async function() {
             },
             body: JSON.stringify({
                 lapangan_id: {{ $lapangan->id }},
-                jadwal_ids: jadwalIds // Kirim array ID jadwal
+                jadwal_ids: jadwalIds,
+                nama_komunitas: namaKomunitas || null // Kirim nama komunitas
             })
         });
 

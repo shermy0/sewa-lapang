@@ -20,7 +20,7 @@
                             <th>Lapangan/Section</th>
                             <th>Tanggal</th>
                             <th>Jam</th>
-                            <th>Status Pesanan</th>
+                            <th>Komunitas</th>
                             <th>Status Bayar</th>
                             <th>Status Scan</th>
                             <th>QR</th>
@@ -35,12 +35,6 @@
                                 $jamMain = optional($t->jadwal)->jam_mulai
                                     ? substr($t->jadwal->jam_mulai, 0, 5) . ' - ' . substr($t->jadwal->jam_selesai, 0, 5)
                                     : '-';
-                                $statusClass = match($t->status) {
-                                    'dibayar' => 'success',
-                                    'menunggu' => 'warning',
-                                    'kadaluarsa' => 'secondary',
-                                    default => 'secondary',
-                                };
                                 $bayarStatus = $t->pembayaran->status ?? '-';
                                 $bayarClass = match($bayarStatus) {
                                     'berhasil' => 'success',
@@ -64,7 +58,9 @@
                                 </td>
                                 <td>{{ $tanggalMain }}</td>
                                 <td>{{ $jamMain }}</td>
-                                <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
+                                <td>{{ $t->nama_komunitas ?? '-' }}</td>
+
+            
                                 <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
                                 <td>
                                     @if(in_array($scanStatus, ['sudah_scan','masuk_lapang']))
