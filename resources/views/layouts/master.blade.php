@@ -135,7 +135,7 @@
             <a href="{{ route('petugas.scan') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="fa-solid fa-qrcode me-1"></i> Scan QR
             </a>
-            
+
             {{-- Dropdown Layar Antrian --}}
             <div class="dropdown">
                 <button class="btn btn-light btn-sm fw-semibold dropdown-toggle" type="button" id="dropdownDisplay" data-bs-toggle="dropdown" aria-expanded="false">
@@ -241,22 +241,54 @@
         dropdownBtn.addEventListener('show.bs.dropdown', function () {
             if (isLoaded) return;
 
-            fetch("{{ route('petugas.api.lapangan-list') }}")
+            fetch("{{ route('petugas.api.lapangan-sections') }}")
                 .then(response => response.json())
                 .then(data => {
                     // Remove loading item
                     if(loadingItem) loadingItem.remove();
 
-                    data.forEach(lapangan => {
+                    if(!data || data.length === 0){
                         const li = document.createElement('li');
-                        const a = document.createElement('a');
-                        a.className = 'dropdown-item';
-                        a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}`;
-                        a.target = '_blank';
-                        a.textContent = lapangan.nama_lapangan;
-                        li.appendChild(a);
+                        li.innerHTML = '<span class=\"dropdown-item-text text-muted small\">Tidak ada lapangan</span>';
                         dropdownMenu.appendChild(li);
+                        return;
+                    }
+
+                    data.forEach(lapangan => {
+                        const header = document.createElement('li');
+                        header.innerHTML = `<h6 class=\"dropdown-header mb-0\">${lapangan.nama_lapangan}</h6>`;
+                        dropdownMenu.appendChild(header);
+
+                        if (lapangan.sections && lapangan.sections.length) {
+                            lapangan.sections.forEach(sec => {
+                                const li = document.createElement('li');
+                                const a = document.createElement('a');
+                                a.className = 'dropdown-item';
+                                a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}&section_id=${sec.id}`;
+                                a.target = '_blank';
+                                a.textContent = sec.nama_section;
+                                li.appendChild(a);
+                                dropdownMenu.appendChild(li);
+                            });
+                        } else {
+                            const li = document.createElement('li');
+                            const a = document.createElement('a');
+                            a.className = 'dropdown-item';
+                            a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}`;
+                            a.target = '_blank';
+                            a.textContent = 'Semua Section';
+                            li.appendChild(a);
+                            dropdownMenu.appendChild(li);
+                        }
+
+                        const divider = document.createElement('li');
+                        divider.innerHTML = '<hr class=\"dropdown-divider\">';
+                        dropdownMenu.appendChild(divider);
                     });
+
+                    // Remove trailing divider
+                    const last = dropdownMenu.lastElementChild;
+                    if(last && last.querySelector('hr')) last.remove();
                     isLoaded = true;
                 })
                 .catch(error => {

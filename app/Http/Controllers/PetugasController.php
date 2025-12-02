@@ -250,6 +250,7 @@ class PetugasController extends Controller
                 $first = $items->first();
 
                 return [
+                    'section_id' => $first->section_id,
                     'label' => $first->nama_section ?? 'Section',
                     'lapangan' => $first->nama_lapangan ?? '-',
                     'queue' => $items->map(function ($row) {
@@ -691,10 +692,33 @@ class PetugasController extends Controller
         return response()->json($lapangan);
     }
 
+    public function getLapanganWithSections()
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        $lapangan = Lapangan::query()
+            ->with(['sections:id,lapangan_id,nama_section'])
+            ->when($pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
+            ->select('id', 'nama_lapangan')
+            ->orderBy('nama_lapangan')
+            ->get();
+
+        if ($lapangan->isEmpty()) {
+            $lapangan = Lapangan::with(['sections:id,lapangan_id,nama_section'])
+                ->select('id', 'nama_lapangan')
+                ->orderBy('nama_lapangan')
+                ->get();
+        }
+
+        return response()->json($lapangan);
+    }
+
     public function display(Request $request)
     {
         $petugas = Auth::user();
         $pemilikId = $petugas->pemilik_id;
+        $sectionId = $request->integer('section_id');
 
         $lapangan = Lapangan::query()
             ->with('kategori')
@@ -718,6 +742,12 @@ class PetugasController extends Controller
         // Get all schedules for today (both booked and available)
         $today = Carbon::today()->toDateString();
         $allSchedulesToday = $this->buildAllSchedulesToday($lapangan->pluck('id'), $today);
+
+        // Filter per section jika diberikan
+        if ($sectionId) {
+            $sectionQueues = $sectionQueues->where('section_id', $sectionId)->values();
+            $allSchedulesToday = collect($allSchedulesToday)->where('section_id', $sectionId)->values();
+        }
 
         // Ambil nama lapangan pertama untuk judul display (fallback jika kosong)
         $displayTitle = $lapangan->first()->nama_lapangan ?? 'Layar Display';

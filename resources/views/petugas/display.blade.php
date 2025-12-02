@@ -492,10 +492,10 @@
         <div class="card-header">NOMOR ANTRIAN</div>
         <div class="card-body">
             @if($activeQueue)
-                <div class="active-queue-label">{{ $activeQueue['penyewa'] }}</div>
+                <div class="active-queue-label mb-3">{{ $activeQueue['penyewa'] }}</div>
                 
                 <!-- Date and Category Info -->
-                <div class="mt-3"></div>
+                <div class="mt-1"></div>
 
                 <!-- Countdown Timer -->
                 @if($activeQueue['status'] === 'sedang_main')
@@ -509,10 +509,11 @@
                         $targetTime = $isPlaying ? $activeQueue['jam_selesai'] : $activeQueue['jam_mulai'];
                     @endphp
                 <div class="mt-4 text-center">
-                    <div class="small text-muted text-uppercase fw-bold mb-1">{{ $topLabel }}</div>
-                    <div class="h3 fw-bold text-dark mb-2">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
-                    <div class="small text-muted text-uppercase fw-bold mb-1">{{ $bottomLabel }}</div>
-                    <div id="countdownTimer" class="display-4 fw-bold text-danger"
+                    <div class="small text-muted text-uppercase fw-bold mb-3 mt-3">{{ $topLabel }}</div>
+                    <div class="h3 fw-bold text-dark mb-5">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
+                    <div class="small text-muted text-uppercase fw-bold mb-3">{{ $bottomLabel }}</div>
+                    <div id="countdownTimer" class="display-1 fw-bold text-danger mt-3"
+                         style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
                          data-end="{{ $targetTime }}"
                          data-date="{{ \Carbon\Carbon::parse($activeQueue['tanggal'])->format('Y-m-d') }}">
                         --:--
@@ -577,8 +578,11 @@
                                 };
                                 $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
                                 $displayName = $scheduleItem['penyewa'] ?? '-';
+                                $dateIso = \Carbon\Carbon::parse($scheduleItem['tanggal'])->format('Y-m-d');
+                                $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'];
                             @endphp
-                            <div class="queue-item-card color-{{ $index % 6 }}">
+                            <div class="queue-item-card color-{{ $index % 6 }}"
+                                 data-end="{{ $endIso ?? '' }}">
                                 <div class="queue-item-body">
                                     <div class="queue-item-status {{ $statusClass }} mb-2">{{ $statusLabel }}</div>
                                     <div class="h5 fw-bold text-dark mb-1 text-center text-truncate w-100 px-2">{{ $displayName }}</div>
@@ -678,6 +682,22 @@
     setTimeout(function(){
        window.location.reload();
     }, 30000);
+
+    // Hilangkan kartu jadwal yang sudah lewat secara realtime (tanpa reload)
+    function pruneExpiredSchedules() {
+        const now = new Date();
+        document.querySelectorAll('.queue-item-card[data-end]').forEach(card => {
+            const endStr = card.dataset.end;
+            if (!endStr) return;
+            const end = new Date(endStr.replace(' ', 'T'));
+            if (isNaN(end)) return;
+            if (end <= now) {
+                card.remove();
+            }
+        });
+    }
+    pruneExpiredSchedules();
+    setInterval(pruneExpiredSchedules, 15000);
   </script>
 </body>
 </html>

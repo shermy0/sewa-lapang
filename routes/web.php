@@ -212,6 +212,8 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
 
         // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
+        // Untuk dropdown display: lapangan + section
+        Route::get('/api/lapangan-sections', [PetugasController::class, 'getLapanganWithSections'])->name('api.lapangan-sections');
 
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
