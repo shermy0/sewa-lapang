@@ -48,7 +48,6 @@
                     <div class="mb-3">
                         <label for="nama_komunitas" class="form-label fw-semibold">
                             Nama Komunitas
-                         
                         </label>
                         <input type="text" 
                                class="form-control" 
@@ -56,11 +55,7 @@
                                name="nama_komunitas" 
                                placeholder="Contoh: Komunitas Futsal Jakarta, Badminton Club Bandung, dll."
                                maxlength="255">
-                    
                     </div>
-                </div>
-                <div class="col-md-4">
-                   
                 </div>
             </div>
         </div>
@@ -90,24 +85,97 @@
         </div>
     </div>
 
-    {{-- ================== JADWAL ================== --}}
-    <div id="jadwalContainer" class="mt-5" style="display:none;">
-        <h5 class="fw-bold mb-4 text-secondary">Pilih Jadwal Tersedia</h5>
-
-        <div class="mb-4 d-flex align-items-center gap-3" id="filterTanggalWrapper" style="display:none;">
-            <label class="fw-semibold text-secondary mb-0">
-                <i class="fa-solid fa-filter me-1"></i> Pilih Tanggal
-            </label>
-
-            <input type="date" id="filterTanggal" class="filter-tgl-input">
-            
-            <button class="btn btn-outline-success btn-sm px-3" id="resetFilter">
-                Reset
-            </button>
+    {{-- ================== PILIH TANGGAL ================== --}}
+    <div id="pilihTanggalContainer" class="mt-5" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h5 class="fw-bold mb-0 text-secondary">Pilih Tanggal</h5>
+                <p class="text-muted mb-0">Pilih tanggal untuk melihat jadwal tersedia</p>
+            </div>
+            <div id="tanggalTerpilihInfo" style="display:none;">
+                <span class="badge bg-success">
+                    <i class="fa-solid fa-calendar-check me-1"></i>
+                    <span id="currentDateDisplay"></span>
+                </span>
+            </div>
+        </div>
+        
+        <div class="card border-success">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-secondary">
+                                <i class="fa-solid fa-calendar-alt me-1"></i> Pilih Tanggal
+                            </label>
+                            <div class="input-group">
+                                <input type="date" 
+                                       id="inputTanggal" 
+                                       class="form-control" 
+                                       min="{{ date('Y-m-d') }}">
+                                <button class="btn btn-outline-success" type="button" id="tombolHariIni">
+                                    Hari Ini
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fa-solid fa-info-circle me-1"></i>
+                                Pilih tanggal untuk melihat slot waktu yang tersedia
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {{-- LOADING TANGGAL --}}
+        <div id="loadingTanggal" class="text-center py-5" style="display:none;">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Memuat jadwal untuk tanggal terpilih...</p>
         </div>
     </div>
 
-    <div id="jadwalList"></div>
+    {{-- ================== JADWAL ================== --}}
+    <div id="jadwalContainer" class="mt-5" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h5 class="fw-bold mb-0 text-secondary">
+                    <i class="fa-solid fa-clock me-2"></i> Jadwal Tersedia
+                </h5>
+                <p class="text-muted mb-0" id="tanggalDipilihText"></p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" id="refreshJadwalBtn" title="Refresh jadwal">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+                <button class="btn btn-outline-success btn-sm" id="gantiTanggalBtn">
+                    <i class="fa-solid fa-calendar-alt me-1"></i> Ganti Tanggal
+                </button>
+            </div>
+        </div>
+        
+        {{-- LOADING JADWAL --}}
+        <div id="loadingJadwal" class="text-center py-5" style="display:none;">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Memuat jadwal tersedia...</p>
+        </div>
+        
+        {{-- JADWAL LIST --}}
+        <div id="jadwalList" class="mb-4"></div>
+        
+        {{-- PESAN KOSONG --}}
+        <div id="noJadwalMessage" class="text-center py-5" style="display:none;">
+            <i class="fa-solid fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Tidak ada jadwal tersedia</h5>
+            <p class="text-muted mb-3">Tidak ada slot waktu yang tersedia untuk tanggal ini.</p>
+            <button class="btn btn-outline-success" id="gantiTanggalBtn2">
+                <i class="fa-solid fa-calendar-alt me-1"></i> Coba Tanggal Lain
+            </button>
+        </div>
+    </div>
 
     {{-- RINGKASAN PEMILIHAN JADWAL --}}
     <div id="ringkasanJadwal" class="mt-4" style="display:none;">
@@ -123,6 +191,12 @@
                         <i class="fa-solid fa-users me-2"></i>
                         <strong>Komunitas:</strong> <span id="displayNamaKomunitas"></span>
                     </div>
+                </div>
+                
+                {{-- INFO TANGGAL --}}
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fa-solid fa-calendar-day me-2"></i>
+                    <strong>Tanggal:</strong> <span id="displayTanggal"></span>
                 </div>
                 
                 <div id="daftarJadwalTerpilih"></div>
@@ -167,6 +241,10 @@
                     <p class="mb-0" id="summarySection"></p>
                 </div>
                 <div class="mb-3">
+                    <strong>Tanggal:</strong>
+                    <p class="mb-0" id="summaryTanggal"></p>
+                </div>
+                <div class="mb-3">
                     <strong>Jadwal:</strong>
                     <div id="summaryJadwal"></div>
                 </div>
@@ -198,13 +276,22 @@
 
 <script>
 let selectedSection = null;
+let selectedTanggal = null;
 let selectedJadwals = [];
 let summaryModal;
 let namaKomunitas = '';
+let allJadwals = [];
+let isLoadingJadwal = false;
 
 // Initialize Bootstrap Modal
 document.addEventListener('DOMContentLoaded', function() {
     summaryModal = new bootstrap.Modal(document.getElementById('summaryModal'));
+
+    // Set min date untuk input tanggal (hari ini)
+    const today = new Date().toISOString().split('T')[0];
+    const inputTanggal = document.getElementById('inputTanggal');
+    inputTanggal.min = today;
+    inputTanggal.value = ''; // Kosongkan dulu, biar user pilih sendiri
 
     // Event listener untuk input nama komunitas
     document.getElementById('nama_komunitas').addEventListener('input', function() {
@@ -212,6 +299,53 @@ document.addEventListener('DOMContentLoaded', function() {
         updateKomunitasDisplay();
     });
 
+    // Event listener untuk input tanggal - AUTO LOAD JADWAL
+    inputTanggal.addEventListener('change', function() {
+        if (!this.value) return;
+        
+        selectedTanggal = this.value;
+        
+        // Validasi: pastikan sudah pilih section
+        if (!selectedSection) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Pilih Lapangan Dulu!',
+                text: 'Silakan pilih lapangan terlebih dahulu.',
+                confirmButtonColor: '#41A67E'
+            });
+            this.value = '';
+            return;
+        }
+        
+        updateTanggalDisplay();
+        
+        // Langsung load jadwal OTOMATIS
+        loadJadwalAuto(selectedTanggal);
+    });
+
+    // Tombol hari ini
+    document.getElementById('tombolHariIni').addEventListener('click', function() {
+        document.getElementById('inputTanggal').value = today;
+        document.getElementById('inputTanggal').dispatchEvent(new Event('change'));
+    });
+
+    // Tombol refresh jadwal
+    document.getElementById('refreshJadwalBtn').addEventListener('click', function() {
+        if (selectedTanggal && selectedSection) {
+            loadJadwalAuto(selectedTanggal);
+        }
+    });
+
+    // Tombol ganti tanggal (semua tombol)
+    const gantiTanggalButtons = ['gantiTanggalBtn', 'gantiTanggalBtn2'];
+    gantiTanggalButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.addEventListener('click', showPilihTanggal);
+        }
+    });
+
+    // ... (kode pending payment yang sama seperti sebelumnya) ...
     @if($pemesananPending)
     const pendingModal = new bootstrap.Modal(document.getElementById('pendingPaymentModal'));
     pendingModal.show();
@@ -311,6 +445,209 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
 });
 
+// ========== PILIH SECTION ==========
+document.querySelectorAll('.section-card').forEach(card => {
+    card.addEventListener('click', function() {
+        document.querySelectorAll('.section-card').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        selectedSection = this.dataset.sectionId;
+
+        // Reset state
+        selectedJadwals = [];
+        selectedTanggal = null;
+        
+        // Reset input tanggal
+        document.getElementById('inputTanggal').value = '';
+        
+        // Tampilkan container pilih tanggal
+        document.getElementById('pilihTanggalContainer').style.display = 'block';
+        document.getElementById('jadwalContainer').style.display = 'none';
+        document.getElementById('ringkasanJadwal').style.display = 'none';
+        document.getElementById('jadwalList').innerHTML = '';
+        
+        // Fokus ke input tanggal
+        setTimeout(() => {
+            document.getElementById('inputTanggal').focus();
+        }, 100);
+    });
+});
+
+// ========== LOAD JADWAL OTOMATIS SETELAH PILIH TANGGAL ==========
+async function loadJadwalAuto(tanggal) {
+    if (!selectedSection || !tanggal || isLoadingJadwal) return;
+    
+    isLoadingJadwal = true;
+    
+    // Tampilkan loading di container tanggal
+    document.getElementById('loadingTanggal').style.display = 'block';
+    
+    try {
+        const response = await fetch(`/jadwal/section/${selectedSection}?tanggal=${tanggal}`);
+        const data = await response.json();
+        
+        // Filter hanya jadwal dengan tanggal yang dipilih
+        const jadwals = data.filter(j => j.tanggal === tanggal);
+        allJadwals = jadwals;
+        
+        // Sembunyikan loading tanggal
+        document.getElementById('loadingTanggal').style.display = 'none';
+        
+        // Tampilkan container jadwal
+        document.getElementById('pilihTanggalContainer').style.display = 'none';
+        document.getElementById('jadwalContainer').style.display = 'block';
+        
+        // Render jadwal
+        renderJadwal(jadwals);
+        
+        // Reset pilihan jadwal
+        selectedJadwals = [];
+        updateRingkasan();
+        
+    } catch (error) {
+        console.error('Error loading jadwal:', error);
+        document.getElementById('loadingTanggal').style.display = 'none';
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal memuat jadwal',
+            text: 'Terjadi kesalahan saat memuat jadwal. Silakan coba lagi.',
+            confirmButtonColor: '#41A67E'
+        });
+    } finally {
+        isLoadingJadwal = false;
+    }
+}
+
+// ========== UPDATE DISPLAY TANGGAL ==========
+function updateTanggalDisplay() {
+    if (!selectedTanggal) return;
+    
+    const dateObj = new Date(selectedTanggal);
+    const formattedDate = dateObj.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    
+    // Update display di berbagai tempat
+    document.getElementById('currentDateDisplay').textContent = formattedDate;
+    document.getElementById('tanggalDipilihText').textContent = formattedDate;
+    document.getElementById('displayTanggal').textContent = formattedDate;
+    document.getElementById('summaryTanggal').textContent = formattedDate;
+    
+    document.getElementById('tanggalTerpilihInfo').style.display = 'inline-block';
+}
+
+// ========== RENDER JADWAL ==========
+function renderJadwal(jadwals) {
+    const jadwalList = document.getElementById('jadwalList');
+    const loadingJadwal = document.getElementById('loadingJadwal');
+    const noJadwalMessage = document.getElementById('noJadwalMessage');
+    
+    // Sembunyikan loading jadwal
+    loadingJadwal.style.display = 'none';
+    
+    if (jadwals.length === 0) {
+        jadwalList.innerHTML = '';
+        noJadwalMessage.style.display = 'block';
+        return;
+    }
+    
+    noJadwalMessage.style.display = 'none';
+    
+    // Kelompokkan berdasarkan jam
+    const groupByTime = {};
+    jadwals.forEach(j => {
+        const key = `${j.jam_mulai}-${j.jam_selesai}`;
+        if (!groupByTime[key]) {
+            groupByTime[key] = {
+                jam_mulai: j.jam_mulai,
+                jam_selesai: j.jam_selesai,
+                harga_sewa: j.harga_sewa,
+                tersedia: j.tersedia,
+                id: j.id
+            };
+        }
+    });
+    
+    // Tampilkan jadwal
+    jadwalList.innerHTML = `
+        <div class="row g-3">
+            ${Object.values(groupByTime).map(j => `
+                <div class="col-md-3 col-sm-6">
+                    <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}"
+                         data-id="${j.id}"
+                         data-mulai="${j.jam_mulai}"
+                         data-selesai="${j.jam_selesai}"
+                         data-harga="${j.harga_sewa}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fa-solid fa-clock me-1"></i>
+                                <strong>${j.jam_mulai} - ${j.jam_selesai}</strong>
+                            </div>
+                            ${!j.tersedia ? '<span class="badge bg-danger">Booked</span>' : ''}
+                        </div>
+                        <small class="d-block mt-2 fw-semibold text-success">
+                            Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}
+                        </small>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    // Event listener untuk pilih jadwal
+    document.querySelectorAll('.jadwal-item.available').forEach(item => {
+        item.addEventListener('click', function() {
+            const jadwalId = this.dataset.id;
+            const jadwalInfo = {
+                id: jadwalId,
+                tanggal: selectedTanggal,
+                mulai: this.dataset.mulai,
+                selesai: this.dataset.selesai,
+                harga: parseInt(this.dataset.harga)
+            };
+
+            // Toggle selection
+            const index = selectedJadwals.findIndex(j => j.id === jadwalId);
+            if (index > -1) {
+                selectedJadwals.splice(index, 1);
+                this.classList.remove('selected');
+            } else {
+                selectedJadwals.push(jadwalInfo);
+                this.classList.add('selected');
+            }
+
+            updateRingkasan();
+        });
+    });
+}
+
+// ========== TAMPILKAN PILIH TANGGAL ==========
+function showPilihTanggal() {
+    // Reset jadwal container
+    document.getElementById('jadwalContainer').style.display = 'none';
+    document.getElementById('jadwalList').innerHTML = '';
+    document.getElementById('noJadwalMessage').style.display = 'none';
+    document.getElementById('loadingJadwal').style.display = 'none';
+    
+    // Tampilkan pilih tanggal container
+    document.getElementById('pilihTanggalContainer').style.display = 'block';
+    document.getElementById('loadingTanggal').style.display = 'none';
+    
+    // Sembunyikan ringkasan
+    document.getElementById('ringkasanJadwal').style.display = 'none';
+    
+    // Reset pilihan jadwal
+    selectedJadwals = [];
+    
+    // Fokus ke input tanggal
+    setTimeout(() => {
+        document.getElementById('inputTanggal').focus();
+    }, 100);
+}
+
 // ========== UPDATE DISPLAY KOMUNITAS ==========
 function updateKomunitasDisplay() {
     const komunitasInfo = document.getElementById('komunitasInfo');
@@ -320,129 +657,19 @@ function updateKomunitasDisplay() {
     const summaryNamaKomunitas = document.getElementById('summaryNamaKomunitas');
 
     if (namaKomunitas) {
-        // Tampilkan di ringkasan
         komunitasInfo.style.display = 'block';
         displayNamaKomunitas.textContent = namaKomunitas;
         infoKomunitas.style.display = 'block';
-        
-        // Tampilkan di modal
         summaryKomunitasInfo.style.display = 'block';
         summaryNamaKomunitas.textContent = namaKomunitas;
     } else {
-        // Sembunyikan jika tidak ada komunitas
         komunitasInfo.style.display = 'none';
         infoKomunitas.style.display = 'none';
         summaryKomunitasInfo.style.display = 'none';
     }
 }
 
-// ========== PILIH SECTION ==========
-document.querySelectorAll('.section-card').forEach(card => {
-    card.addEventListener('click', function() {
-        document.querySelectorAll('.section-card').forEach(c => c.classList.remove('active'));
-        this.classList.add('active');
-        selectedSection = this.dataset.sectionId;
-
-        // reset jadwal & modal
-        selectedJadwals = [];
-        document.getElementById('jadwalContainer').style.display = 'none';
-        document.getElementById('ringkasanJadwal').style.display = 'none';
-
-        fetch(`/jadwal/section/${selectedSection}`)
-        .then(res => res.json())
-        .then(jadwals => showJadwal(jadwals));
-    });
-});
-
-// ========== TAMPILKAN JADWAL ==========
-function showJadwal(jadwals){
-    document.getElementById('filterTanggalWrapper').style.display = 'flex';
-
-    const jadwalContainer = document.getElementById('jadwalContainer');
-    const jadwalList = document.getElementById('jadwalList');
-    jadwalContainer.style.display = 'block';
-    jadwalList.innerHTML = '';
-
-    // Simpan semua jadwal untuk filter
-    window.allJadwal = jadwals;
-
-    renderJadwal(jadwals);
-}
-
-// Render berdasarkan filter
-function renderJadwal(data) {
-    const jadwalList = document.getElementById('jadwalList');
-    jadwalList.innerHTML = '';
-
-    const groupByDate = {};
-    data.forEach(j => {
-        if (!groupByDate[j.tanggal]) groupByDate[j.tanggal] = [];
-        groupByDate[j.tanggal].push(j);
-    });
-
-    Object.keys(groupByDate).forEach(date => {
-        const card = document.createElement('div');
-        card.className = 'jadwal-card mb-4';
-        card.innerHTML = `
-            <div class="jadwal-header">
-                <i class="fa-solid fa-calendar-day me-2"></i>
-                ${new Date(date).toLocaleDateString('id-ID', {
-                    weekday:'long', day:'numeric', month:'long', year:'numeric'
-                })}
-            </div>
-            <div class="jadwal-body row g-3 mt-1">
-                ${groupByDate[date].map(j => `
-                    <div class="col-md-3 col-sm-6">
-                        <div class="jadwal-item ${j.tersedia ? 'available' : 'unavailable'}"
-                             data-id="${j.id}"
-                             data-tanggal="${j.tanggal}"
-                             data-mulai="${j.jam_mulai}"
-                             data-selesai="${j.jam_selesai}"
-                             data-harga="${j.harga_sewa}">
-                            <i class="fa-solid fa-clock me-1"></i>
-                            ${j.jam_mulai} - ${j.jam_selesai}
-                            <small class="d-block mt-1 fw-semibold text-muted">
-                                Rp ${parseInt(j.harga_sewa).toLocaleString('id-ID')}
-                            </small>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        jadwalList.appendChild(card);
-    });
-
-    // event pilih jadwal
-    document.querySelectorAll('.jadwal-item.available').forEach(item => {
-        item.addEventListener('click', function() {
-            const jadwalId = this.dataset.id;
-            const jadwalInfo = {
-                id: jadwalId,
-                tanggal: this.dataset.tanggal,
-                mulai: this.dataset.mulai,
-                selesai: this.dataset.selesai,
-                harga: parseInt(this.dataset.harga)
-            };
-
-            // Toggle selection
-            const index = selectedJadwals.findIndex(j => j.id === jadwalId);
-            if (index > -1) {
-                // Jika sudah ada, hapus dari array
-                selectedJadwals.splice(index, 1);
-                this.classList.remove('selected');
-            } else {
-                // Jika belum ada, tambahkan ke array
-                selectedJadwals.push(jadwalInfo);
-                this.classList.add('selected');
-            }
-
-            // Update ringkasan
-            updateRingkasan();
-        });
-    });
-}
-
-// Update ringkasan pemilihan jadwal
+// ========== UPDATE RINGKASAN ==========
 function updateRingkasan() {
     const ringkasanContainer = document.getElementById('ringkasanJadwal');
     const daftarJadwalContainer = document.getElementById('daftarJadwalTerpilih');
@@ -457,12 +684,11 @@ function updateRingkasan() {
     ringkasanContainer.style.display = 'block';
     jumlahJadwalEl.textContent = `${selectedJadwals.length} Jadwal Dipilih`;
 
-    // Tampilkan daftar jadwal terpilih
     daftarJadwalContainer.innerHTML = selectedJadwals.map((jadwal, index) => `
         <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
             <div>
-                <strong>${jadwal.tanggal}</strong>
-                <span class="ms-2">${jadwal.mulai} - ${jadwal.selesai}</span>
+                <strong>${jadwal.mulai} - ${jadwal.selesai}</strong>
+                <span class="ms-2 text-muted">${jadwal.tanggal}</span>
             </div>
             <div class="d-flex align-items-center">
                 <span class="me-3">Rp ${jadwal.harga.toLocaleString('id-ID')}</span>
@@ -473,43 +699,23 @@ function updateRingkasan() {
         </div>
     `).join('');
 
-    // Hitung total harga
     const totalHarga = selectedJadwals.reduce((total, jadwal) => total + jadwal.harga, 0);
     totalHargaEl.textContent = `Rp ${totalHarga.toLocaleString('id-ID')}`;
-
-    // Update display komunitas
     updateKomunitasDisplay();
 }
 
-// Hapus jadwal dari ringkasan
+// ========== HAPUS JADWAL ==========
 function hapusJadwal(jadwalId) {
     const index = selectedJadwals.findIndex(j => j.id === jadwalId);
     if (index > -1) {
         selectedJadwals.splice(index, 1);
-        // Hapus kelas selected dari elemen
-        document.querySelector(`.jadwal-item[data-id="${jadwalId}"]`).classList.remove('selected');
+        const item = document.querySelector(`.jadwal-item[data-id="${jadwalId}"]`);
+        if (item) item.classList.remove('selected');
         updateRingkasan();
     }
 }
 
-// FILTER ACTION
-document.getElementById('filterTanggal').addEventListener('change', function(){
-    const tgl = this.value;
-    if (!tgl) {
-        renderJadwal(window.allJadwal);
-        return;
-    }
-
-    const filtered = window.allJadwal.filter(j => j.tanggal === tgl);
-    renderJadwal(filtered);
-});
-
-document.getElementById('resetFilter').addEventListener('click', function(){
-    document.getElementById('filterTanggal').value = '';
-    renderJadwal(window.allJadwal);
-});
-
-// Event listener untuk tombol lanjut bayar
+// ========== LANJUT KE PEMBAYARAN ==========
 document.getElementById('lanjutBayar').addEventListener('click', function() {
     if (selectedJadwals.length === 0) {
         Swal.fire({
@@ -521,27 +727,32 @@ document.getElementById('lanjutBayar').addEventListener('click', function() {
         return;
     }
 
-    // Validasi nama komunitas (opsional)
     namaKomunitas = document.getElementById('nama_komunitas').value.trim();
 
     // Update modal summary
     document.getElementById('summarySection').innerText = 
         document.querySelector('.section-card.active h6').innerText;
     
-    // Tampilkan semua jadwal yang dipilih
+    const tanggalText = new Date(selectedTanggal).toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    document.getElementById('summaryTanggal').innerText = tanggalText;
+    
     const summaryJadwal = document.getElementById('summaryJadwal');
     summaryJadwal.innerHTML = selectedJadwals.map(jadwal => `
         <div class="mb-1">
-            <strong>${jadwal.tanggal}</strong>: ${jadwal.mulai} - ${jadwal.selesai}
+            ${jadwal.mulai} - ${jadwal.selesai}
             <span class="ms-2">Rp ${jadwal.harga.toLocaleString('id-ID')}</span>
         </div>
     `).join('');
     
-    // Hitung total harga
     const totalHarga = selectedJadwals.reduce((total, jadwal) => total + jadwal.harga, 0);
     document.getElementById('summaryTotal').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
 
-    // Update display komunitas di modal
+    // Update display komunitas
     if (namaKomunitas) {
         document.getElementById('summaryKomunitasInfo').style.display = 'block';
         document.getElementById('summaryNamaKomunitas').textContent = namaKomunitas;
@@ -564,7 +775,6 @@ document.getElementById('pay-button').onclick = async function() {
         return;
     }
 
-    // ========== POPUP LOADING ========== //
     Swal.fire({
         title: 'Menyiapkan Pembayaran...',
         html: `
@@ -575,16 +785,11 @@ document.getElementById('pay-button').onclick = async function() {
         `,
         allowOutsideClick: false,
         allowEscapeKey: false,
-        showConfirmButton: false,
-        showClass: {
-            popup: 'animate__animated animate__fadeIn animate__faster'
-        }
+        showConfirmButton: false
     });
 
     try {
-        // Ambil ID jadwal yang dipilih
         const jadwalIds = selectedJadwals.map(j => parseInt(j.id));
-        // Ambil nama komunitas dari input
         namaKomunitas = document.getElementById('nama_komunitas').value.trim();
         
         const res = await fetch('{{ route("midtrans.token") }}', {
@@ -596,7 +801,7 @@ document.getElementById('pay-button').onclick = async function() {
             body: JSON.stringify({
                 lapangan_id: {{ $lapangan->id }},
                 jadwal_ids: jadwalIds,
-                nama_komunitas: namaKomunitas || null // Kirim nama komunitas
+                nama_komunitas: namaKomunitas || null
             })
         });
 
@@ -625,11 +830,9 @@ document.getElementById('pay-button').onclick = async function() {
             throw new Error('Gagal mendapatkan token Midtrans.');
         }
 
-        // ✅ Tutup popup loading
         Swal.close();
         summaryModal.hide();
 
-        // 🔹 Jalankan Snap Popup
         snap.pay(data.snap_token, {
             onSuccess: function(result) {
                 Swal.fire({
@@ -666,7 +869,6 @@ document.getElementById('pay-button').onclick = async function() {
             }
         });
     } catch (error) {
-        // ❌ Tutup loading kalau error
         Swal.close();
         Swal.fire({
             icon: 'error',
@@ -676,7 +878,6 @@ document.getElementById('pay-button').onclick = async function() {
         });
     }
 };
-
 </script>
 
 @endsection
