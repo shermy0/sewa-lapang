@@ -106,6 +106,97 @@ class PetugasController extends Controller
     }
 
     /**
+     * Build all schedules for today including available and booked slots
+     * Grouped by section and ordered by time
+     */
+    private function buildAllSchedulesToday(Collection $lapanganIds, string $date): Collection
+    {
+        if ($lapanganIds->isEmpty()) {
+            return collect();
+        }
+
+        $now = Carbon::now('Asia/Jakarta');
+
+        // Get all jadwal for today
+        $schedules = DB::table('jadwal_lapangan as j')
+            ->join('section_lapangan as s', 'j.section_id', '=', 's.id')
+            ->join('lapangan as l', 's.lapangan_id', '=', 'l.id')
+            ->leftJoin('pemesanan as p', function($join) {
+                $join->on('p.jadwal_id', '=', 'j.id')
+                     ->whereIn('p.status', ['menunggu', 'dibayar']);
+            })
+            ->leftJoin('users as u', 'p.penyewa_id', '=', 'u.id')
+            ->whereIn('l.id', $lapanganIds)
+            ->whereDate('j.tanggal', $date)
+            ->select([
+                'j.id as jadwal_id',
+                'j.tanggal',
+                'j.jam_mulai',
+                'j.jam_selesai',
+                'j.harga_sewa',
+                's.id as section_id',
+                's.nama_section',
+                'l.nama_lapangan',
+                'p.id as pemesanan_id',
+                'p.status as pemesanan_status',
+                'p.status_scan',
+                'p.kode_tiket',
+                'u.name as penyewa_name',
+            ])
+            ->orderBy('s.nama_section')
+            ->orderBy('j.jam_mulai')
+            ->get();
+
+        // Group by section
+        $grouped = $schedules->groupBy('section_id')->map(function($sectionSchedules) use ($now) {
+            $first = $sectionSchedules->first();
+            
+            $scheduleItems = $sectionSchedules->map(function($item) use ($now) {
+                // Determine status
+                $status = 'tersedia';
+                $penyewa = null;
+                
+                if ($item->pemesanan_status === 'dibayar') {
+                    $status = 'dibayar';
+                    $penyewa = $item->penyewa_name;
+                    
+                    // Check if playing
+                    if (in_array($item->status_scan, ['masuk_lapang', 'sudah_scan'], true)) {
+                        $status = 'sedang_main';
+                    } elseif ($item->status_scan === 'masuk_arena') {
+                        $status = 'masuk_arena';
+                    }
+                } elseif ($item->pemesanan_status === 'menunggu') {
+                    $status = 'menunggu';
+                    $penyewa = $item->penyewa_name;
+                }
+
+                return [
+                    'jadwal_id' => $item->jadwal_id,
+                    'tanggal' => Carbon::parse($item->tanggal)->format('d M Y'),
+                    'jam_mulai' => substr($item->jam_mulai, 0, 5),
+                    'jam_selesai' => substr($item->jam_selesai, 0, 5),
+                    'harga_sewa' => $item->harga_sewa,
+                    'status' => $status,
+                    'penyewa' => $penyewa,
+                    'kode_tiket' => $item->kode_tiket,
+                    'nama_section' => $item->nama_section,
+                    'nama_lapangan' => $item->nama_lapangan,
+                ];
+            });
+
+            return [
+                'section_id' => $first->section_id,
+                'section_name' => $first->nama_section,
+                'lapangan_name' => $first->nama_lapangan,
+                'schedules' => $scheduleItems,
+            ];
+        });
+
+        return $grouped->values();
+    }
+
+    /**
      * Ambil antrean pemesanan per section untuk lapangan milik pemilik ini.
      */
     private function buildSectionQueues(Collection $lapanganIds): Collection
@@ -624,6 +715,13 @@ class PetugasController extends Controller
 
         $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
 
+        // Get all schedules for today (both booked and available)
+        $today = Carbon::today()->toDateString();
+        $allSchedulesToday = $this->buildAllSchedulesToday($lapangan->pluck('id'), $today);
+
+        // Ambil nama lapangan pertama untuk judul display (fallback jika kosong)
+        $displayTitle = $lapangan->first()->nama_lapangan ?? 'Layar Display';
+
         $carouselImages = collect();
         foreach ($lapangan as $l) {
             if (is_array($l->foto)) {
@@ -635,8 +733,10 @@ class PetugasController extends Controller
         
         return view('petugas.display', [
             'sectionQueues' => $sectionQueues,
+            'allSchedulesToday' => $allSchedulesToday,
             'carouselImages' => $carouselImages,
             'petugasName' => $petugas->name,
+            'displayTitle' => $displayTitle,
         ]);
     }
 

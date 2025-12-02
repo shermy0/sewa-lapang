@@ -99,7 +99,7 @@
 
     .main-content {
       flex: 1;
-      padding: 25px 25px 75px;
+      padding: 25px;
       display: flex;
       gap: 25px;
       height: calc(100vh - 120px);
@@ -109,11 +109,11 @@
 
     /* Left Panel: Active Queue */
     .active-queue-panel {
-      flex: 0 0 38%;
+      flex: 0 0 35%;
       display: flex;
       flex-direction: column;
-      gap: 25px;
       animation: fadeInUp 0.6s ease;
+      height: 100%;
     }
     
     .active-card {
@@ -210,45 +210,53 @@
     /* Bottom Panel: Queue Grid */
     .queue-grid-container {
       height: auto;
-      max-height: 260px;
       margin-top: auto;
       padding-bottom: 15px;
       animation: fadeInUp 1s ease;
     }
+
+    .section-group {
+      margin-bottom: 20px;
+    }
+
+    .section-group:last-child {
+      margin-bottom: 0;
+    }
     
     .queue-grid {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 14px;
-      height: 100%;
-      overflow-x: auto;
-      padding-bottom: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(16, 185, 129, 0.4) transparent;
+      width: 100%;
     }
     
-    .queue-grid::-webkit-scrollbar {
-      height: 8px;
+    /* Scrollbar for right panel */
+    div[style*="overflow-y: auto"]::-webkit-scrollbar {
+      width: 8px;
     }
-    
-    .queue-grid::-webkit-scrollbar-track {
+
+    div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
       background: transparent;
     }
-    
-    .queue-grid::-webkit-scrollbar-thumb {
-      background: rgba(16, 185, 129, 0.4);
+
+    div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.3);
       border-radius: 10px;
+    }
+
+    div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.5);
     }
     
     .queue-item-card {
-      flex: 0 0 220px;
-      min-height: 230px;
+      min-height: 180px;
       background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-top: 5px solid;
+      border-top: 6px solid;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       animation: slideInUp 0.5s ease forwards;
       opacity: 0;
@@ -265,38 +273,17 @@
     .queue-item-card:nth-child(4) { animation-delay: 0.4s; }
     .queue-item-card:nth-child(5) { animation-delay: 0.5s; }
     
-    .queue-item-header {
-      padding: 10px 12px 8px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-      background: linear-gradient(180deg, #f8f9fc 0%, #ffffff 100%);
-      border-bottom: 2px solid rgba(16, 185, 129, 0.15);
-      line-height: 1.2;
-      min-height: 50px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 2px;
-    }
-    
-    .queue-location {
-      font-size: 0.75rem;
-      color: #6b7280;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+
     
     .queue-item-body {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: center;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       background: linear-gradient(180deg, #ffffff 0%, #fafbfe 100%);
-      padding: 10px 12px;
+      padding: 20px 15px;
     }
     
     .queue-item-code {
@@ -325,6 +312,7 @@
     .queue-item-status.status-waiting { background: #fff7e6; color: #d97706; }
     .queue-item-status.status-paid { background: #ecfdf3; color: #047857; }
     .queue-item-status.status-playing { background: #dbeafe; color: #1d4ed8; }
+    .queue-item-status.status-available { background: #f3f4f6; color: #6b7280; }
     
     .queue-meta {
       display: flex;
@@ -334,15 +322,7 @@
       width: 100%;
     }
     
-    .queue-item-footer {
-      font-size: 0.8rem;
-      text-align: center;
-      padding: 8px 10px 10px;
-      color: #111827;
-      font-weight: 600;
-      background: linear-gradient(180deg, #fafbfe 0%, #f8f9fc 100%);
-      border-top: 1px solid rgba(16, 185, 129, 0.08);
-    }
+
 
     /* Footer Marquee */
     .footer-marquee {
@@ -375,22 +355,11 @@
 
     /* Colors for cards */
     .color-0 { border-color: #10b981; }
-    .color-0 .queue-item-header { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); color: #10b981; }
-    
     .color-1 { border-color: #34d399; }
-    .color-1 .queue-item-header { background: linear-gradient(135deg, rgba(52, 211, 153, 0.1) 0%, rgba(52, 211, 153, 0.05) 100%); color: #34d399; }
-    
     .color-2 { border-color: #059669; }
-    .color-2 .queue-item-header { background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); color: #059669; }
-    
     .color-3 { border-color: #6ee7b7; }
-    .color-3 .queue-item-header { background: linear-gradient(135deg, rgba(110, 231, 183, 0.1) 0%, rgba(110, 231, 183, 0.05) 100%); color: #047857; }
-    
     .color-4 { border-color: #14b8a6; }
-    .color-4 .queue-item-header { background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0.05) 100%); color: #14b8a6; }
-    
     .color-5 { border-color: #0d9488; }
-    .color-5 .queue-item-header { background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(13, 148, 136, 0.05) 100%); color: #0d9488; }
     
     /* Additional info styling */
     .info-badge {
@@ -503,8 +472,8 @@
       <div class="brand">
         <i class="fa-solid fa-layer-group"></i>
         <div>
-          <div>{{ $activeSectionName ?? 'Lapangan' }}</div>
-          <div style="font-size: 0.8rem; font-weight: 400;">&nbsp;</div>
+          <div>{{ $displayTitle ?? 'Layar Display' }}</div>
+          <div style="font-size: 0.8rem; font-weight: 400;">Display Antrian</div>
         </div>
       </div>
     </div>
@@ -562,69 +531,72 @@
       </div>
     </div>
 
-    <!-- Right: Queue Grid -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
-        <div class="queue-grid-container">
-            <div class="queue-grid">
-                @php
-                    // Flatten all queues from all sections
-                    $allQueues = collect();
-                    foreach($sectionQueues as $section) {
-                        foreach($section['queue'] as $item) {
-                            $allQueues->push($item);
-                        }
-                    }
-                    
-                    // Sort by date and time (assuming they are already sorted, but good to be safe)
-                    // $allQueues = $allQueues->sortBy(function($item) {
-                    //     return $item['tanggal'] . ' ' . $item['jam_mulai'];
-                    // });
+    <!-- Right: Queue Grid (Grouped by Section) -->
+    <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; height: 100%;">
+        @php
+            $sectionGroups = $allSchedulesToday ?? collect();
+        @endphp
 
-                    // Exclude the active queue if it exists
-                    if($activeQueue) {
-                        $allQueues = $allQueues->reject(function($item) use ($activeQueue) {
-                            return $item['kode_tiket'] === $activeQueue['kode_tiket'];
-                        });
-                    }
-                @endphp
+        @forelse($sectionGroups as $sectionIndex => $sectionGroup)
+            <div class="section-group" style="animation: fadeInUp 0.6s ease; animation-delay: {{ $sectionIndex * 0.1 }}s; opacity: 0; animation-fill-mode: forwards;">
+                <!-- Section Header -->
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 20px; border-radius: 16px 16px 0 0; font-weight: 700; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); display: flex; align-items: center; gap: 10px;"></div>
 
-                @forelse($allQueues as $index => $queueItem)
-                    @php
-                        $statusRaw = $queueItem['status'] ?? 'menunggu';
-                        $statusLabel = match($statusRaw) {
-                            'sedang_main' => 'SEDANG MAIN',
-                            'masuk_arena' => 'MASUK ARENA',
-                            'dibayar' => 'DIBAYAR',
-                            default => strtoupper($statusRaw)
-                        };
-                        $statusClass = match($statusRaw) {
-                            'dibayar' => 'status-paid',
-                            'sedang_main' => 'status-playing',
-                            'masuk_arena' => 'status-playing',
-                            default => 'status-waiting'
-                        };
-                        $jamRange = $queueItem['jam_mulai'] . ' - ' . $queueItem['jam_selesai'];
-                @endphp
-                <div class="queue-item-card color-{{ $index % 6 }}">
-                    <div class="queue-item-header" aria-hidden="true">&nbsp;</div>
-                        <div class="queue-item-body">
-                            <div class="queue-item-status {{ $statusClass }}">{{ $statusLabel }}</div>
-                        </div>
-                        <div class="queue-item-footer">
-                             {{ $queueItem['penyewa'] }}
-                             <div class="text-muted mt-1" style="font-size: 0.78rem; font-weight: 500;">
-                                {{ $jamRange }}
+                <!-- Schedules for this section -->
+                <div class="queue-grid-container" style="margin-top: 0; padding: 15px; background: rgba(255, 255, 255, 0.5); border-radius: 0 0 16px 16px; backdrop-filter: blur(10px);">
+                    <div class="queue-grid">
+                        @php
+                            $schedules = collect($sectionGroup['schedules']);
+                            
+                            // Exclude the active queue if it exists
+                            if(isset($activeQueue)) {
+                                $schedules = $schedules->reject(function($item) use ($activeQueue) {
+                                    return isset($item['kode_tiket']) && $item['kode_tiket'] === $activeQueue['kode_tiket'];
+                                });
+                            }
+                        @endphp
+
+                        @foreach($schedules as $index => $scheduleItem)
+                            @php
+                                $statusRaw = $scheduleItem['status'] ?? 'tersedia';
+                                $statusLabel = match($statusRaw) {
+                                    'sedang_main' => 'SEDANG MAIN',
+                                    'masuk_arena' => 'MASUK ARENA',
+                                    'dibayar' => 'DIBAYAR',
+                                    'menunggu' => 'MENUNGGU',
+                                    'tersedia' => 'TERSEDIA',
+                                    default => strtoupper($statusRaw)
+                                };
+                                $statusClass = match($statusRaw) {
+                                    'dibayar' => 'status-paid',
+                                    'sedang_main' => 'status-playing',
+                                    'masuk_arena' => 'status-playing',
+                                    'menunggu' => 'status-waiting',
+                                    'tersedia' => 'status-available',
+                                    default => 'status-waiting'
+                                };
+                                $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
+                                $displayName = $scheduleItem['penyewa'] ?? '-';
+                            @endphp
+                            <div class="queue-item-card color-{{ $index % 6 }}">
+                                <div class="queue-item-body">
+                                    <div class="queue-item-status {{ $statusClass }} mb-2">{{ $statusLabel }}</div>
+                                    <div class="h5 fw-bold text-dark mb-1 text-center text-truncate w-100 px-2">{{ $displayName }}</div>
+                                    <div class="text-muted small fw-medium">{{ $jamRange }}</div>
+                                </div>
                             </div>
-                        </div>
+                        @endforeach
+                    </div>
                 </div>
-            @empty
-                <div class="d-flex align-items-center justify-content-center w-100 text-muted">
-                    <small>Tidak ada antrian berikutnya</small>
-                </div>
-                @endforelse
             </div>
-        </div>
-
+        @empty
+            <div class="d-flex align-items-center justify-content-center w-100 text-muted" style="flex: 1;">
+                <div class="text-center">
+                    <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity: 0.3;"></i>
+                    <div>Tidak ada jadwal hari ini</div>
+                </div>
+            </div>
+        @endforelse
     </div>
   </div>
 
