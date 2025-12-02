@@ -28,6 +28,31 @@ class PemesananController extends Controller
     }
 
     // ==================== HELPERS ====================
+    private function expirePendingOrders(): void
+    {
+        $now = Carbon::now('Asia/Jakarta');
+
+        $expiredOrders = Pemesanan::with(['jadwal', 'pembayaran'])
+            ->where('status', 'menunggu')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', $now)
+            ->get();
+
+        foreach ($expiredOrders as $order) {
+            DB::transaction(function () use ($order) {
+                $order->update(['status' => 'kadaluarsa']);
+
+                if ($order->jadwal) {
+                    $order->jadwal->update(['tersedia' => true]);
+                }
+
+                if ($order->pembayaran) {
+                    $order->pembayaran->update(['status' => 'kadaluarsa']);
+                }
+            });
+        }
+    }
+
     private function generateOrderId(Pemesanan $pemesanan): string
     {
         return sprintf(
@@ -76,6 +101,7 @@ class PemesananController extends Controller
     // ==================== API: GET JADWAL ====================
     public function getJadwalBySection($section_id)
     {
+        $this->expirePendingOrders();
         $now = Carbon::now('Asia/Jakarta');
 
         $jadwal = JadwalLapangan::where('section_id', $section_id)
@@ -255,6 +281,7 @@ class PemesananController extends Controller
     // ==================== MIDTRANS: GET SNAP TOKEN (START PAYMENT) ====================
     public function getSnapToken(Request $request)
     {
+        $this->expirePendingOrders();
         try {
             \Log::info('📦 Request ke getSnapToken', $request->all());
 
@@ -502,6 +529,7 @@ public function pindahLangsung(Request $request, $pemesananId)
     // ==================== HALAMAN & RIWAYAT ====================
     public function create($lapangan_id)
     {
+        $this->expirePendingOrders();
         $lapangan = Lapangan::with('sections')->findOrFail($lapangan_id);
         $userId = Auth::id();
 
@@ -572,6 +600,7 @@ public function pindahLangsung(Request $request, $pemesananId)
 
     public function riwayatBelum()
     {
+        $this->expirePendingOrders();
         $userId = Auth::id();
 
         $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
@@ -616,5 +645,48 @@ public function pindahLangsung(Request $request, $pemesananId)
             ->get();
 
         return view('penyewa.riwayat', compact('dibatalkan'));
+    }
+
+    /**
+     * Tandai pemesanan sebagai kadaluarsa jika sudah melewati expires_at (dipanggil via AJAX countdown).
+     */
+    public function expireNow(Pemesanan $pemesanan)
+    {
+        if ($pemesanan->penyewa_id !== Auth::id()) {
+            abort(403, 'Tidak diizinkan.');
+        }
+
+        if ($pemesanan->status !== 'menunggu') {
+            return response()->json(['status' => $pemesanan->status]);
+        }
+
+        $now = Carbon::now('Asia/Jakarta');
+        $expiresAt = $pemesanan->expires_at ? Carbon::parse($pemesanan->expires_at, 'Asia/Jakarta') : null;
+
+        if (! $expiresAt || $expiresAt->gt($now)) {
+            return response()->json([
+                'status' => 'menunggu',
+                'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
+                'server_time' => $now->toIso8601String(),
+            ]);
+        }
+
+        DB::transaction(function () use ($pemesanan) {
+            $pemesanan->update(['status' => 'kadaluarsa']);
+
+            if ($pemesanan->jadwal) {
+                $pemesanan->jadwal->update(['tersedia' => true]);
+            }
+
+            if ($pemesanan->pembayaran) {
+                $pemesanan->pembayaran->update(['status' => 'kadaluarsa']);
+            }
+        });
+
+        return response()->json([
+            'status' => 'kadaluarsa',
+            'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
+            'server_time' => $now->toIso8601String(),
+        ]);
     }
 }
