@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
+use App\Models\Pemesanan;
+use App\Models\Pembayaran; // kalau kamu cek pembayaran juga
+use Carbon\Carbon;
 use Midtrans\Config as MidtransConfig; // <── ini penting!
 
 class AppServiceProvider extends ServiceProvider
@@ -28,14 +31,5 @@ class AppServiceProvider extends ServiceProvider
         MidtransConfig::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
         MidtransConfig::$isSanitized = true;
         MidtransConfig::$is3ds = true;
-
-          // Set timezone
-    config(['app.locale' => 'id']);
-    date_default_timezone_set('Asia/Jakarta');
-
-    // Auto-expire pemesanan
-    Pemesanan::where('status', 'menunggu')
-        ->where('expires_at', '<', Carbon::now())
-        ->update(['status' => 'kadaluarsa']);
     }
 }

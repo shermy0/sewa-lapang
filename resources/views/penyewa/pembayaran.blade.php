@@ -165,17 +165,24 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
         const now = Date.now();
         const diff = expiresAt - now;
 
-        if (diff <= 0) {
-            target.textContent = '⛔ Waktu pembayaran sudah habis.';
-            target.classList.add('text-muted');
+if (diff <= 0) {
+    target.textContent = '⛔ Waktu pembayaran sudah habis.';
+    target.classList.add('text-muted');
 
-            const card = target.closest('.ticket-card');
-            if (card) {
-                card.querySelectorAll('button').forEach(btn => btn.remove());
-            }
+    // Hapus tombol
+    const card = target.closest('.ticket-card');
+    if (card) {
+        card.querySelectorAll('button').forEach(btn => btn.remove());
+    }
 
-            return;
-        }
+    // ⬅⬅ Tambahkan ini agar halaman reload otomatis!
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+
+    return;
+}
+
 
         const m = Math.floor(diff / 60000);
         const s = Math.floor((diff % 60000) / 1000);
