@@ -907,6 +907,61 @@ function openJadwalModal(lapangan) {
   const list = document.getElementById("penyewaResults");
   let penyewaTimeout = null;
   const MIN_PENYEWA_LEN = 2;
+  const PENYEWA_STORAGE_KEY = 'petugasPenyewaSelection';
+
+  const loadStoredPenyewa = () => {
+    try {
+      const raw = localStorage.getItem(PENYEWA_STORAGE_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    } catch(err) {
+      console.warn('Gagal parse penyewa tersimpan', err);
+      return null;
+    }
+  };
+
+  const saveStoredPenyewa = (name, id = null) => {
+    try {
+      const cleanName = name ? name : '';
+      const normalizedId = id ? id : null;
+      if(!cleanName && !normalizedId){
+        localStorage.removeItem(PENYEWA_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(PENYEWA_STORAGE_KEY, JSON.stringify({
+        name: cleanName,
+        id: normalizedId
+      }));
+    } catch(err) {
+      console.warn('Gagal menyimpan penyewa', err);
+    }
+  };
+
+  const restorePenyewaInput = () => {
+    if(!penyewaInput) return;
+    const stored = loadStoredPenyewa();
+    if(stored && stored.name){
+      penyewaInput.value = stored.name;
+      if(stored.id){
+        penyewaInput.dataset.id = stored.id;
+      } else {
+        penyewaInput.removeAttribute('data-id');
+      }
+    }
+  };
+
+  const syncPenyewaNameToCart = (name) => {
+    fetch('/petugas/cart-temp/nama', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify({ nama_penyewa: name || null })
+    }).catch(err => console.error('Gagal sinkron nama penyewa', err));
+  };
+
+  restorePenyewaInput();
 
   function renderPenyewaDropdown(data, options = {}) {
     if (!list) return;
@@ -955,6 +1010,8 @@ function openJadwalModal(lapangan) {
     if (!penyewaInput) return;
     penyewaInput.value = penyewa.name;
     penyewaInput.dataset.id = penyewa.id;
+    saveStoredPenyewa(penyewa.name, penyewa.id);
+    syncPenyewaNameToCart(penyewa.name);
     list.style.display = "none";
   }
 
@@ -976,6 +1033,12 @@ function openJadwalModal(lapangan) {
   penyewaInput.addEventListener("input", function () {
     const q = this.value.trim();
     this.removeAttribute('data-id');
+    if(q){
+      saveStoredPenyewa(q, null);
+    } else {
+      saveStoredPenyewa('', null);
+      syncPenyewaNameToCart(null);
+    }
 
     if (penyewaTimeout) clearTimeout(penyewaTimeout);
 
@@ -1010,6 +1073,17 @@ function openJadwalModal(lapangan) {
       if (!penyewaInput.contains(e.target) && !list.contains(e.target)) {
           list.style.display = 'none';
       }
+  });
+
+  penyewaInput.addEventListener('blur', function() {
+      const name = this.value.trim();
+      const id = this.dataset.id || null;
+      if(name){
+        saveStoredPenyewa(name, id);
+      } else {
+        saveStoredPenyewa('', null);
+      }
+      syncPenyewaNameToCart(name || null);
   });
 
   function renderCartFromDB() {
