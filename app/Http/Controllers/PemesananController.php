@@ -180,7 +180,7 @@ class PemesananController extends Controller
                 'jadwal_id' => $jadwal->id,
                 'status' => 'menunggu',
                 'expires_at' => now()->addMinutes(15),
-                'nama_komunitas' => $request->nama_komunitas, 
+                'nama_komunitas.required' => 'Nama komunitas wajib diisi.',
             ]);
 
             // hitung harga
@@ -383,7 +383,7 @@ class PemesananController extends Controller
                         'jadwal_id' => $jadwal->id,
                         'status' => 'menunggu',
                         'expires_at' => now()->addMinutes(15),
-                        'nama_komunitas' => $request->nama_komunitas,
+                        'nama_komunitas.required' => 'Nama komunitas wajib diisi.',
                     ]);
 
                     Pembayaran::create([
