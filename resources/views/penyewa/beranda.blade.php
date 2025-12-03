@@ -144,7 +144,7 @@
                     {{-- BADGES --}}
                     <div class="position-absolute top-0 start-0 m-3">
                         <span class="badge bg-primary px-3 py-2">
-                            <i class="fa-solid fa-layer-group me-1"></i>{{ $totalSections }} Section
+                            <i class="fa-solid fa-layer-group me-1"></i>{{ $totalSections }} Lapangan
                         </span>
                     </div>
                     <div class="position-absolute top-0 end-0 m-3">

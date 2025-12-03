@@ -6,6 +6,14 @@
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/penyewa.css') }}">
 
+<style>
+    /* Hapus panah carousel Bootstrap */
+    .carousel-control-prev,
+    .carousel-control-next {
+        display: none !important;
+    }
+</style>
+
 <div class="container py-4">
     <h1 class="fw-bold" style="color: var(--primary-green);">Detail {{ $lapangan->nama_lapangan }}</h1>
 
@@ -57,7 +65,7 @@
             $bolehUlas = (clone $pemesananDasar)
                 ->where(function ($query) {
                     if (\Illuminate\Support\Facades\Schema::hasColumn('pemesanan', 'status_scan')) {
-                        $query->where('status_scan', 'sudah_scan');
+                        $query->whereIn('status_scan', ['sudah_scan', 'masuk_lapang']);
                     } else {
                         $query->where('is_scanned', true);
                     }
@@ -552,7 +560,7 @@
                 {{-- HEADER --}}
                 <div class="modal-header border-0 d-flex align-items-center justify-content-between">
                     <h5 class="modal-title fw-bold text-dark" id="jadwalModalLabel">
-                        Jadwal Lapangan {{ $lapangan->nama_lapangan }}
+                        Jadwal {{ $lapangan->nama_lapangan }}
                     </h5>
                     <div class="d-flex align-items-center gap-2">
                         @php
@@ -598,7 +606,7 @@
                         <div class="col">
                             <label for="filterSection" class="form-label fw-semibold mb-1">Section</label>
                             <select id="filterSection" class="form-select">
-                                <option value="">Semua Section</option>
+                                <option value="">Semua Lapangan</option>
                                 @foreach($lapangan->sections as $section)
                                     <option value="{{ $section->nama_section }}">{{ $section->nama_section }}</option>
                                 @endforeach
@@ -652,53 +660,48 @@
                                             <tr>
                                                 <th>No</th>
                                                 <th>Tanggal</th>
-                                                <th>Section</th>
+                                                <th>Lapangan</th>
                                                 <th>Rentang Waktu</th>
                                                 <th>Harga Total</th>
                                                 <th>Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            @php
+                                                $now = \Carbon\Carbon::now();
+                                            @endphp
 
                                             @foreach($jadwalTersedia as $i => $jadwal)
                                                 @php
-                                                    $mulai = Carbon::parse($jadwal->jam_mulai);
-                                                    $selesai = Carbon::parse($jadwal->jam_selesai);
-                                                    $durasiMenit = $jadwal->durasi_sewa ?? $mulai->diffInMinutes($selesai);
-                                                    $durasiJam = $durasiMenit / 60;
+                                                    $mulai = \Carbon\Carbon::parse($jadwal->jam_mulai);
+                                                    $selesai = \Carbon\Carbon::parse($jadwal->jam_selesai);
                                                 @endphp
 
-                                                <tr
-                                                    data-tanggal="{{ Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
-                                                    data-section="{{ $jadwal->section->nama_section ?? '' }}"
-                                                    data-jam-mulai="{{ $mulai->format('H:i') }}"
-                                                >
-                                                    <td class="fw-semibold">{{ $i + 1 }}</td>
-                                                    <td>{{ Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
-                                                    <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
-                                                    <td>
-                                                        <div class="d-flex flex-column small fw-semibold">
-                                                            <span>{{ $mulai->format('H:i') }} WIB</span>
-                                                            <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="fw-bold text-success">
-                                                            Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}
-                                                        </div>
-                                                        <small class="text-muted d-block">
-                                                            Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam
-                                                        </small>
-                                                    </td>
-                                                    <td>
-                                                        <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">
-                                                            <i class="fa-solid fa-cart-plus me-1"></i>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-
+                                                {{-- Hanya tampilkan jadwal yang belum lewat --}}
+                                                @if($mulai->greaterThanOrEqualTo($now))
+                                                    <tr
+                                                        data-tanggal="{{ \Carbon\Carbon::parse($jadwal->tanggal)->format('Y-m-d') }}"
+                                                        data-section="{{ $jadwal->section->nama_section ?? '' }}"
+                                                        data-jam-mulai="{{ $mulai->format('H:i') }}"
+                                                    >
+                                                        <td class="fw-semibold">{{ $i + 1 }}</td>
+                                                        <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y') }}</td>
+                                                        <td>{{ $jadwal->section->nama_section ?? '-' }}</td>
+                                                        <td>
+                                                            <div class="d-flex flex-column small fw-semibold">
+                                                                <span>{{ $mulai->format('H:i') }} WIB</span>
+                                                                <span class="text-muted">s/d {{ $selesai->format('H:i') }}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>Rp {{ number_format($jadwal->harga_sewa ?? 0,0,',','.') }}</td>
+                                                        <td>
+                                                            <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">
+                                                                <i class="fa-solid fa-cart-plus me-1"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                @endif
                                             @endforeach
-
                                         </tbody>
                                     </table>
                                 </div>
@@ -864,7 +867,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         @endif
 
                         <div class="position-absolute top-0 start-0 m-3">
-                            <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> {{ $totalSections }} Section</span>
+                            <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-layer-group me-1"></i> {{ $totalSections }} Lapangan</span>
                         </div>
                         <div class="position-absolute top-0 end-0 m-3">
                             <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-calendar me-1"></i> {{ $totalJadwal }} Jadwal</span>

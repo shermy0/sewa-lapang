@@ -153,6 +153,7 @@ class PemesananController extends Controller
                 'jadwal_id' => $jadwal->id,
                 'status' => 'menunggu',
                 'expires_at' => now()->addMinutes(15),
+                'nama_komunitas' => $request->nama_komunitas, 
             ]);
 
             // hitung harga
@@ -259,51 +260,78 @@ class PemesananController extends Controller
             \Log::info('📦 Request ke getSnapToken', $request->all());
 
             $lapangan = Lapangan::findOrFail($request->lapangan_id);
-            $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
-
-            // Cek apakah jadwal sedang dipakai oleh orang lain (pending/dibayar)
-            $pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
-                ->where('penyewa_id', '!=', Auth::id())
-                ->whereIn('status', ['menunggu', 'dibayar'])
-                ->whereHas('pembayaran', function ($q) {
-                    $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
-                })
-                ->exists();
-
-            if ($pendingFromOtherUser) {
-                return response()->json([
-                    'error' => 'Jadwal ini sedang menunggu pembayaran oleh penyewa lain.',
-                ], 409);
+            $jadwalIds = [];
+            if ($request->filled('jadwal_id')) {
+                $jadwalIds[] = $request->jadwal_id;
+            }
+            if (is_array($request->jadwal_ids ?? null)) {
+                $jadwalIds = array_merge($jadwalIds, $request->jadwal_ids);
+            }
+            $jadwalIds = array_values(array_filter($jadwalIds));
+            if (empty($jadwalIds)) {
+                return response()->json(['error' => 'Jadwal tidak ditemukan.'], 404);
             }
 
-            if (! $jadwal->tersedia) {
-                return response()->json(['error' => 'Jadwal tidak tersedia.'], 400);
+            $jadwals = JadwalLapangan::whereIn('id', $jadwalIds)->get();
+            if ($jadwals->count() !== count($jadwalIds)) {
+                return response()->json(['error' => 'Ada jadwal yang tidak ditemukan.'], 404);
             }
 
-            // Cegah user melakukan double booking pada jadwal yang sama
-            $existing = Pemesanan::where('penyewa_id', Auth::id())
-                ->where('jadwal_id', $jadwal->id)
-                ->whereIn('status', ['menunggu', 'dibayar'])
-                ->first();
+            // Validasi setiap jadwal
+            foreach ($jadwals as $jadwal) {
+                // Cek apakah jadwal sedang dipakai oleh orang lain (pending/dibayar)
+                $pendingFromOtherUser = Pemesanan::where('jadwal_id', $jadwal->id)
+                    ->where('penyewa_id', '!=', Auth::id())
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->whereHas('pembayaran', function ($q) {
+                        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+                    })
+                    ->exists();
 
-            if ($existing) {
-                return response()->json([
-                    'error' => 'Kamu sudah memesan jadwal ini.',
-                    'redirect' => route('penyewa.pembayaran')
-                ], 409);
+                if ($pendingFromOtherUser) {
+                    return response()->json([
+                        'error' => 'Ada jadwal yang sedang menunggu pembayaran oleh penyewa lain.',
+                    ], 409);
+                }
+
+                if (! $jadwal->tersedia) {
+                    return response()->json(['error' => 'Ada jadwal yang tidak tersedia.'], 400);
+                }
+
+                // Cegah user melakukan double booking pada jadwal yang sama
+                $existing = Pemesanan::where('penyewa_id', Auth::id())
+                    ->where('jadwal_id', $jadwal->id)
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->first();
+
+                if ($existing) {
+                    return response()->json([
+                        'error' => 'Kamu sudah memesan salah satu jadwal ini.',
+                        'redirect' => route('penyewa.pembayaran')
+                    ], 409);
+                }
             }
 
-            // Lock jadwal DENGAN SEGERA
-            $jadwal->update(['tersedia' => false]);
+            $totalBayar = 0;
+            foreach ($jadwals as $jadwal) {
+                $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
+                if ($hargaSewa <= 0) {
+                    return response()->json(['error' => 'Harga lapangan belum diatur.'], 422);
+                }
+                $totalBayar += $hargaSewa;
+            }
 
-            // Generate Midtrans snap token
-            $hargaSewa = $this->resolveHargaSewa($jadwal, $lapangan);
-            $orderId = sprintf('TMP-%s-%s', Auth::id(), now()->timestamp);
+            if (!config('midtrans.server_key') || !config('midtrans.client_key')) {
+                \Log::error('⚠ MIDTRANS belum dikonfigurasi saat getSnapToken');
+                return response()->json(['error' => 'Konfigurasi pembayaran belum siap.'], 500);
+            }
+
+            $transactionId = sprintf('TMP-%s-%s-%s', Auth::id(), now()->timestamp, Str::upper(Str::random(4)));
 
             $snapToken = Snap::getSnapToken([
                 'transaction_details' => [
-                    'order_id' => $orderId,
-                    'gross_amount' => $hargaSewa,
+                    'order_id' => $transactionId,
+                    'gross_amount' => $totalBayar,
                 ],
                 'customer_details' => [
                     'first_name' => Auth::user()->name,
@@ -314,39 +342,57 @@ class PemesananController extends Controller
             // Simpan pemesanan & pembayaran sementara
             DB::beginTransaction();
             try {
-                $pemesanan = Pemesanan::create([
-                    'penyewa_id' => Auth::id(),
-                    'lapangan_id' => $lapangan->id,
-                    'jadwal_id' => $jadwal->id,
-                    'status' => 'menunggu',
-                    'expires_at' => now()->addMinutes(15),
-                ]);
+                $pemesananIds = [];
 
-                Pembayaran::create([
-                    'pemesanan_id' => $pemesanan->id,
-                    'metode' => 'midtrans',
-                    'jumlah' => $hargaSewa,
-                    'status' => 'pending',
-                    'order_id' => $orderId,
-                    'snap_token' => $snapToken,
-                ]);
+                foreach ($jadwals as $jadwal) {
+                    $pemesanan = Pemesanan::create([
+                        'penyewa_id' => Auth::id(),
+                        'lapangan_id' => $lapangan->id,
+                        'jadwal_id' => $jadwal->id,
+                        'status' => 'menunggu',
+                        'expires_at' => now()->addMinutes(15),
+                        'nama_komunitas' => $request->nama_komunitas,
+                    ]);
+
+                    Pembayaran::create([
+                        'pemesanan_id' => $pemesanan->id,
+                        'metode' => 'midtrans',
+                        'jumlah' => $this->resolveHargaSewa($jadwal, $lapangan),
+                        'status' => 'pending',
+                        // order_id unik per pembayaran untuk hindari constraint,
+                        // tetap merujuk ke transactionId Midtrans.
+                        'order_id' => $transactionId . '-' . $pemesanan->id,
+                        'snap_token' => $snapToken,
+                    ]);
+
+                    $jadwal->update(['tersedia' => false]);
+                    $pemesananIds[] = $pemesanan->id;
+                }
 
                 DB::commit();
 
                 return response()->json([
                     'snap_token' => $snapToken,
-                    'pemesanan_id' => $pemesanan->id,
+                    'pemesanan_ids' => $pemesananIds,
+                    'pemesanan_id' => $pemesananIds[0] ?? null, // fallback untuk client lama
+                    'transaction_id' => $transactionId,
                 ]);
 
             } catch (\Exception $e) {
                 DB::rollBack();
                 // unlock jadwal jika gagal menyimpan
-                $jadwal->update(['tersedia' => true]);
+                foreach ($jadwals as $jadwal) {
+                    $jadwal->update(['tersedia' => true]);
+                }
                 throw $e;
             }
 
         } catch (\Exception $e) {
             \Log::error('🔥 ERROR getSnapToken: ' . $e->getMessage());
+            // Pastikan jadwal tidak terkunci jika token gagal
+            if (isset($jadwal) && $jadwal->exists) {
+                $jadwal->update(['tersedia' => true]);
+            }
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -373,6 +419,63 @@ class PemesananController extends Controller
         // jadwal sudah pasti terkunci
         if ($pemesanan->jadwal) {
             $pemesanan->jadwal->update(['tersedia' => false]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Webhook/callback dari Midtrans: tandai semua pembayaran dengan order_id ini sebagai berhasil,
+     * dan update semua pemesanan terkait ke status dibayar.
+     */
+    public function midtransCallback(Request $request)
+    {
+        $orderId = $request->input('order_id');
+        $transactionStatus = $request->input('transaction_status');
+        $fraudStatus = $request->input('fraud_status');
+
+        if (! $orderId) {
+            return response()->json(['message' => 'order_id kosong'], 400);
+        }
+
+        $isPaid = false;
+        if ($transactionStatus === 'capture') {
+            $isPaid = ($fraudStatus === 'accept');
+        } elseif ($transactionStatus === 'settlement') {
+            $isPaid = true;
+        }
+
+        if (! $isPaid) {
+            return response()->json([
+                'message' => 'Status belum dibayar',
+                'transaction_status' => $transactionStatus,
+            ], 200);
+        }
+
+        $pembayarans = Pembayaran::where('order_id', $orderId)
+            ->orWhere('order_id', 'like', $orderId . '-%')
+            ->get();
+
+        if ($pembayarans->isEmpty()) {
+            return response()->json(['message' => 'Pembayaran tidak ditemukan'], 404);
+        }
+
+        foreach ($pembayarans as $pembayaran) {
+            if ($pembayaran->status !== 'berhasil') {
+                $pembayaran->update(['status' => 'berhasil']);
+            }
+
+            $pemesanan = $pembayaran->pemesanan;
+            if ($pemesanan && $pemesanan->status !== 'dibayar') {
+                $pemesanan->update([
+                    'status' => 'dibayar',
+                    'kode_tiket' => $pemesanan->kode_tiket ?: $this->generateShortTicketCode(),
+                ]);
+
+                if ($pemesanan->jadwal) {
+                    $pemesanan->jadwal->update(['tersedia' => false]);
+                }
+            }
         }
 
         return response()->json(['success' => true]);
@@ -573,7 +676,6 @@ public function pindahLangsung(Request $request, $pemesananId)
     public function riwayatBelum()
     {
         $userId = Auth::id();
-
         $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
             ->where('penyewa_id', $userId)
             ->get();
@@ -598,11 +700,89 @@ public function pindahLangsung(Request $request, $pemesananId)
             ->latest()
             ->get();
 
+        // Sinkronisasi status pending dengan Midtrans jika ada pembayaran pending
+        $this->syncPendingPayments($belumDibayar);
+
         return view('penyewa.pembayaran', [
             'belumDibayar' => $belumDibayar,
             'semuaPemesananUser' => $semuaPemesananUser,
             'userOrders' => $userOrders
         ]);
+    }
+
+    /**
+     * Cek status pembayaran pending ke Midtrans dan perbarui pemesanan + pembayaran.
+     */
+    private function syncPendingPayments($pemesananCollection): void
+    {
+        if (!config('midtrans.server_key')) {
+            return; // konfigurasi belum siap
+        }
+
+        $pendingPayments = [];
+        foreach ($pemesananCollection as $p) {
+            if ($p->pembayaran && $p->pembayaran->status === 'pending') {
+                $pendingPayments[] = $p->pembayaran;
+            }
+        }
+
+        if (empty($pendingPayments)) {
+            return;
+        }
+
+        $baseOrderIds = collect($pendingPayments)
+            ->map(function ($pay) {
+                return preg_replace('/-\d+$/', '', $pay->order_id);
+            })
+            ->unique()
+            ->values();
+
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production', false);
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        foreach ($baseOrderIds as $baseOrderId) {
+            try {
+                $status = \Midtrans\Transaction::status($baseOrderId);
+                $transactionStatus = $status->transaction_status ?? null;
+                $fraudStatus = $status->fraud_status ?? null;
+
+                $paid = false;
+                if ($transactionStatus === 'capture') {
+                    $paid = ($fraudStatus === 'accept');
+                } elseif ($transactionStatus === 'settlement') {
+                    $paid = true;
+                }
+
+                if ($paid) {
+                    $pembayarans = Pembayaran::where('order_id', $baseOrderId)
+                        ->orWhere('order_id', 'like', $baseOrderId . '-%')
+                        ->get();
+
+                    foreach ($pembayarans as $pay) {
+                        if ($pay->status !== 'berhasil') {
+                            $pay->update(['status' => 'berhasil']);
+                        }
+
+                        $pemesanan = $pay->pemesanan;
+                        if ($pemesanan && $pemesanan->status !== 'dibayar') {
+                            $pemesanan->update([
+                                'status' => 'dibayar',
+                                'kode_tiket' => $pemesanan->kode_tiket ?: $this->generateShortTicketCode(),
+                            ]);
+
+                            if ($pemesanan->jadwal) {
+                                $pemesanan->jadwal->update(['tersedia' => false]);
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Midtrans status check failed for '.$baseOrderId.' : '.$e->getMessage());
+                continue;
+            }
+        }
     }
 
     public function riwayatBatal()
@@ -616,5 +796,48 @@ public function pindahLangsung(Request $request, $pemesananId)
             ->get();
 
         return view('penyewa.riwayat', compact('dibatalkan'));
+    }
+
+    /**
+     * Tandai pemesanan sebagai kadaluarsa jika sudah melewati expires_at (dipanggil via AJAX countdown).
+     */
+    public function expireNow(Pemesanan $pemesanan)
+    {
+        if ($pemesanan->penyewa_id !== Auth::id()) {
+            abort(403, 'Tidak diizinkan.');
+        }
+
+        if ($pemesanan->status !== 'menunggu') {
+            return response()->json(['status' => $pemesanan->status]);
+        }
+
+        $now = Carbon::now('Asia/Jakarta');
+        $expiresAt = $pemesanan->expires_at ? Carbon::parse($pemesanan->expires_at, 'Asia/Jakarta') : null;
+
+        if (! $expiresAt || $expiresAt->gt($now)) {
+            return response()->json([
+                'status' => 'menunggu',
+                'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
+                'server_time' => $now->toIso8601String(),
+            ]);
+        }
+
+        DB::transaction(function () use ($pemesanan) {
+            $pemesanan->update(['status' => 'kadaluarsa']);
+
+            if ($pemesanan->jadwal) {
+                $pemesanan->jadwal->update(['tersedia' => true]);
+            }
+
+            if ($pemesanan->pembayaran) {
+                $pemesanan->pembayaran->update(['status' => 'kadaluarsa']);
+            }
+        });
+
+        return response()->json([
+            'status' => 'kadaluarsa',
+            'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
+            'server_time' => $now->toIso8601String(),
+        ]);
     }
 }

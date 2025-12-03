@@ -42,7 +42,7 @@ class UlasanController extends Controller
         // 3. CEK: sudah scan tiket?
         $pemesanan = Pemesanan::where('penyewa_id', $userId)
             ->where('lapangan_id', $lapanganId)
-            ->where('status_scan', 'sudah_scan')
+            ->whereIn('status_scan', ['sudah_scan', 'masuk_lapang'])
             ->first();
 
         if (!$pemesanan) {
