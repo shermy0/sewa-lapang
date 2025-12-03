@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\BandingPemilikController as AdminBandingPemilikCo
 use App\Http\Controllers\BandingPemilikController;
 use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\PemilikPetugasController;
+use App\Http\Controllers\CartTempController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -190,10 +191,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-// PETUGAS KASIR
-Route::middleware(['auth', 'verified', 'role:petugas'])
-    ->prefix('petugas')->name('petugas.')
-    ->group(function () {
+    // PETUGAS KASIR
+    Route::middleware(['auth', 'verified', 'role:petugas'])
+        ->prefix('petugas')->name('petugas.')
+        ->group(function () {
 
         // Dashboard petugas
         Route::get('/', [PetugasController::class, 'index'])->name('index');
@@ -213,9 +214,22 @@ Route::middleware(['auth', 'verified', 'role:petugas'])
         // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
 
+        // Section 
+        Route::get('/sections/{lapanganId}', [PetugasController::class, 'getSections'])->name('petugas.getSections');
+
+        // Payment
         Route::post('/payment/cash', [PetugasController::class, 'storeCash'])->name('store.cash');
         Route::post('/payment/midtrans', [PetugasController::class, 'storeMidtrans'])->name('store.midtrans');
-    Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
+        Route::post('/payment/check', [PetugasController::class, 'checkPaymentStatus'])->name('payment.check');        
+        Route::post('/pemesanan/{pemesanan}/midtrans/token', [PetugasController::class, 'midtransPayAgain'])->name('pemesanan.midtrans.token');
+        Route::post('/pemesanan/{pemesanan}/midtrans/success', [PetugasController::class, 'midtransSuccess'])->name('pemesanan.midtrans.success');
+
+        // CART TEMP — FULL DB AUTO SAVE
+        Route::post('/cart-temp', [CartTempController::class, 'store'])->name('cart-temp.store');
+        Route::get('/cart-temp', [CartTempController::class, 'index'])->name('cart-temp.index');
+        Route::delete('/cart-temp/{id}', [CartTempController::class, 'destroy']);
+        Route::delete('/cart-temp', [CartTempController::class, 'clear']);
+        Route::post('/cart-temp/nama', [CartTempController::class, 'updateNama']);
 
         // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
