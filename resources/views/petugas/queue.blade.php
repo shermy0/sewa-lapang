@@ -307,7 +307,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll('.section-pane').forEach(p => p.classList.add('d-none'));
         document.getElementById('section-'+id).classList.remove('d-none');
 
-        // fetch jadwal ulang sesuai section + tanggal
         currentPage = 1;
         if(typeof window.refreshJadwal === 'function'){
             window.refreshJadwal();
