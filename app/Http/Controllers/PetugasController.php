@@ -303,6 +303,7 @@ class PetugasController extends Controller
         $validated = $request->validate([
             'penyewa_id' => 'nullable|integer',
             'nama_penyewa' => 'nullable|string',
+            'komunitas' => 'nullable|string',
             'total' => 'required|numeric',
             'items' => 'required|array|min:1',
             'kasir' => 'required|string',
@@ -326,7 +327,10 @@ class PetugasController extends Controller
                 $penyewaId = $guest->id;
             }
 
+            $orderId = 'CASH-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
             $createdIds = [];
+            $receiptItems = [];
+            $computedTotal = 0;
 
             foreach ($validated['items'] as $item) {
                 $jadwalId = $item['jadwal_id'] ?? null;
@@ -354,27 +358,57 @@ class PetugasController extends Controller
                     'status' => 'dibayar',
                     'kode_tiket' => $this->generateTicketCode(),
                     'status_scan' => 'belum_scan',
+                    'nama_komunitas' => $validated['komunitas'] ?? null,
                 ]);
 
+                $jumlah = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
                 Pembayaran::create([
                     'pemesanan_id' => $pemesanan->id,
                     'metode' => 'cash',
-                    'jumlah' => ($item['harga'] ?? 0) * ($item['durasi'] ?? 1),
+                    'jumlah' => $jumlah,
                     'status' => 'berhasil',
-                    'order_id' => 'CASH-' . strtoupper(Str::random(8)),
+                    'order_id' => $orderId,
                     'tanggal_pembayaran' => now(),
                 ]);
 
                 $jadwal->update(['tersedia' => false]);
                 $createdIds[] = $pemesanan->id;
+
+                $lapanganName = optional($pemesanan->lapangan)->nama_lapangan
+                    ?? optional($jadwal->section)->lapangan->nama_lapangan
+                    ?? '-';
+                $sectionName = optional($jadwal->section)->nama_section ?? '-';
+                $jamMulai = substr($jadwal->jam_mulai, 0, 5);
+                $jamSelesai = substr($jadwal->jam_selesai, 0, 5);
+
+                $receiptItems[] = [
+                    'lapangan' => $lapanganName,
+                    'section' => $sectionName,
+                    'tanggal' => Carbon::parse($jadwal->tanggal)->format('d M Y'),
+                    'jam' => "{$jamMulai} - {$jamSelesai}",
+                    'harga' => $jumlah,
+                ];
+                $computedTotal += $jumlah;
             }
 
             DB::commit();
+
+            $customer = User::find($penyewaId);
+            $receiptData = [
+                'order_id' => $orderId,
+                'tanggal' => now('Asia/Jakarta')->format('d M Y H:i'),
+                'kasir' => $validated['kasir'],
+                'penyewa' => $customer->name ?? ($validated['nama_penyewa'] ?? 'Tamu'),
+                'komunitas' => $validated['komunitas'] ?? null,
+                'items' => $receiptItems,
+                'total' => $computedTotal,
+            ];
 
             return response()->json([
                 'success' => true,
                 'pemesanan_ids' => $createdIds,
                 'message' => 'Pemesanan cash berhasil!',
+                'receipt' => $receiptData,
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();

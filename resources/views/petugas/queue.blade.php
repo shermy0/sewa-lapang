@@ -70,6 +70,180 @@
   #sectionContent .section-pane.d-none {
       display: none;
   }
+  #sectionContent .section-pane.d-none {
+      display: none;
+  }
+  
+  @media print {
+      body * {
+          visibility: hidden;
+      }
+      
+      /* Show print area OR receipt body */
+      #print-area, #print-area *,
+      #receiptBody, #receiptBody *,
+      .thermal-receipt, .thermal-receipt * {
+          visibility: visible !important;
+      }
+      
+      #print-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          display: block !important;
+      }
+      
+      /* When printing from modal, show modal body */
+      .modal-body#receiptBody {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          transform: translateX(-50%);
+          width: 80mm;
+          max-width: 380px;
+          display: block !important;
+          visibility: visible !important;
+      }
+      
+      @page { 
+          size: 80mm auto;
+          margin: 5mm;
+      }
+      
+      /* Hide other elements */
+      .modal-header, .modal-footer, .btn-close,
+      .modal-backdrop, .topbar, .container-fluid,
+      nav, .sidebar {
+          display: none !important;
+          visibility: hidden !important;
+      }
+      
+      /* Ensure thermal receipt styles are preserved */
+      .thermal-receipt {
+          font-size: 12px !important;
+          line-height: 1.4 !important;
+      }
+  }
+
+  /* ===== THERMAL RECEIPT STYLES ===== */
+  .thermal-receipt {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #000;
+      max-width: 100%;
+      margin: 0 auto;
+  }
+
+  .receipt-header {
+      text-align: center;
+      margin-bottom: 12px;
+  }
+
+  .receipt-logo {
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+  }
+
+  .receipt-subtitle {
+      font-size: 12px;
+      color: #555;
+  }
+
+  .receipt-divider {
+      border-top: 1px dashed #333;
+      margin: 10px 0;
+  }
+
+  .receipt-section {
+      margin-bottom: 8px;
+  }
+
+  .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      gap: 10px;
+  }
+
+  .receipt-label {
+      font-weight: normal;
+      color: #555;
+      flex-shrink: 0;
+  }
+
+  .receipt-value {
+      text-align: right;
+      font-weight: normal;
+      word-break: break-word;
+  }
+
+  .receipt-items-title {
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 11px;
+      letter-spacing: 1px;
+  }
+
+  .receipt-item {
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px dotted #ccc;
+  }
+
+  .receipt-item:last-child {
+      border-bottom: none;
+  }
+
+  .receipt-item-name {
+      font-weight: bold;
+      margin-bottom: 2px;
+  }
+
+  .receipt-item-details {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 3px;
+  }
+
+  .receipt-item-price {
+      text-align: right;
+      font-weight: bold;
+  }
+
+  .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 15px;
+      font-weight: bold;
+      margin: 10px 0;
+      gap: 10px;
+  }
+
+  .receipt-total-label {
+      flex-shrink: 0;
+  }
+
+  .receipt-total-value {
+      text-align: right;
+  }
+
+  .receipt-footer {
+      text-align: center;
+      font-size: 11px;
+      color: #555;
+      margin-top: 12px;
+      line-height: 1.6;
+  }
+
+  .receipt-footer div {
+      margin-bottom: 3px;
+  }
+
 </style>
 
   <div class="row gx-4">
@@ -102,6 +276,17 @@
             required>
           <ul id="penyewaResults" class="list-group position-absolute w-100"
               style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+        </div>
+
+        <!-- INPUT KOMUNITAS -->
+        <div class="mb-3">
+          <label class="fw-semibold mb-1">Komunitas</label>
+          <input
+            type="text"
+            id="inputKomunitas"
+            class="form-control"
+            placeholder="Nama komunitas (opsional)"
+            autocomplete="off">
         </div>
 
         <div class="d-flex justify-content-between mb-2">
@@ -238,7 +423,7 @@
           <h5 class="modal-title" id="receiptModalLabel">Struk Pembayaran</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body" id="receiptContent">
+        <div class="modal-body" id="receiptBody">
           <!-- Receipt content will be generated here -->
         </div>
         <div class="modal-footer d-print-none">
@@ -591,7 +776,9 @@ document.addEventListener("DOMContentLoaded", () => {
         items: itemsForServer,
         total: total,
         kasir: '{{ Auth::user()->name }}',
-        nama_penyewa: penyewaInput.value || null
+        kasir: '{{ Auth::user()->name }}',
+        nama_penyewa: penyewaInput.value || null,
+        komunitas: document.getElementById('inputKomunitas').value || null
     };
 
     try {
@@ -625,6 +812,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if(modal) modal.hide();
 
         if(typeof refreshJadwal === "function") refreshJadwal();
+
+        // Show Receipt
+        if(data.receipt){
+            showReceiptModal(data.receipt);
+        }
       } else {
         const paymentModalEl = document.getElementById('paymentModal');
         const modal = bootstrap.Modal.getInstance(paymentModalEl);
@@ -1227,6 +1419,120 @@ pesanBtn.onclick = async () => {
 initCart();
 renderGrid();
 
+// ======== RECEIPT HANDLING ========
+function showReceiptModal(data) {
+    const body = document.getElementById('receiptBody');
+    const printArea = document.getElementById('print-area');
+    let itemsHtml = '';
+    
+    (data.items || []).forEach(item => {
+        itemsHtml += `
+            <div class="receipt-item">
+                <div class="receipt-item-name">${item.lapangan} - ${item.section}</div>
+                <div class="receipt-item-details">${item.tanggal} • ${item.jam}</div>
+                <div class="receipt-item-price">Rp ${Number(item.harga).toLocaleString('id-ID')}</div>
+            </div>
+        `;
+    });
+
+    body.innerHTML = `
+        <div class="thermal-receipt">
+            <!-- Header -->
+            <div class="receipt-header">
+                <div class="receipt-logo">SEWALAP</div>
+                <div class="receipt-subtitle">Bukti Pembayaran</div>
+            </div>
+            
+            <div class="receipt-divider"></div>
+            
+            <!-- Order Info -->
+            <div class="receipt-section">
+                <div class="receipt-row">
+                    <span class="receipt-label">Order ID</span>
+                    <span class="receipt-value">${data.order_id}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Tanggal</span>
+                    <span class="receipt-value">${data.tanggal}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Kasir</span>
+                    <span class="receipt-value">${data.kasir}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Penyewa</span>
+                    <span class="receipt-value">${data.penyewa}</span>
+                </div>
+                ${data.komunitas ? `
+                <div class="receipt-row">
+                    <span class="receipt-label">Komunitas</span>
+                    <span class="receipt-value">${data.komunitas}</span>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="receipt-divider"></div>
+            
+            <!-- Items -->
+            <div class="receipt-section">
+                <div class="receipt-items-title">DETAIL PESANAN</div>
+                ${itemsHtml}
+            </div>
+            
+            <div class="receipt-divider"></div>
+            
+            <!-- Total -->
+            <div class="receipt-total">
+                <span class="receipt-total-label">TOTAL</span>
+                <span class="receipt-total-value">Rp ${Number(data.total).toLocaleString('id-ID')}</span>
+            </div>
+            
+            <div class="receipt-divider"></div>
+            
+            <!-- Footer -->
+            <div class="receipt-footer">
+                <div>Terima Kasih</div>
+                <div>Simpan struk ini sebagai bukti pembayaran yang sah</div>
+            </div>
+        </div>
+    `;
+
+    if (printArea) {
+        printArea.innerHTML = body.innerHTML;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+    modal.show();
+}
+
+function printReceipt() {
+    // Simply trigger print - CSS @media print will handle the display
+    window.print();
+}
+
 });
 </script>
+
+<!-- Modal Struk -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Struk Pembayaran</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3" id="receiptBody" style="background-color: #fff;">
+                <!-- Content filled by JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="printReceipt()"><i class="fa fa-print me-1"></i> Cetak</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endpush
+
+<!-- Print Area -->
+<div id="print-area" class="d-none"></div>

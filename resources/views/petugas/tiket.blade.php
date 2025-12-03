@@ -43,6 +43,14 @@
                                     'gagal' => 'danger',
                                     default => 'secondary',
                                 };
+                                $status = $t->status ?? '-';
+                                $statusClass = match($status) {
+                                    'dibayar' => 'success',
+                                    'menunggu' => 'warning text-dark',
+                                    'kadaluarsa', 'gagal', 'batal', 'dibatalkan' => 'secondary',
+                                    'selesai' => 'info',
+                                    default => 'secondary',
+                                };
                                 $scanStatus = $t->status_scan ?? 'belum_scan';
                                 $scanClass = match(true) {
                                     in_array($scanStatus, ['sudah_scan', 'masuk_lapang']) => 'success',
@@ -59,7 +67,7 @@
                                 </td>
                                 <td>{{ $tanggalMain }}</td>
                                 <td>{{ $jamMain }}</td>
-                                <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
+                                <td>{{ $t->nama_komunitas ?? '-' }}</td>
                                 <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
                                 <td>
                                     @if(($t->status === 'menunggu') || ($bayarStatus === 'pending'))
