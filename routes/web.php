@@ -194,6 +194,7 @@ Route::put('/persetujuan/{id}', [PersetujuanController::class, 'update']);
     Route::get('/kategori/{id}', [KategoriController::class, 'show'])->name('kategori.show');
     Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
     Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
+    Route::post('/kategori/store', [KategoriController::class, 'store'])->name('lapangan.storeKategori');
 
     // CRUD Lapangan
     Route::get('/lapangan', [LapanganController::class, 'index'])->name('lapangan.index');

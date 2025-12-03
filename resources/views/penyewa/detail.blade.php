@@ -560,6 +560,7 @@
                                 <table class="table table-hover align-middle mb-0 table-bordered text-center">
                                     <thead class="text-white fw-semibold" style="background-color: #198754;">
                                         <tr>
+<<<<<<< HEAD
                                             <th class="text-center align-middle">No</th>
                                             <th class="text-center align-middle">Tanggal</th>
                                             <th class="text-center align-middle">Section</th>
@@ -567,6 +568,14 @@
                                             <th class="text-center align-middle">Durasi</th>
                                             <th class="text-center align-middle">Harga Total</th>
                                             <th class="text-center align-middle">Status</th>
+=======
+                                            <th>No</th>
+                                            <th>Tanggal</th>
+                                            <th>Section</th>
+                                            <th>Rentang Waktu</th>
+                                            <th>Harga Total</th>
+                                            <th>Aksi</th>
+>>>>>>> a5dd9e1781c337d03d1707e1ba12a459637b8fee
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -588,18 +597,8 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-success-subtle text-success px-3 py-2">
-                                                        {{ rtrim(rtrim(number_format($durasiJam, 2, ',', '.'), '0'), ',') }} jam
-                                                    </span>
-                                                </td>
-                                                <td>
                                                     <div class="fw-bold text-success">Rp {{ number_format($jadwal->harga_total, 0, ',', '.') }}</div>
                                                     <small class="text-muted d-block">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge px-3 py-2 {{ $jadwal->tersedia ? 'bg-gradient bg-success' : 'bg-secondary' }}">
-                                                        {{ $jadwal->tersedia ? 'Tersedia' : 'Tidak Tersedia' }}
-                                                    </span>
                                                 </td>
                                                 <td>
                                                     <a href="{{ route('pemesanan.create', $lapangan->id) }}" class="btn btn-outline-success">
