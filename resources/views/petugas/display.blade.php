@@ -95,10 +95,11 @@
       font-weight: 500;
       margin-top: 4px;
     }
+    
 
     .main-content {
       flex: 1;
-      padding: 25px 25px 75px;
+      padding: 25px;
       display: flex;
       gap: 25px;
       height: calc(100vh - 120px);
@@ -108,11 +109,11 @@
 
     /* Left Panel: Active Queue */
     .active-queue-panel {
-      flex: 0 0 38%;
+      flex: 0 0 35%;
       display: flex;
       flex-direction: column;
-      gap: 25px;
       animation: fadeInUp 0.6s ease;
+      height: 100%;
     }
     
     .active-card {
@@ -197,74 +198,65 @@
     }
 
     /* Right Panel: Video/Carousel */
-    .media-panel {
-      flex: 1;
-      background: #000;
-      border-radius: 24px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      position: relative;
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      animation: fadeInUp 0.8s ease;
-    }
-    
-    .carousel, .carousel-inner, .carousel-item {
-      height: 100%;
-    }
-    
+    .media-panel,
+    .empty-media,
+    .carousel,
+    .carousel-inner,
+    .carousel-item,
     .carousel-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s ease;
-    }
-    
-    .carousel-item img:hover {
-      transform: scale(1.05);
+      display: none;
     }
 
     /* Bottom Panel: Queue Grid */
     .queue-grid-container {
       height: auto;
-      max-height: 260px;
       margin-top: auto;
       padding-bottom: 15px;
       animation: fadeInUp 1s ease;
     }
+
+    .section-group {
+      margin-bottom: 20px;
+    }
+
+    .section-group:last-child {
+      margin-bottom: 0;
+    }
     
     .queue-grid {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 14px;
-      height: 100%;
-      overflow-x: auto;
-      padding-bottom: 10px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(16, 185, 129, 0.4) transparent;
+      width: 100%;
     }
     
-    .queue-grid::-webkit-scrollbar {
-      height: 8px;
+    /* Scrollbar for right panel */
+    div[style*="overflow-y: auto"]::-webkit-scrollbar {
+      width: 8px;
     }
-    
-    .queue-grid::-webkit-scrollbar-track {
+
+    div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
       background: transparent;
     }
-    
-    .queue-grid::-webkit-scrollbar-thumb {
-      background: rgba(16, 185, 129, 0.4);
+
+    div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.3);
       border-radius: 10px;
+    }
+
+    div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.5);
     }
     
     .queue-item-card {
-      flex: 0 0 220px;
-      min-height: 230px;
+      min-height: 180px;
       background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-top: 5px solid;
+      border-top: 6px solid;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       animation: slideInUp 0.5s ease forwards;
       opacity: 0;
@@ -281,38 +273,17 @@
     .queue-item-card:nth-child(4) { animation-delay: 0.4s; }
     .queue-item-card:nth-child(5) { animation-delay: 0.5s; }
     
-    .queue-item-header {
-      padding: 10px 12px 8px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.9rem;
-      background: linear-gradient(180deg, #f8f9fc 0%, #ffffff 100%);
-      border-bottom: 2px solid rgba(16, 185, 129, 0.15);
-      line-height: 1.2;
-      min-height: 50px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 2px;
-    }
-    
-    .queue-location {
-      font-size: 0.75rem;
-      color: #6b7280;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+
     
     .queue-item-body {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: center;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       background: linear-gradient(180deg, #ffffff 0%, #fafbfe 100%);
-      padding: 10px 12px;
+      padding: 20px 15px;
     }
     
     .queue-item-code {
@@ -341,6 +312,7 @@
     .queue-item-status.status-waiting { background: #fff7e6; color: #d97706; }
     .queue-item-status.status-paid { background: #ecfdf3; color: #047857; }
     .queue-item-status.status-playing { background: #dbeafe; color: #1d4ed8; }
+    .queue-item-status.status-available { background: #f3f4f6; color: #6b7280; }
     
     .queue-meta {
       display: flex;
@@ -350,15 +322,7 @@
       width: 100%;
     }
     
-    .queue-item-footer {
-      font-size: 0.8rem;
-      text-align: center;
-      padding: 8px 10px 10px;
-      color: #111827;
-      font-weight: 600;
-      background: linear-gradient(180deg, #fafbfe 0%, #f8f9fc 100%);
-      border-top: 1px solid rgba(16, 185, 129, 0.08);
-    }
+
 
     /* Footer Marquee */
     .footer-marquee {
@@ -391,22 +355,11 @@
 
     /* Colors for cards */
     .color-0 { border-color: #10b981; }
-    .color-0 .queue-item-header { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); color: #10b981; }
-    
     .color-1 { border-color: #34d399; }
-    .color-1 .queue-item-header { background: linear-gradient(135deg, rgba(52, 211, 153, 0.1) 0%, rgba(52, 211, 153, 0.05) 100%); color: #34d399; }
-    
     .color-2 { border-color: #059669; }
-    .color-2 .queue-item-header { background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); color: #059669; }
-    
     .color-3 { border-color: #6ee7b7; }
-    .color-3 .queue-item-header { background: linear-gradient(135deg, rgba(110, 231, 183, 0.1) 0%, rgba(110, 231, 183, 0.05) 100%); color: #047857; }
-    
     .color-4 { border-color: #14b8a6; }
-    .color-4 .queue-item-header { background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0.05) 100%); color: #14b8a6; }
-    
     .color-5 { border-color: #0d9488; }
-    .color-5 .queue-item-header { background: linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(13, 148, 136, 0.05) 100%); color: #0d9488; }
     
     /* Additional info styling */
     .info-badge {
@@ -488,13 +441,40 @@
 </head>
 <body>
 
+  @php
+    $activeQueue = null;
+    $activeSectionName = 'Menunggu...';
+    // 1) Prioritaskan yang sedang main / masuk arena
+    foreach($sectionQueues as $section) {
+        foreach($section['queue'] as $item) {
+            if(in_array($item['status'], ['sedang_main', 'masuk_arena'], true)) {
+                $activeQueue = $item;
+                $activeSectionName = $section['label'];
+                break 2;
+            }
+        }
+    }
+    // 2) Jika tidak ada, ambil antrean pertama yang ada
+    if(!$activeQueue) {
+        foreach($sectionQueues as $section) {
+            if($section['queue']->isNotEmpty()) {
+                $activeQueue = $section['queue']->first();
+                $activeSectionName = $section['label'];
+                break;
+            }
+        }
+    }
+  @endphp
+
   <!-- Header -->
-  <header class="header">
-    <div class="brand">
-      <i class="fa-solid fa-layer-group"></i>
-      <div>
-        <div>SEWALAP VIRTUAL OFFICE</div>
-        <div style="font-size: 0.8rem; font-weight: 400;">Sistem Antrian Sewa Lapangan</div>
+  <header class="header d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="brand">
+        <i class="fa-solid fa-layer-group"></i>
+        <div>
+          <div>{{ $displayTitle ?? 'Layar Display' }}</div>
+          <div style="font-size: 0.8rem; font-weight: 400;">Display Antrian</div>
+        </div>
       </div>
     </div>
     <div class="clock">
@@ -508,56 +488,14 @@
 
     <!-- Left: Active Queue (Biggest/Latest) -->
     <div class="active-queue-panel">
-      <!-- We can show the very first queue item here as the "Active" one being called -->
-      @php
-        $activeQueue = null;
-        $activeSectionName = 'Menunggu...';
-        // 1) Prioritaskan yang sedang main / masuk arena
-        foreach($sectionQueues as $section) {
-            foreach($section['queue'] as $item) {
-                if(in_array($item['status'], ['sedang_main', 'masuk_arena'], true)) {
-                    $activeQueue = $item;
-                    $activeSectionName = $section['label'];
-                    break 2;
-                }
-            }
-        }
-        // 2) Jika tidak ada, ambil antrean pertama yang ada
-        if(!$activeQueue) {
-            foreach($sectionQueues as $section) {
-                if($section['queue']->isNotEmpty()) {
-                    $activeQueue = $section['queue']->first();
-                    $activeSectionName = $section['label'];
-                    break;
-                }
-            }
-        }
-      @endphp
-
       <div class="active-card">
         <div class="card-header">NOMOR ANTRIAN</div>
         <div class="card-body">
             @if($activeQueue)
-                <div class="active-queue-number">{{ $activeQueue['kode_tiket'] }}</div>
-                <div class="active-queue-label">{{ $activeQueue['penyewa'] }}</div>
+                <div class="active-queue-label mb-3">{{ $activeQueue['penyewa'] }}</div>
                 
                 <!-- Date and Category Info -->
-                <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
-                    <span class="info-badge date-badge">
-                        <i class="fa-regular fa-calendar me-1"></i>
-                        {{ $activeQueue['tanggal'] }}
-                    </span>
-                    <span class="info-badge category-badge">
-                        <i class="fa-solid fa-tag me-1"></i>
-                        {{ $activeQueue['kategori'] ?? 'Lapangan' }}
-                    </span>
-                    @if(!empty($activeQueue['status_scan_label']))
-                    <span class="info-badge" style="background: rgba(59,130,246,0.12); color:#2563eb;">
-                        <i class="fa-solid fa-person-running me-1"></i>
-                        {{ $activeQueue['status_scan_label'] }}
-                    </span>
-                    @endif
-                </div>
+                <div class="mt-1"></div>
 
                 <!-- Countdown Timer -->
                 @if($activeQueue['status'] === 'sedang_main')
@@ -571,10 +509,11 @@
                         $targetTime = $isPlaying ? $activeQueue['jam_selesai'] : $activeQueue['jam_mulai'];
                     @endphp
                 <div class="mt-4 text-center">
-                    <div class="small text-muted text-uppercase fw-bold mb-1">{{ $topLabel }}</div>
-                    <div class="h3 fw-bold text-dark mb-2">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
-                    <div class="small text-muted text-uppercase fw-bold mb-1">{{ $bottomLabel }}</div>
-                    <div id="countdownTimer" class="display-4 fw-bold text-danger"
+                    <div class="small text-muted text-uppercase fw-bold mb-3 mt-3">{{ $topLabel }}</div>
+                    <div class="h3 fw-bold text-dark mb-5">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
+                    <div class="small text-muted text-uppercase fw-bold mb-3">{{ $bottomLabel }}</div>
+                    <div id="countdownTimer" class="display-1 fw-bold text-danger mt-3"
+                         style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
                          data-end="{{ $targetTime }}"
                          data-date="{{ \Carbon\Carbon::parse($activeQueue['tanggal'])->format('Y-m-d') }}">
                         --:--
@@ -587,98 +526,81 @@
                 </div>
                 @endif
             @else
-                <div class="active-queue-number">-</div>
                 <div class="active-queue-label">Belum ada antrian</div>
             @endif
         </div>
-        <div class="active-queue-section">{{ $activeSectionName }}</div>
       </div>
     </div>
 
-    <!-- Right: Carousel & Grid -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+    <!-- Right: Queue Grid (Grouped by Section) -->
+    <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; height: 100%;">
+        @php
+            $sectionGroups = $allSchedulesToday ?? collect();
+        @endphp
 
-        <!-- Top Right: Carousel -->
-        <div class="media-panel">
-            <div id="carouselExampleSlidesOnly" class="carousel slide carousel-fade" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                    @forelse($carouselImages as $index => $img)
-                        <div class="carousel-item {{ $index == 0 ? 'active' : '' }}" data-bs-interval="5000">
-                            <img src="{{ asset('storage/' . $img) }}" class="d-block w-100" alt="...">
-                        </div>
-                    @empty
-                        <div class="carousel-item active">
-                            <div class="d-flex justify-content-center align-items-center h-100 bg-secondary text-white">
-                                <h3>Selamat Datang di Sewalap</h3>
+        @forelse($sectionGroups as $sectionIndex => $sectionGroup)
+            <div class="section-group" style="animation: fadeInUp 0.6s ease; animation-delay: {{ $sectionIndex * 0.1 }}s; opacity: 0; animation-fill-mode: forwards;">
+                <!-- Section Header -->
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 20px; border-radius: 16px 16px 0 0; font-weight: 700; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); display: flex; align-items: center; gap: 10px;"></div>
+
+                <!-- Schedules for this section -->
+                <div class="queue-grid-container" style="margin-top: 0; padding: 15px; background: rgba(255, 255, 255, 0.5); border-radius: 0 0 16px 16px; backdrop-filter: blur(10px);">
+                    <div class="queue-grid">
+                        @php
+                            $schedules = collect($sectionGroup['schedules']);
+                            
+                            // Exclude the active queue if it exists
+                            if(isset($activeQueue)) {
+                                $schedules = $schedules->reject(function($item) use ($activeQueue) {
+                                    return isset($item['kode_tiket']) && $item['kode_tiket'] === $activeQueue['kode_tiket'];
+                                });
+                            }
+                        @endphp
+
+                        @foreach($schedules as $index => $scheduleItem)
+                            @php
+                                $statusRaw = $scheduleItem['status'] ?? 'tersedia';
+                                $statusLabel = match($statusRaw) {
+                                    'sedang_main' => 'SEDANG MAIN',
+                                    'masuk_arena' => 'MASUK ARENA',
+                                    'dibayar' => 'DIBAYAR',
+                                    'menunggu' => 'MENUNGGU',
+                                    'tersedia' => 'TERSEDIA',
+                                    default => strtoupper($statusRaw)
+                                };
+                                $statusClass = match($statusRaw) {
+                                    'dibayar' => 'status-paid',
+                                    'sedang_main' => 'status-playing',
+                                    'masuk_arena' => 'status-playing',
+                                    'menunggu' => 'status-waiting',
+                                    'tersedia' => 'status-available',
+                                    default => 'status-waiting'
+                                };
+                                $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
+                                $displayName = $scheduleItem['penyewa'] ?? '-';
+                                $dateIso = \Carbon\Carbon::parse($scheduleItem['tanggal'])->format('Y-m-d');
+                                $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'];
+                            @endphp
+                            <div class="queue-item-card color-{{ $index % 6 }}"
+                                 data-end="{{ $endIso ?? '' }}">
+                                <div class="queue-item-body">
+                                    <div class="queue-item-status {{ $statusClass }} mb-2">{{ $statusLabel }}</div>
+                                    <div class="h5 fw-bold text-dark mb-1 text-center text-truncate w-100 px-2">{{ $displayName }}</div>
+                                    <div class="text-muted small fw-medium">{{ $jamRange }}</div>
+                                </div>
                             </div>
-                        </div>
-                    @endforelse
+                        @endforeach
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Bottom Right: Queue Grid -->
-        <div class="queue-grid-container">
-            <div class="queue-grid">
-                @foreach($sectionQueues as $index => $section)
-                    @php
-                        $currentQueue = $section['queue']->first();
-                        $statusRaw = $currentQueue['status'] ?? 'menunggu';
-                        $statusLabel = match($statusRaw) {
-                            'sedang_main' => 'SEDANG MAIN',
-                            'masuk_arena' => 'MASUK ARENA',
-                            'dibayar' => 'DIBAYAR',
-                            default => strtoupper($statusRaw)
-                        };
-                        $statusClass = match($statusRaw) {
-                            'dibayar' => 'status-paid',
-                            'sedang_main' => 'status-playing',
-                            'masuk_arena' => 'status-playing',
-                            default => 'status-waiting'
-                        };
-                        $jamRange = $currentQueue ? ($currentQueue['jam_mulai'] . ' - ' . $currentQueue['jam_selesai']) : '';
-                    @endphp
-                    <div class="queue-item-card color-{{ $index % 6 }}">
-                        <div class="queue-item-header">
-                            <div class="fw-bold text-truncate">{{ $section['label'] }}</div>
-                            <div class="queue-location">
-                                <i class="fa-solid fa-location-dot me-1"></i>
-                                {{ $currentQueue['nama_lapangan'] ?? 'Lapangan' }}
-                            </div>
-                        </div>
-                        <div class="queue-item-body">
-                            <div class="queue-item-code">{{ $currentQueue ? $currentQueue['kode_tiket'] : '-' }}</div>
-                            <div class="queue-item-status {{ $statusClass }}">{{ $currentQueue ? $statusLabel : 'MENUNGGU' }}</div>
-                            
-                            @if($currentQueue)
-                                <div class="queue-meta mt-1">
-                                    <span class="info-badge date-badge" style="font-size: 0.7rem;">
-                                        <i class="fa-regular fa-calendar me-1"></i>
-                                        {{ $currentQueue['tanggal'] }}
-                                    </span>
-                                    @if($currentQueue['kategori'])
-                                    <span class="info-badge category-badge" style="font-size: 0.7rem;">
-                                        <i class="fa-solid fa-tag me-1"></i>
-                                        {{ $currentQueue['kategori'] }}
-                                    </span>
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
-                        <div class="queue-item-footer">
-                             {{ $currentQueue ? $currentQueue['penyewa'] : 'Kosong' }}
-                             @if($jamRange)
-                                <div class="text-muted mt-1" style="font-size: 0.78rem; font-weight: 500;">
-                                    <i class="fa-regular fa-clock me-1"></i>
-                                    {{ $jamRange }}
-                                </div>
-                             @endif
-                        </div>
-                    </div>
-                @endforeach
+        @empty
+            <div class="d-flex align-items-center justify-content-center w-100 text-muted" style="flex: 1;">
+                <div class="text-center">
+                    <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity: 0.3;"></i>
+                    <div>Tidak ada jadwal hari ini</div>
+                </div>
             </div>
-        </div>
-
+        @endforelse
     </div>
   </div>
 
@@ -760,6 +682,22 @@
     setTimeout(function(){
        window.location.reload();
     }, 30000);
+
+    // Hilangkan kartu jadwal yang sudah lewat secara realtime (tanpa reload)
+    function pruneExpiredSchedules() {
+        const now = new Date();
+        document.querySelectorAll('.queue-item-card[data-end]').forEach(card => {
+            const endStr = card.dataset.end;
+            if (!endStr) return;
+            const end = new Date(endStr.replace(' ', 'T'));
+            if (isNaN(end)) return;
+            if (end <= now) {
+                card.remove();
+            }
+        });
+    }
+    pruneExpiredSchedules();
+    setInterval(pruneExpiredSchedules, 15000);
   </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-@extends('layouts.sidebar')
+@extends(auth()->user()->role === 'petugas' ? 'layouts.master' : 'layouts.sidebar')
 
 @section('content')
   <link rel="stylesheet" href="{{ asset('css/profile.css') }}">
