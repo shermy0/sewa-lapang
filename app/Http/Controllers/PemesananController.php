@@ -28,31 +28,6 @@ class PemesananController extends Controller
     }
 
     // ==================== HELPERS ====================
-    private function expirePendingOrders(): void
-    {
-        $now = Carbon::now('Asia/Jakarta');
-
-        $expiredOrders = Pemesanan::with(['jadwal', 'pembayaran'])
-            ->where('status', 'menunggu')
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<=', $now)
-            ->get();
-
-        foreach ($expiredOrders as $order) {
-            DB::transaction(function () use ($order) {
-                $order->update(['status' => 'kadaluarsa']);
-
-                if ($order->jadwal) {
-                    $order->jadwal->update(['tersedia' => true]);
-                }
-
-                if ($order->pembayaran) {
-                    $order->pembayaran->update(['status' => 'kadaluarsa']);
-                }
-            });
-        }
-    }
-
     private function generateOrderId(Pemesanan $pemesanan): string
     {
         return sprintf(
@@ -101,7 +76,6 @@ class PemesananController extends Controller
     // ==================== API: GET JADWAL ====================
     public function getJadwalBySection($section_id)
     {
-        $this->expirePendingOrders();
         $now = Carbon::now('Asia/Jakarta');
 
         $jadwal = JadwalLapangan::where('section_id', $section_id)
@@ -148,7 +122,6 @@ class PemesananController extends Controller
             'lapangan_id' => 'required|exists:lapangan,id',
             'jadwal_id' => 'required|exists:jadwal_lapangan,id',
             'snap_token' => 'required',
-            'nama_komunitas' => 'nullable|string|max:255',
         ]);
 
         $jadwal = JadwalLapangan::findOrFail($request->jadwal_id);
@@ -180,7 +153,7 @@ class PemesananController extends Controller
                 'jadwal_id' => $jadwal->id,
                 'status' => 'menunggu',
                 'expires_at' => now()->addMinutes(15),
-                'nama_komunitas.required' => 'Nama komunitas wajib diisi.',
+                'nama_komunitas' => $request->nama_komunitas, 
             ]);
 
             // hitung harga
@@ -215,10 +188,6 @@ class PemesananController extends Controller
 
     public function getSnapTokenAgain(Pemesanan $pemesanan)
 {
-    $request->validate([
-    'nama_komunitas' => 'nullable|string|max:255',
-]);
-
     try {
         $lapangan = $pemesanan->lapangan;
         $jadwal = $pemesanan->jadwal;
@@ -287,7 +256,6 @@ class PemesananController extends Controller
     // ==================== MIDTRANS: GET SNAP TOKEN (START PAYMENT) ====================
     public function getSnapToken(Request $request)
     {
-        $this->expirePendingOrders();
         try {
             \Log::info('📦 Request ke getSnapToken', $request->all());
 
@@ -383,7 +351,7 @@ class PemesananController extends Controller
                         'jadwal_id' => $jadwal->id,
                         'status' => 'menunggu',
                         'expires_at' => now()->addMinutes(15),
-                        'nama_komunitas.required' => 'Nama komunitas wajib diisi.',
+                        'nama_komunitas' => $request->nama_komunitas,
                     ]);
 
                     Pembayaran::create([
@@ -637,7 +605,6 @@ public function pindahLangsung(Request $request, $pemesananId)
     // ==================== HALAMAN & RIWAYAT ====================
     public function create($lapangan_id)
     {
-        $this->expirePendingOrders();
         $lapangan = Lapangan::with('sections')->findOrFail($lapangan_id);
         $userId = Auth::id();
 
@@ -708,7 +675,6 @@ public function pindahLangsung(Request $request, $pemesananId)
 
     public function riwayatBelum()
     {
-        $this->expirePendingOrders();
         $userId = Auth::id();
         $semuaPemesananUser = Pemesanan::with(['jadwal', 'pembayaran'])
             ->where('penyewa_id', $userId)
@@ -831,6 +797,7 @@ public function pindahLangsung(Request $request, $pemesananId)
 
         return view('penyewa.riwayat', compact('dibatalkan'));
     }
+
     /**
      * Tandai pemesanan sebagai kadaluarsa jika sudah melewati expires_at (dipanggil via AJAX countdown).
      */
