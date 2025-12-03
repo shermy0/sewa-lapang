@@ -41,7 +41,8 @@
                                     'kadaluarsa' => 'secondary',
                                     default => 'secondary',
                                 };
-                                $bayarStatus = $t->pembayaran->status ?? '-';
+                                $bayar = $t->pembayaran()->latest()->first();
+                                $bayarStatus = $bayar->status ?? '-';
                                 $bayarClass = match($bayarStatus) {
                                     'berhasil' => 'success',
                                     'pending' => 'warning',
