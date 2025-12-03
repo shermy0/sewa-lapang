@@ -18,7 +18,8 @@ class Pemesanan extends Model
         'kode_tiket', // jangan lupa tambahkan
         'status_scan',
         'waktu_scan',
-        'expires_at'
+        'expires_at',
+        'nama_komunitas',
     ];
 
     // Pemesanan.php

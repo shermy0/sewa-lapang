@@ -142,9 +142,10 @@ Route::patch('/pemesanan/{pemesanan}/pindah', [PemesananController::class, 'pind
     Route::post('/pemesanan/update-status', [PemesananController::class, 'updateStatus'])->name('pemesanan.updateStatus');
     Route::post('/pemesanan/success/{id}', [PemesananController::class, 'updateSuccess']);
 Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadwalBySection']);
-    Route::post('/midtrans/callback', [PemesananController::class, 'updateSuccess']);
+    Route::post('/midtrans/callback', [PemesananController::class, 'midtransCallback']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
+    Route::post('/pemesanan/{pemesanan}/expire', [PemesananController::class, 'expireNow'])->name('pemesanan.expire');
 
     Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
     Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');
@@ -213,6 +214,8 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
         // API jadwal lapangan
         Route::get('/api/jadwal/{lapangan}', [PetugasController::class, 'getJadwalLapangan']);
+        // Untuk dropdown display: lapangan + section
+        Route::get('/api/lapangan-sections', [PetugasController::class, 'getLapanganWithSections'])->name('api.lapangan-sections');
 
         // Section 
         Route::get('/sections/{lapanganId}', [PetugasController::class, 'getSections'])->name('petugas.getSections');
@@ -235,6 +238,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
         Route::get('/display', [PetugasController::class, 'display'])->name('display');
+        Route::get('/api/lapangan-list', [PetugasController::class, 'getLapanganList'])->name('api.lapangan-list');
     });
 
 Route::middleware(['auth', 'verified', 'role:pemilik'])->group(function () {
