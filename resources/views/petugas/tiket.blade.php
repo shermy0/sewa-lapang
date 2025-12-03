@@ -20,7 +20,6 @@
                             <th>Lapangan/Section</th>
                             <th>Tanggal</th>
                             <th>Jam</th>
-                            <th>Status Pesanan</th>
                             <th>Status Bayar</th>
                             <th>Aksi</th>
                             <th>Status Scan</th>
@@ -57,7 +56,13 @@
                                 };
                             @endphp
                             <tr>
-                                <td class="fw-semibold">{{ $t->kode_tiket }}</td>
+                                <td class="fw-semibold">
+                                    @if($t->status === 'dibayar' && ($bayarStatus === 'berhasil'))
+                                        {{ $t->kode_tiket }}
+                                    @else
+                                        <span class="text-muted"></span>
+                                    @endif
+                                </td>
                                 <td>{{ $t->penyewa->name ?? '-' }}</td>
                                 <td>
                                     <div class="fw-semibold">{{ $t->lapangan->nama_lapangan ?? '-' }}</div>
@@ -65,7 +70,6 @@
                                 </td>
                                 <td>{{ $tanggalMain }}</td>
                                 <td>{{ $jamMain }}</td>
-                                <td><span class="badge bg-{{ $statusClass }}">{{ strtoupper($t->status ?? '-') }}</span></td>
                                 <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
                                 <td>
                                     @if(($t->status === 'menunggu') || ($bayarStatus === 'pending'))
@@ -87,9 +91,13 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary view-qr" data-code="{{ $t->kode_tiket }}">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                    </button>
+                                    @if($t->status === 'dibayar' && ($bayarStatus === 'berhasil'))
+                                        <button class="btn btn-sm btn-outline-secondary view-qr" data-code="{{ $t->kode_tiket }}">
+                                            <i class="fa-solid fa-qrcode"></i>
+                                        </button>
+                                    @else
+                                        <span class="text-muted"></span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
