@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-    
+
     :root {
       --primary-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
       --header-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -20,7 +20,7 @@
       --warning-color: #f6ad55;
       --danger-color: #fc8181;
     }
-    
+
     body {
       background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 50%, #6ee7b7 100%);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -28,24 +28,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      position: relative;
     }
-    
-    /* Animated background effect */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: 
-        radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(5, 150, 105, 0.15) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
-    }
-    
     .header {
       background: var(--header-gradient);
       color: white;
@@ -59,7 +42,7 @@
       border-bottom: 3px solid rgba(255, 255, 255, 0.2);
       position: relative;
     }
-    
+
     .header .brand {
       font-size: 1.6rem;
       font-weight: 800;
@@ -68,19 +51,19 @@
       gap: 12px;
       animation: fadeInLeft 0.8s ease;
     }
-    
+
     .header .brand i {
       background: rgba(255, 255, 255, 0.2);
       padding: 12px;
       border-radius: 12px;
       backdrop-filter: blur(10px);
     }
-    
+
     .header .clock {
       text-align: right;
       animation: fadeInRight 0.8s ease;
     }
-    
+
     .header .clock .time {
       font-size: 2.2rem;
       font-weight: 800;
@@ -88,14 +71,14 @@
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       letter-spacing: 1px;
     }
-    
+
     .header .clock .date {
       font-size: 0.95rem;
       opacity: 0.95;
       font-weight: 500;
       margin-top: 4px;
     }
-    
+
 
     .main-content {
       flex: 1;
@@ -115,7 +98,7 @@
       animation: fadeInUp 0.6s ease;
       height: 100%;
     }
-    
+
     .active-card {
       background: var(--card-bg);
       border-radius: 24px;
@@ -128,7 +111,7 @@
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
     }
-    
+
     .active-card::before {
       content: '';
       position: absolute;
@@ -138,12 +121,12 @@
       height: 6px;
       background: var(--accent-gradient);
     }
-    
+
     .active-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 20px 60px rgba(16, 185, 129, 0.3);
     }
-    
+
     .active-card .card-header {
       background: var(--accent-gradient);
       color: white;
@@ -155,7 +138,7 @@
       letter-spacing: 2px;
       box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
     }
-    
+
     .active-card .card-body {
       flex: 1;
       display: flex;
@@ -165,7 +148,7 @@
       background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
       padding: 30px;
     }
-    
+
     .active-queue-number {
       font-size: 5rem;
       font-weight: 900;
@@ -177,14 +160,14 @@
       animation: pulse 2s ease-in-out infinite;
       text-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
     }
-    
+
     .active-queue-label {
       font-size: 1.4rem;
       color: #4a5568;
       margin-top: 15px;
       font-weight: 600;
     }
-    
+
     .active-queue-section {
       background: var(--accent-gradient);
       color: white;
@@ -222,14 +205,14 @@
     .section-group:last-child {
       margin-bottom: 0;
     }
-    
+
     .queue-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 14px;
       width: 100%;
     }
-    
+
     /* Scrollbar for right panel */
     div[style*="overflow-y: auto"]::-webkit-scrollbar {
       width: 8px;
@@ -247,7 +230,7 @@
     div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
       background: rgba(16, 185, 129, 0.5);
     }
-    
+
     .queue-item-card {
       min-height: 180px;
       background: white;
@@ -261,20 +244,20 @@
       animation: slideInUp 0.5s ease forwards;
       opacity: 0;
     }
-    
+
     .queue-item-card:hover {
       transform: translateY(-6px);
       box-shadow: 0 12px 35px rgba(16, 185, 129, 0.25);
     }
-    
+
     .queue-item-card:nth-child(1) { animation-delay: 0.1s; }
     .queue-item-card:nth-child(2) { animation-delay: 0.2s; }
     .queue-item-card:nth-child(3) { animation-delay: 0.3s; }
     .queue-item-card:nth-child(4) { animation-delay: 0.4s; }
     .queue-item-card:nth-child(5) { animation-delay: 0.5s; }
-    
 
-    
+
+
     .queue-item-body {
       flex: 1;
       display: flex;
@@ -285,7 +268,7 @@
       background: linear-gradient(180deg, #ffffff 0%, #fafbfe 100%);
       padding: 20px 15px;
     }
-    
+
     .queue-item-code {
       font-size: 1.5rem;
       font-weight: 900;
@@ -298,7 +281,7 @@
       word-break: break-word;
       text-align: center;
     }
-    
+
     .queue-item-status {
       font-size: 0.7rem;
       text-transform: uppercase;
@@ -313,7 +296,7 @@
     .queue-item-status.status-paid { background: #ecfdf3; color: #047857; }
     .queue-item-status.status-playing { background: #dbeafe; color: #1d4ed8; }
     .queue-item-status.status-available { background: #f3f4f6; color: #6b7280; }
-    
+
     .queue-meta {
       display: flex;
       flex-wrap: wrap;
@@ -321,7 +304,7 @@
       gap: 6px;
       width: 100%;
     }
-    
+
 
 
     /* Footer Marquee */
@@ -340,14 +323,14 @@
       border-top: 2px solid rgba(255, 255, 255, 0.2);
       z-index: 10;
     }
-    
+
     .marquee-content {
       display: inline-block;
       padding-left: 100%;
       animation: marquee 25s linear infinite;
       letter-spacing: 0.5px;
     }
-    
+
     @keyframes marquee {
       0% { transform: translate(0, 0); }
       100% { transform: translate(-100%, 0); }
@@ -360,7 +343,7 @@
     .color-3 { border-color: #6ee7b7; }
     .color-4 { border-color: #14b8a6; }
     .color-5 { border-color: #0d9488; }
-    
+
     /* Additional info styling */
     .info-badge {
       display: inline-block;
@@ -372,17 +355,17 @@
       color: #059669;
       margin: 2px;
     }
-    
+
     .date-badge {
       background: rgba(16, 185, 129, 0.15);
       color: #059669;
     }
-    
+
     .category-badge {
       background: rgba(237, 137, 54, 0.1);
       color: #ed8936;
     }
-    
+
     /* Animations */
     @keyframes fadeInUp {
       from {
@@ -394,7 +377,7 @@
         transform: translateY(0);
       }
     }
-    
+
     @keyframes fadeInLeft {
       from {
         opacity: 0;
@@ -405,7 +388,7 @@
         transform: translateX(0);
       }
     }
-    
+
     @keyframes fadeInRight {
       from {
         opacity: 0;
@@ -416,7 +399,7 @@
         transform: translateX(0);
       }
     }
-    
+
     @keyframes slideInUp {
       from {
         opacity: 0;
@@ -427,7 +410,7 @@
         transform: translateY(0);
       }
     }
-    
+
     @keyframes pulse {
       0%, 100% {
         transform: scale(1);
@@ -493,7 +476,7 @@
         <div class="card-body">
             @if($activeQueue)
                 <div class="active-queue-label mb-3">{{ $activeQueue['penyewa'] }}</div>
-                
+
                 <!-- Date and Category Info -->
                 <div class="mt-1"></div>
 
@@ -548,7 +531,7 @@
                     <div class="queue-grid">
                         @php
                             $schedules = collect($sectionGroup['schedules']);
-                            
+
                             // Exclude the active queue if it exists
                             if(isset($activeQueue)) {
                                 $schedules = $schedules->reject(function($item) use ($activeQueue) {
