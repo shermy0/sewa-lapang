@@ -142,6 +142,7 @@ class PetugasController extends Controller
                 'p.status as pemesanan_status',
                 'p.status_scan',
                 'p.kode_tiket',
+                'p.nama_komunitas',
                 'u.name as penyewa_name',
             ])
             ->orderBy('s.nama_section')
@@ -155,11 +156,13 @@ class PetugasController extends Controller
             $scheduleItems = $sectionSchedules->map(function($item) use ($now) {
                 // Determine status
                 $status = 'tersedia';
-                $penyewa = null;
+                $penyewa = $item->nama_komunitas ?: $item->penyewa_name;
                 
+                $displayName = $item->nama_komunitas ?: $item->penyewa_name;
+
                 if ($item->pemesanan_status === 'dibayar') {
                     $status = 'dibayar';
-                    $penyewa = $item->penyewa_name;
+                    $penyewa = $displayName;
                     
                     // Check if playing
                     if (in_array($item->status_scan, ['masuk_lapang', 'sudah_scan'], true)) {
@@ -169,7 +172,7 @@ class PetugasController extends Controller
                     }
                 } elseif ($item->pemesanan_status === 'menunggu') {
                     $status = 'menunggu';
-                    $penyewa = $item->penyewa_name;
+                    $penyewa = $displayName;
                 }
 
                 return [
@@ -230,6 +233,7 @@ class PetugasController extends Controller
                 'p.status',
                 'p.status_scan',
                 'p.waktu_scan',
+                'p.nama_komunitas',
                 'u.name as penyewa',
                 'j.tanggal',
                 'j.jam_mulai',
@@ -266,9 +270,11 @@ class PetugasController extends Controller
                             'masuk_lapang', 'sudah_scan' => 'Masuk Lapang',
                             default => 'Belum Scan',
                         };
+                        $displayName = $row->nama_komunitas ?: $row->penyewa;
 
                         return [
-                            'penyewa' => $row->penyewa,
+                            'penyewa' => $displayName,
+                            'komunitas' => $row->nama_komunitas,
                             'tanggal' => Carbon::parse($row->tanggal)->format('d M Y'),
                             'jam_mulai' => substr($row->jam_mulai, 0, 5),
                             'jam_selesai' => substr($row->jam_selesai, 0, 5),
@@ -303,7 +309,7 @@ class PetugasController extends Controller
         $validated = $request->validate([
             'penyewa_id' => 'nullable|integer',
             'nama_penyewa' => 'nullable|string',
-            'komunitas' => 'nullable|string',
+            'komunitas' => 'required|string',
             'total' => 'required|numeric',
             'items' => 'required|array|min:1',
             'kasir' => 'required|string',
@@ -427,6 +433,7 @@ class PetugasController extends Controller
         $validated = $request->validate([
             'penyewa_id' => 'nullable|integer',
             'nama_penyewa' => 'nullable|string',
+            'komunitas' => 'required|string',
             'total' => 'required|numeric',
             'items' => 'required|array|min:1',
             // 'kasir' => 'required|string', // Optional
@@ -553,7 +560,10 @@ class PetugasController extends Controller
 
                 if ($plan['reuse']) {
                     $pemesanan = $plan['pemesanan'];
-                    $pemesanan->update(['status' => 'menunggu']);
+                    $pemesanan->update([
+                        'status' => 'menunggu',
+                        'nama_komunitas' => $validated['komunitas'] ?? $pemesanan->nama_komunitas,
+                    ]);
 
                     $payment = $plan['payment'];
                     if ($payment) {
@@ -580,6 +590,7 @@ class PetugasController extends Controller
                         'status' => 'menunggu',
                         'kode_tiket' => $this->generateTicketCode(),
                         'status_scan' => 'belum_scan',
+                        'nama_komunitas' => $validated['komunitas'] ?? null,
                     ]);
 
                     Pembayaran::create([

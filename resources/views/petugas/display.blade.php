@@ -475,7 +475,19 @@
         <div class="card-header">NOMOR ANTRIAN</div>
         <div class="card-body">
             @if($activeQueue)
+                @php
+                    $scanStatus = $activeQueue['status_scan'] ?? 'belum_scan';
+                    $scanLabel = $activeQueue['status_scan_label'] ?? 'Belum Scan';
+                    $scanClass = match($scanStatus) {
+                        'masuk_lapang', 'sudah_scan' => 'bg-success',
+                        'scan_lobby', 'masuk_arena' => 'bg-info text-dark',
+                        default => 'bg-secondary'
+                    };
+                @endphp
                 <div class="active-queue-label mb-3">{{ $activeQueue['penyewa'] }}</div>
+                <div class="mb-3">
+                    <span class="badge {{ $scanClass }}">{{ strtoupper($scanLabel) }}</span>
+                </div>
 
                 <!-- Date and Category Info -->
                 <div class="mt-1"></div>

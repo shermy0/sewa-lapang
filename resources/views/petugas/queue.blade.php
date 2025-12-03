@@ -73,19 +73,19 @@
   #sectionContent .section-pane.d-none {
       display: none;
   }
-  
+
   @media print {
       body * {
           visibility: hidden;
       }
-      
+
       /* Show print area OR receipt body */
       #print-area, #print-area *,
       #receiptBody, #receiptBody *,
       .thermal-receipt, .thermal-receipt * {
           visibility: visible !important;
       }
-      
+
       #print-area {
           position: absolute;
           left: 0;
@@ -93,7 +93,7 @@
           width: 100%;
           display: block !important;
       }
-      
+
       /* When printing from modal, show modal body */
       .modal-body#receiptBody {
           position: absolute;
@@ -105,12 +105,12 @@
           display: block !important;
           visibility: visible !important;
       }
-      
-      @page { 
+
+      @page {
           size: 80mm auto;
           margin: 5mm;
       }
-      
+
       /* Hide other elements */
       .modal-header, .modal-footer, .btn-close,
       .modal-backdrop, .topbar, .container-fluid,
@@ -118,7 +118,7 @@
           display: none !important;
           visibility: hidden !important;
       }
-      
+
       /* Ensure thermal receipt styles are preserved */
       .thermal-receipt {
           font-size: 12px !important;
@@ -280,13 +280,14 @@
 
         <!-- INPUT KOMUNITAS -->
         <div class="mb-3">
-          <label class="fw-semibold mb-1">Komunitas</label>
+          <label class="fw-semibold mb-1">Komunitas <span class="text-danger">*</span></label>
           <input
             type="text"
             id="inputKomunitas"
             class="form-control"
-            placeholder="Nama komunitas (opsional)"
+            placeholder="Nama komunitas"
             autocomplete="off">
+          <small class="text-muted">Wajib diisi untuk setiap transaksi</small>
         </div>
 
         <div class="d-flex justify-content-between mb-2">
@@ -697,6 +698,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const komunitasInput = document.getElementById('inputKomunitas');
     const radioCash = document.getElementById('payCash');
     const radioMidtrans = document.getElementById('payMidtrans');
     const paymentModalEl = document.getElementById('paymentModal');
@@ -709,6 +711,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!penyewaId){
       swalWarn("Pilih penyewa terlebih dahulu sebelum melakukan pembayaran.");
       penyewaInput.focus();
+      return;
+    }
+    if(!komunitasInput.value.trim()){
+      swalWarn("Nama komunitas wajib diisi.");
+      komunitasInput.focus();
       return;
     }
 
@@ -740,6 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
     const penyewaId = penyewaInput.dataset.id;
+    const komunitasInput = document.getElementById('inputKomunitas');
     const total = getCartTotal();
 
     if(cart.length === 0){
@@ -750,6 +758,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if(!penyewaId){
       swalWarn("Pilih penyewa terlebih dahulu sebelum melakukan pembayaran.");
       penyewaInput.focus();
+      return;
+    }
+    if(!komunitasInput.value.trim()){
+      swalWarn("Nama komunitas wajib diisi.");
+      komunitasInput.focus();
       return;
     }
     if(method === 'cash'){
@@ -778,7 +791,7 @@ document.addEventListener("DOMContentLoaded", () => {
         kasir: '{{ Auth::user()->name }}',
         kasir: '{{ Auth::user()->name }}',
         nama_penyewa: penyewaInput.value || null,
-        komunitas: document.getElementById('inputKomunitas').value || null
+        komunitas: komunitasInput.value || null
     };
 
     try {
@@ -869,6 +882,8 @@ const rowsPerPage = 6;
 let currentLapanganId = null;
 let currentSectionId = null;
 let currentSectionName = null;
+let jadwalRefreshInterval = null;
+let manualTimeFilter = false;
 
 function openJadwalModal(lapangan) {
     currentLapanganId = lapangan.id;
@@ -886,7 +901,18 @@ function openJadwalModal(lapangan) {
 
   // ===== Set default tanggal hari ini =====
     const today = new Date().toISOString().split('T')[0];
-    if (!filterTanggal.value) filterTanggal.value = today
+    if (!filterTanggal.value) filterTanggal.value = today;
+
+    const syncCurrentTimeFilter = () => {
+        const selectedDate = filterTanggal.value;
+        if (selectedDate === today && !manualTimeFilter) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            filterJamMulai.value = `${hh}:${mm}`;
+        }
+    };
+    syncCurrentTimeFilter();
 
     // ===== Fungsi fetch jadwal =====
     function fetchJadwal() {
@@ -913,6 +939,41 @@ function openJadwalModal(lapangan) {
             });
     }
     window.refreshJadwal = fetchJadwal;
+
+    // Refresh otomatis tiap menit mengikuti waktu real-time
+    clearInterval(jadwalRefreshInterval);
+    jadwalRefreshInterval = setInterval(() => {
+        syncCurrentTimeFilter();
+        fetchJadwal();
+    }, 60000);
+
+    if (!modalEl.dataset.autorefreshBound) {
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            clearInterval(jadwalRefreshInterval);
+            jadwalRefreshInterval = null;
+            manualTimeFilter = false;
+        });
+        modalEl.dataset.autorefreshBound = '1';
+    }
+
+    filterJamMulai.addEventListener('input', () => {
+        manualTimeFilter = !!filterJamMulai.value;
+    });
+
+    filterTanggal.addEventListener('change', () => {
+        // Reset manual flag jika kembali ke hari ini
+        if (filterTanggal.value === today) {
+            manualTimeFilter = false;
+            syncCurrentTimeFilter();
+        }
+        fetchJadwal();
+    });
+
+    resetBtn.addEventListener('click', () => {
+        filterTanggal.value = today;
+        manualTimeFilter = false;
+        syncCurrentTimeFilter();
+    });
 
     // ===== Fungsi render halaman jadwal =====
     function renderJadwalPage(page) {
@@ -1424,7 +1485,7 @@ function showReceiptModal(data) {
     const body = document.getElementById('receiptBody');
     const printArea = document.getElementById('print-area');
     let itemsHtml = '';
-    
+
     (data.items || []).forEach(item => {
         itemsHtml += `
             <div class="receipt-item">
@@ -1442,9 +1503,9 @@ function showReceiptModal(data) {
                 <div class="receipt-logo">SEWALAP</div>
                 <div class="receipt-subtitle">Bukti Pembayaran</div>
             </div>
-            
+
             <div class="receipt-divider"></div>
-            
+
             <!-- Order Info -->
             <div class="receipt-section">
                 <div class="receipt-row">
@@ -1470,15 +1531,15 @@ function showReceiptModal(data) {
                 </div>
                 ` : ''}
             </div>
-            
+
             <div class="receipt-divider"></div>
-            
+
             <!-- Items -->
             <div class="receipt-section">
                 <div class="receipt-items-title">DETAIL PESANAN</div>
                 ${itemsHtml}
             </div>
-            
+
             <div class="receipt-divider"></div>
             
             <!-- Total -->
@@ -1486,9 +1547,9 @@ function showReceiptModal(data) {
                 <span class="receipt-total-label">TOTAL</span>
                 <span class="receipt-total-value">Rp ${Number(data.total).toLocaleString('id-ID')}</span>
             </div>
-            
+
             <div class="receipt-divider"></div>
-            
+
             <!-- Footer -->
             <div class="receipt-footer">
                 <div>Terima Kasih</div>
