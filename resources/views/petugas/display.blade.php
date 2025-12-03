@@ -673,10 +673,10 @@
     setInterval(updateCountdown, 1000);
     updateCountdown();
 
-    // Auto reload page every 30 seconds to fetch new data
+    // Auto reload page every 25 seconds to fetch new data
     setTimeout(function(){
        window.location.reload();
-    }, 30000);
+    }, 25000);
 
     // Hilangkan kartu jadwal yang sudah lewat secara realtime (tanpa reload)
     function pruneExpiredSchedules() {

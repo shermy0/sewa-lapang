@@ -108,7 +108,11 @@
 
       @page {
           size: 80mm auto;
-          margin: 5mm;
+          margin: 0;
+      }
+
+      .thermal-receipt {
+          padding: 5mm;
       }
 
       /* Hide other elements */
@@ -1541,7 +1545,7 @@ function showReceiptModal(data) {
             </div>
 
             <div class="receipt-divider"></div>
-            
+
             <!-- Total -->
             <div class="receipt-total">
                 <span class="receipt-total-label">TOTAL</span>

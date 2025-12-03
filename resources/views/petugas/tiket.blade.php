@@ -162,15 +162,26 @@
 
 <style>
 @media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
   body * { visibility: hidden; }
   #print-area, #print-area * { visibility: visible; }
-  #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+    padding: 5mm;
+  }
 }
 .thermal-receipt { font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4; color: #000; }
-.receipt-divider { border-top: 1px dashed #333; margin: 10px 0; }
-.receipt-row { display: flex; justify-content: space-between; margin-bottom: 4px; gap: 10px; }
-.receipt-item { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dotted #ccc; }
-.receipt-total { display: flex; justify-content: space-between; font-weight: 700; margin-top: 8px; }
+.receipt-divider { border-top: 1px dashed #333; margin: 6px 0; }
+.receipt-row { display: flex; justify-content: space-between; margin-bottom: 3px; gap: 10px; }
+.receipt-item { margin-bottom: 6px; }
+.receipt-total { display: flex; justify-content: space-between; font-weight: 700; margin-top: 6px; }
 </style>
 
 <div id="print-area" class="d-none"></div>
@@ -266,14 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderReceipt(data) {
     const total = Number(data.total || 0);
-    const itemsHtml = `
-      <div class="receipt-item">
-        <div><strong>${data.lapangan}</strong> • ${data.section}</div>
-        <div>${data.tanggal} • ${data.jam}</div>
-        <div>Total: Rp ${total.toLocaleString('id-ID')}</div>
-      </div>
-    `;
-
     const html = `
       <div class="thermal-receipt">
         <div style="text-align:center; margin-bottom:8px;">
@@ -287,7 +290,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="receipt-row"><span>Kasir</span><span>${data.kasir}</span></div>
         <div class="receipt-row"><span>Nama</span><span>${data.penyewa}</span></div>
         <div class="receipt-divider"></div>
-        ${itemsHtml}
+        <div class="receipt-item">
+          <div>${data.lapangan} - ${data.section}</div>
+          <div>${data.tanggal} • ${data.jam}</div>
+          <div>Total: Rp ${total.toLocaleString('id-ID')}</div>
+        </div>
         <div class="receipt-divider"></div>
         <div class="receipt-total"><span>TOTAL</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
         <div class="receipt-divider"></div>
