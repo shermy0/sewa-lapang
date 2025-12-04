@@ -158,9 +158,9 @@
             </a>
 
             {{-- Tombol History --}}
-            <a href="{{ route('petugas.history') }}" class="btn btn-light btn-sm fw-semibold">
+            {{-- <a href="{{ route('petugas.history') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="fa-solid fa-clock-rotate-left me-1"></i> History
-            </a>
+            </a> --}}
 
 
 
