@@ -35,7 +35,7 @@ class Pemesanan extends Model
         parent::boot();
 
         static::updated(function ($p) {
-            if ($p->status === 'kadaluarsa') {
+            if (in_array($p->status, ['kadaluarsa', 'kadaluarsa_pemesanan'], true)) {
                 if ($p->jadwal && $p->jadwal->tersedia == false) {
                     $p->jadwal->update(['tersedia' => true]);
                 }
@@ -86,7 +86,7 @@ class Pemesanan extends Model
     {
         if ($this->status === 'menunggu') {
             if ($this->created_at && now()->greaterThan($this->created_at->addMinutes(15))) {
-                return 'kadaluarsa';
+                return 'kadaluarsa_pemesanan';
             }
             return 'menunggu';
         }
@@ -98,14 +98,14 @@ class Pemesanan extends Model
     {
         if ($this->status === 'menunggu' && $this->expires_at && $this->expires_at < now()) {
 
-            $this->update(['status' => 'kadaluarsa']);
+            $this->update(['status' => 'kadaluarsa_pemesanan']);
 
             if ($this->jadwal) {
                 $this->jadwal->update(['tersedia' => true]);
             }
 
             if ($this->pembayaran) {
-                $this->pembayaran->update(['status' => 'kadaluarsa']);
+                $this->pembayaran->update(['status' => 'kadaluarsa_pembayaran']);
             }
         }
     }

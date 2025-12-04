@@ -501,7 +501,7 @@ class PetugasController extends Controller
                     $now = Carbon::now('Asia/Jakarta');
 
                     if ($payment) {
-                        if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
+                        if (in_array($payment->status, ['kadaluarsa', 'kadaluarsa_pembayaran', 'batal', 'gagal'], true)) {
                             $expired = true;
                         } elseif ($payment->status === 'pending') {
                             $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
@@ -515,9 +515,9 @@ class PetugasController extends Controller
                     }
 
                     if ($expired) {
-                        $existing->update(['status' => 'kadaluarsa']);
+                        $existing->update(['status' => 'kadaluarsa_pemesanan']);
                         if ($payment && $payment->status === 'pending') {
-                            $payment->update(['status' => 'kadaluarsa']);
+                            $payment->update(['status' => 'kadaluarsa_pembayaran']);
                         }
                         $jadwal->update(['tersedia' => true]);
                         $existing = null; // treat as new
@@ -665,7 +665,7 @@ class PetugasController extends Controller
         $expired = false;
 
         if ($payment) {
-            if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
+            if (in_array($payment->status, ['kadaluarsa', 'kadaluarsa_pembayaran', 'batal', 'gagal'], true)) {
                 $expired = true;
             } elseif ($payment->status === 'pending') {
                 $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
@@ -676,9 +676,9 @@ class PetugasController extends Controller
         }
 
         if ($expired) {
-            $existing->update(['status' => 'kadaluarsa']);
+            $existing->update(['status' => 'kadaluarsa_pemesanan']);
             if ($payment && $payment->status === 'pending') {
-                $payment->update(['status' => 'kadaluarsa']);
+                $payment->update(['status' => 'kadaluarsa_pembayaran']);
             }
             $jadwal->update(['tersedia' => true]);
             return;
@@ -877,7 +877,7 @@ class PetugasController extends Controller
                 $orderCreated = $j->pemesanan_created_at ? Carbon::parse($j->pemesanan_created_at) : null;
 
                 $isExpired =
-                    in_array($paymentStatus, ['kadaluarsa', 'batal', 'gagal'], true) ||
+                    in_array($paymentStatus, ['kadaluarsa', 'kadaluarsa_pembayaran', 'batal', 'gagal'], true) ||
                     ($paymentStatus === 'pending' && $paymentCreated && $paymentCreated->addMinutes(15)->lt($now)) ||
                     (!$paymentStatus && $orderCreated && $orderCreated->addMinutes(15)->lt($now));
 

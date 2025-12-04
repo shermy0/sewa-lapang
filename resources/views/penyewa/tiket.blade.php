@@ -152,6 +152,7 @@
 <script>
 window.jadwalAktifUser = @json($semuaPemesananUser->pluck('jadwal_id'));
 window.userOrders = @json($userOrders);
+const expiredPaymentStatuses = ['kadaluarsa', 'kadaluarsa_pembayaran'];
 
 document.querySelectorAll('#scanTabs .nav-link').forEach(tab => {
     tab.addEventListener('click', function() {
@@ -337,7 +338,7 @@ function loadJam(sectionId, tanggal, currentJadwalId = null) {
 
                 if (window.jadwalAktifUser.includes(j.id)) {
                     const pay = window.userOrders[j.id] ?? null;
-                    if (pay === "kadaluarsa" || pay === null) {
+                    if (pay === null || expiredPaymentStatuses.includes(pay)) {
                         status = "available";
                     } else {
                         isUser = true;

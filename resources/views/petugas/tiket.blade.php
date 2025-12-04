@@ -9,6 +9,10 @@
         <span class="text-muted small">{{ $tiket->count() }} tiket</span>
     </div>
 
+    @php
+        $formatStatus = fn($val) => strtoupper(str_replace('_', ' ', $val ?? '-'));
+    @endphp
+
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
@@ -41,16 +45,19 @@
                                     'berhasil' => 'success',
                                     'pending' => 'warning',
                                     'gagal' => 'danger',
+                                    'kadaluarsa', 'kadaluarsa_pembayaran' => 'secondary',
                                     default => 'secondary',
                                 };
                                 $status = $t->status ?? '-';
                                 $statusClass = match($status) {
                                     'dibayar' => 'success',
                                     'menunggu' => 'warning text-dark',
-                                    'kadaluarsa', 'gagal', 'batal', 'dibatalkan' => 'secondary',
+                                    'kadaluarsa', 'kadaluarsa_pemesanan', 'gagal', 'batal', 'dibatalkan' => 'secondary',
                                     'selesai' => 'info',
                                     default => 'secondary',
                                 };
+                                $bayarLabel = $formatStatus($bayarStatus);
+                                $statusLabel = $formatStatus($status);
                                 $scanStatus = $t->status_scan ?? 'belum_scan';
                                 $scanClass = match(true) {
                                     in_array($scanStatus, ['sudah_scan', 'masuk_lapang']) => 'success',
@@ -68,7 +75,7 @@
                                 <td>{{ $tanggalMain }}</td>
                                 <td>{{ $jamMain }}</td>
                                 <td>{{ $t->nama_komunitas ?? '-' }}</td>
-                                <td><span class="badge bg-{{ $bayarClass }}">{{ strtoupper($bayarStatus) }}</span></td>
+                                <td><span class="badge bg-{{ $bayarClass }}">{{ $bayarLabel }}</span></td>
                                 <td>
                                     @if(($t->status === 'menunggu') || ($bayarStatus === 'pending'))
                                         <button

@@ -158,6 +158,9 @@
 
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+const expiredOrderStatuses = ['kadaluarsa', 'kadaluarsa_pemesanan'];
+const expiredPaymentStatuses = ['kadaluarsa', 'kadaluarsa_pembayaran'];
+const toStatusLabel = (status) => (status ?? '-').toString().replace(/_/g, ' ').toUpperCase();
 
 // Countdown pembayaran dengan auto-expire ke server
 document.querySelectorAll('[data-countdown]').forEach(target => {
@@ -178,16 +181,19 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
         const badge = target.closest('.ticket-right')?.querySelector('.ticket-status-pay');
         if (!badge) return;
 
+        const normalizedStatus = (status ?? '').toString();
+        const isExpired = expiredOrderStatuses.includes(normalizedStatus) || expiredPaymentStatuses.includes(normalizedStatus);
+
         badge.classList.remove('pending', 'expired');
 
-        if (status === 'kadaluarsa') {
+        if (isExpired) {
             badge.textContent = 'Kadaluarsa';
             badge.classList.add('expired');
         } else if (status === 'menunggu') {
             badge.innerHTML = '<i class="fa-solid fa-coins me-1"></i> Belum Dibayar';
             badge.classList.add('pending');
         } else {
-            badge.textContent = status;
+            badge.textContent = toStatusLabel(normalizedStatus);
         }
     };
 
@@ -200,7 +206,7 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
     };
 
     const markExpired = (message = '⛔ Waktu pembayaran sudah habis.') => {
-        markStatus('kadaluarsa');
+        markStatus('kadaluarsa_pemesanan');
         disableActions(message);
         removeCardIfEmpty();
     };
@@ -222,11 +228,11 @@ document.querySelectorAll('[data-countdown]').forEach(target => {
                 target.dataset.expiresAt = data.expires_at;
             }
 
-            if (data.status === 'kadaluarsa') {
+            if (expiredOrderStatuses.includes(data.status)) {
                 markExpired();
             } else if (data.status && data.status !== 'menunggu') {
                 markStatus(data.status);
-                disableActions(`Status berubah: ${data.status}`);
+                disableActions(`Status berubah: ${toStatusLabel(data.status)}`);
             }
         })
         .catch(() => {});
@@ -541,7 +547,7 @@ function loadJam(sectionId, tanggal, currentJadwalId = null) {
 
                 if (window.jadwalAktifUser.includes(j.id)) {
                     const pay = window.userOrders[j.id] ?? null;
-                    if (pay === "kadaluarsa" || pay === null) {
+                    if (pay === null || expiredPaymentStatuses.includes(pay)) {
                         status = "available";
                     } else {
                         isUser = true;

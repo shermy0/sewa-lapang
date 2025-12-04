@@ -9,6 +9,10 @@
         <span class="text-muted small">{{ $orders->count() }} order</span>
     </div>
 
+    @php
+        $formatStatus = fn($val) => strtoupper(str_replace('_', ' ', $val ?? '-'));
+    @endphp
+
     @forelse($orders as $orderId => $payments)
         @php
             $orderKey = $orderId ?: 'TANPA-ORDER';
@@ -19,13 +23,14 @@
                 'berhasil' => 'success',
                 'pending' => 'warning',
                 'gagal' => 'danger',
-                'batal', 'kadaluarsa' => 'secondary',
+                'batal', 'kadaluarsa', 'kadaluarsa_pembayaran' => 'secondary',
                 default => 'secondary',
             };
             $total = $payments->sum('jumlah');
             $waktu = optional($firstPay->tanggal_pembayaran ?? $firstPay->created_at)?->timezone('Asia/Jakarta');
             $firstOrderPemesanan = optional($firstPay->pemesanan);
             $penyewaName = optional($firstOrderPemesanan->penyewa)->name ?? '-';
+            $statusLabel = $formatStatus($status);
         @endphp
 
         <div class="card shadow-sm mb-3">
@@ -36,7 +41,7 @@
                     <div class="text-muted small">Penyewa: {{ $penyewaName }}</div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-{{ $statusClass }}">{{ strtoupper($status) }}</span>
+                    <span class="badge bg-{{ $statusClass }}">{{ $statusLabel }}</span>
                     <span class="badge bg-secondary">{{ $metode }}</span>
                     <div class="fw-bold text-success">Rp {{ number_format($total, 0, ',', '.') }}</div>
                     @php
@@ -66,7 +71,7 @@
                             data-metode="{{ $metode }}"
                             data-total="{{ $total }}"
                             data-kasir="{{ $petugasName ?? Auth::user()->name }}"
-                            data-status="{{ strtoupper($status) }}"
+                            data-status="{{ $statusLabel }}"
                             data-items='@json($itemPayload)'
                         >
                             <i class="fa-solid fa-print me-1"></i> Struk
@@ -89,9 +94,11 @@
                             'dibayar' => 'success',
                             'menunggu' => 'warning text-dark',
                             'selesai' => 'info',
-                            'kadaluarsa','batal','gagal','dibatalkan' => 'secondary',
+                            'kadaluarsa','kadaluarsa_pemesanan','batal','gagal','dibatalkan' => 'secondary',
                             default => 'secondary',
                         };
+                        $payStatusLabel = $formatStatus($pay->status ?? '-');
+                        $statusPesanLabel = $formatStatus($statusPesan);
                         $scanStatus = $p->status_scan ?? 'belum_scan';
                         $scanClass = match(true) {
                             in_array($scanStatus, ['sudah_scan','masuk_lapang']) => 'success',
@@ -102,8 +109,8 @@
                     <div class="list-group-item d-flex flex-wrap align-items-center gap-3">
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="badge bg-{{ $statusPesanClass }}">{{ strtoupper($statusPesan) }}</span>
-                                <span class="badge bg-{{ $statusClass }}">{{ strtoupper($pay->status ?? '-') }}</span>
+                                <span class="badge bg-{{ $statusPesanClass }}">{{ $statusPesanLabel }}</span>
+                                <span class="badge bg-{{ $statusClass }}">{{ $payStatusLabel }}</span>
                                 <span class="badge bg-light text-dark">{{ $p->kode_tiket ?? '-' }}</span>
                             </div>
                             <div class="fw-semibold">{{ $p->lapangan->nama_lapangan ?? '-' }} • {{ $p->jadwal->section->nama_section ?? '-' }}</div>

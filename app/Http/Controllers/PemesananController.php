@@ -95,7 +95,7 @@ class PemesananController extends Controller
                 $p = Pemesanan::where('jadwal_id', $j->id)
                     ->whereIn('status', ['menunggu', 'dibayar'])
                     ->whereHas('pembayaran', function($q) {
-                        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+                        $q->whereNotIn('status', ['kadaluarsa', 'kadaluarsa_pembayaran', 'gagal', 'batal']);
                     })
                     ->first();
 
@@ -136,7 +136,7 @@ class PemesananController extends Controller
         $occupied = Pemesanan::where('jadwal_id', $jadwal->id)
             ->whereIn('status', ['menunggu', 'dibayar'])
             ->whereHas('pembayaran', function($q) {
-                $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+                $q->whereNotIn('status', ['kadaluarsa', 'kadaluarsa_pembayaran', 'gagal', 'batal']);
             })
             ->exists();
 
@@ -284,7 +284,7 @@ class PemesananController extends Controller
                     ->where('penyewa_id', '!=', Auth::id())
                     ->whereIn('status', ['menunggu', 'dibayar'])
                     ->whereHas('pembayaran', function ($q) {
-                        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+                        $q->whereNotIn('status', ['kadaluarsa', 'kadaluarsa_pembayaran', 'gagal', 'batal']);
                     })
                     ->exists();
 
@@ -649,7 +649,7 @@ public function pindahLangsung(Request $request, $pemesananId)
                 $tanggalWaktuMain = Carbon::parse("$tanggal $jamSelesai", 'Asia/Jakarta');
 
                 if ($tanggalWaktuMain->lt($now)) {
-                    $p->update(['status' => 'kadaluarsa']);
+                    $p->update(['status' => 'kadaluarsa_pemesanan']);
                     $p->jadwal->update(['tersedia' => true]);
                 }
             }
@@ -791,7 +791,7 @@ public function pindahLangsung(Request $request, $pemesananId)
 
         $dibatalkan = Pemesanan::with('lapangan', 'jadwal')
             ->where('penyewa_id', $userId)
-            ->whereIn('status', ['batal', 'kadaluarsa', 'di-scan'])
+            ->whereIn('status', ['batal', 'kadaluarsa', 'kadaluarsa_pemesanan', 'di-scan'])
             ->latest()
             ->get();
 
@@ -823,19 +823,19 @@ public function pindahLangsung(Request $request, $pemesananId)
         }
 
         DB::transaction(function () use ($pemesanan) {
-            $pemesanan->update(['status' => 'kadaluarsa']);
+            $pemesanan->update(['status' => 'kadaluarsa_pemesanan']);
 
             if ($pemesanan->jadwal) {
                 $pemesanan->jadwal->update(['tersedia' => true]);
             }
 
             if ($pemesanan->pembayaran) {
-                $pemesanan->pembayaran->update(['status' => 'kadaluarsa']);
+                $pemesanan->pembayaran->update(['status' => 'kadaluarsa_pembayaran']);
             }
         });
 
         return response()->json([
-            'status' => 'kadaluarsa',
+            'status' => 'kadaluarsa_pemesanan',
             'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
             'server_time' => $now->toIso8601String(),
         ]);

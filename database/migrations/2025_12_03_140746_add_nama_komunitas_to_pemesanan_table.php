@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('pemesanan', function (Blueprint $table) {
-            $table->string('nama_komunitas')->nullable();
-        });
+        if (! Schema::hasColumn('pemesanan', 'nama_komunitas')) {
+            Schema::table('pemesanan', function (Blueprint $table) {
+                $table->string('nama_komunitas')->nullable();
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('pemesanan', function (Blueprint $table) {
-            $table->dropColumn('nama_komunitas');
-        });
+        if (Schema::hasColumn('pemesanan', 'nama_komunitas')) {
+            Schema::table('pemesanan', function (Blueprint $table) {
+                $table->dropColumn('nama_komunitas');
+            });
+        }
     }
 };

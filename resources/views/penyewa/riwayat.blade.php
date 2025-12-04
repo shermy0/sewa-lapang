@@ -37,12 +37,14 @@
     <div class="history-grid">
         @forelse($dibatalkan as $p)
             @php
+                $expiredStatuses = ['kadaluarsa', 'kadaluarsa_pemesanan'];
+
                 // tentukan data-status untuk filter
                 if ($p->status === 'batal') {
                     $filterStatus = 'batal';
-                } elseif ($p->status === 'kadaluarsa' && optional($p->pembayaran)->status === 'berhasil') {
+                } elseif (in_array($p->status, $expiredStatuses, true) && optional($p->pembayaran)->status === 'berhasil') {
                     $filterStatus = 'tidak_dipakai';
-                } elseif ($p->status === 'kadaluarsa') {
+                } elseif (in_array($p->status, $expiredStatuses, true)) {
                     $filterStatus = 'pembayaran_gagal';
                 } else {
                     $filterStatus = $p->status ?? 'lainnya';
@@ -79,7 +81,7 @@
 
     @if($p->status == 'batal')
         <span class="status-chip status-chip--danger">Dibatalkan</span>
-    @elseif($p->status == 'kadaluarsa')
+    @elseif(in_array($p->status, $expiredStatuses, true))
         <span class="status-chip status-chip--secondary">
             Kadaluarsa
             @if(optional($p->pembayaran)->status === 'berhasil')
