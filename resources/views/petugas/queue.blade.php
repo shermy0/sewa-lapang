@@ -849,11 +849,23 @@ document.addEventListener("DOMContentLoaded", () => {
                   "X-CSRF-TOKEN": "{{ csrf_token() }}"
                 },
                 body: JSON.stringify({ order_ids: data.orders })
-              }).then(() => {
+              })
+              .then(res => res.json())
+              .then(response => {
                 swalSuccess("Pembayaran berhasil!");
                 cart = [];
                 renderCart();
+                if(typeof renderCartFromDB === "function") renderCartFromDB();
                 if(typeof refreshJadwal === "function") refreshJadwal();
+
+                const receipt = response?.receipt || (Array.isArray(response?.receipts) ? response.receipts[0] : null);
+                if(receipt && typeof showReceiptModal === "function"){
+                  showReceiptModal(receipt);
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                swalError("Pembayaran berhasil, tapi gagal mengambil struk.");
               });
             },
             onPending: function(result){
@@ -1094,12 +1106,8 @@ function openJadwalModal(lapangan) {
         if(!paginationEl) return;
         paginationEl.innerHTML = '';
 
-        if(totalPages <= 1){
-            paginationEl.style.display = 'none';
-            return;
-        }
-
         paginationEl.style.display = 'flex';
+        const visiblePages = Math.max(totalPages, 1);
 
         const createItem = (label, targetPage, disabled = false, active = false) => {
             const li = document.createElement('li');
@@ -1120,11 +1128,12 @@ function openJadwalModal(lapangan) {
             paginationEl.appendChild(li);
         };
 
-        createItem('«', currentPage - 1, currentPage === 1);
-        for(let i = 1; i <= totalPages; i++){
-            createItem(i, i, false, currentPage === i);
+        const safePage = Math.min(Math.max(currentPage, 1), visiblePages);
+        createItem('«', safePage - 1, safePage === 1);
+        for(let i = 1; i <= visiblePages; i++){
+            createItem(i, i, false, safePage === i);
         }
-        createItem('»', currentPage + 1, currentPage === totalPages);
+        createItem('»', safePage + 1, safePage === visiblePages);
     }
 
     // ===== Event listener filter tanggal & jam =====

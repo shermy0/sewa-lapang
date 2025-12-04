@@ -1122,6 +1122,7 @@ class PetugasController extends Controller
         Config::$is3ds = true;
 
         $updated = 0;
+        $receipts = [];
 
         foreach ($orderIds as $orderId) {
             try {
@@ -1141,11 +1142,15 @@ class PetugasController extends Controller
                 if($paid){
                     $pembayarans = Pembayaran::where('order_id', $orderId)
                         ->orWhere('order_id', 'like', $orderId.'-%')
+                        ->with(['pemesanan.penyewa', 'pemesanan.jadwal.section.lapangan', 'pemesanan.lapangan'])
                         ->get();
 
                     foreach ($pembayarans as $pembayaran) {
                         if($pembayaran->status !== 'berhasil'){
-                            $pembayaran->update(['status' => 'berhasil']);
+                            $pembayaran->update([
+                                'status' => 'berhasil',
+                                'tanggal_pembayaran' => now('Asia/Jakarta'),
+                            ]);
                         }
                         $pemesanan = $pembayaran->pemesanan;
                         if($pemesanan && $pemesanan->status !== 'dibayar'){
@@ -1153,13 +1158,64 @@ class PetugasController extends Controller
                             $updated++;
                         }
                     }
+
+                    // Siapkan data struk untuk order ini
+                    $items = [];
+                    $totalAmount = 0;
+                    $penyewaName = null;
+                    $komunitas = null;
+
+                    foreach ($pembayarans as $pembayaran) {
+                        $pemesanan = $pembayaran->pemesanan;
+                        $jadwal = $pemesanan?->jadwal;
+                        if(!$pemesanan || !$jadwal){
+                            continue;
+                        }
+
+                        $section = $jadwal->section;
+                        $lapanganName = optional($pemesanan->lapangan)->nama_lapangan
+                            ?? optional($section?->lapangan)->nama_lapangan
+                            ?? '-';
+                        $sectionName = optional($section)->nama_section ?? '-';
+                        $jamMulai = $jadwal->jam_mulai ? substr($jadwal->jam_mulai, 0, 5) : '-';
+                        $jamSelesai = $jadwal->jam_selesai ? substr($jadwal->jam_selesai, 0, 5) : '-';
+
+                        $items[] = [
+                            'lapangan' => $lapanganName,
+                            'section' => $sectionName,
+                            'tanggal' => $jadwal->tanggal ? Carbon::parse($jadwal->tanggal)->format('d M Y') : '-',
+                            'jam' => "{$jamMulai} - {$jamSelesai}",
+                            'harga' => $pembayaran->jumlah ?? 0,
+                        ];
+
+                        $totalAmount += $pembayaran->jumlah ?? 0;
+                        $penyewaName = $penyewaName ?? optional($pemesanan->penyewa)->name;
+                        $komunitas = $komunitas ?? $pemesanan->nama_komunitas;
+                    }
+
+                    if(!empty($items)){
+                        $receipts[] = [
+                            'order_id' => $orderId,
+                            'tanggal' => now('Asia/Jakarta')->format('d M Y H:i'),
+                            'kasir' => Auth::user()->name ?? 'Kasir',
+                            'penyewa' => $penyewaName ?? 'Penyewa',
+                            'komunitas' => $komunitas,
+                            'items' => $items,
+                            'total' => $totalAmount,
+                        ];
+                    }
                 }
             } catch (\Exception $e) {
                 continue;
             }
         }
 
-        return response()->json(['success' => true, 'updated' => $updated]);
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'receipts' => $receipts,
+            'receipt' => $receipts[0] ?? null,
+        ]);
     }
 
     public function getSections($lapanganId)
