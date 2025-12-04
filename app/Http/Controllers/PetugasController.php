@@ -1059,7 +1059,11 @@ class PetugasController extends Controller
             ->limit(200)
             ->get();
 
-        $orders = $payments->groupBy('order_id');
+        $orders = $payments->groupBy(function ($pay) {
+            $orderId = $pay->order_id ?? 'TANPA-ORDER';
+            // Untuk Midtrans, order_id disimpan sebagai {trx}-{pemesananId}, satukan per transaksi
+            return preg_replace('/-\d+$/', '', $orderId);
+        });
 
         return view('petugas.history', [
             'orders' => $orders,
