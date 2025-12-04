@@ -283,16 +283,18 @@
         </div>
 
         <!-- INPUT KOMUNITAS -->
-        <div class="mb-3">
-          <label class="fw-semibold mb-1">Komunitas <span class="text-danger">*</span></label>
-          <input
-            type="text"
-            id="inputKomunitas"
-            class="form-control"
-            placeholder="Nama komunitas"
-            autocomplete="off">
-          <small class="text-muted">Wajib diisi untuk setiap transaksi</small>
-        </div>
+<div class="mb-3">
+  <label class="fw-semibold mb-1">Komunitas <span class="text-danger">*</span></label>
+  <input
+    type="text"
+    id="inputKomunitas"
+    name="nama_komunitas"
+    class="form-control"
+    placeholder="Nama komunitas"
+    autocomplete="off"
+    required>
+  <small class="text-muted">Wajib diisi untuk setiap transaksi</small>
+</div>
 
         <div class="d-flex justify-content-between mb-2">
           <h6 class="mb-0">Daftar Pesanan</h6>
