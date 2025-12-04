@@ -333,7 +333,7 @@ class PetugasController extends Controller
                 $penyewaId = $guest->id;
             }
 
-            $orderId = 'CASH-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+            $orderIdBase = 'CASH-' . now()->format('YmdHisv') . '-' . Str::upper(Str::random(4));
             $createdIds = [];
             $receiptItems = [];
             $computedTotal = 0;
@@ -366,6 +366,9 @@ class PetugasController extends Controller
                     'status_scan' => 'belum_scan',
                     'nama_komunitas' => $validated['komunitas'] ?? null,
                 ]);
+
+                // Order ID dibuat unik per pembayaran untuk menghindari duplikasi di indeks unik
+                $orderId = $orderIdBase . '-' . $pemesanan->id;
 
                 $jumlah = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
                 Pembayaran::create([
