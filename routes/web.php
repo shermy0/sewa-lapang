@@ -208,6 +208,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
         // Tiket
         Route::get('/tiket', [PetugasController::class, 'tiket'])->name('tiket');
+        Route::get('/history', [PetugasController::class, 'history'])->name('history');
                 
         // Search penyewa (AJAX)
         Route::get('/penyewa/search', [PetugasController::class, 'searchPenyewa'])->name('penyewa.search');

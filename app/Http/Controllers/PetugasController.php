@@ -1037,6 +1037,36 @@ class PetugasController extends Controller
         ]);
     }
 
+    /**
+     * Riwayat transaksi per order (berisi item pemesanan di dalamnya).
+     */
+    public function history()
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+
+        $payments = Pembayaran::with([
+                'pemesanan.penyewa',
+                'pemesanan.lapangan',
+                'pemesanan.jadwal.section',
+            ])
+            ->when($pemilikId, function ($q) use ($pemilikId) {
+                $q->whereHas('pemesanan.lapangan', function ($l) use ($pemilikId) {
+                    $l->where('pemilik_id', $pemilikId);
+                });
+            })
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+
+        $orders = $payments->groupBy('order_id');
+
+        return view('petugas.history', [
+            'orders' => $orders,
+            'petugasName' => $petugas->name,
+        ]);
+    }
+
     public function penyewa()
     {
         $petugas = auth()->user();

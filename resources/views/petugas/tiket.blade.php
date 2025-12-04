@@ -25,7 +25,6 @@
                             <th>Aksi</th>
                             <th>Status Scan</th>
                             <th>QR</th>
-                            <th>Struk</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -94,30 +93,10 @@
                                         <i class="fa-solid fa-qrcode"></i>
                                     </button>
                                 </td>
-                                <td>
-                                    @if($bayarStatus === 'berhasil')
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-primary view-receipt"
-                                        data-kode="{{ $t->kode_tiket }}"
-                                        data-penyewa="{{ $t->nama_komunitas ?? ($t->penyewa->name ?? '-') }}"
-                                        data-lapangan="{{ $t->lapangan->nama_lapangan ?? '-' }}"
-                                        data-section="{{ $t->jadwal->section->nama_section ?? '-' }}"
-                                        data-tanggal="{{ $tanggalMain }}"
-                                        data-jam="{{ $jamMain }}"
-                                        data-total="{{ $t->pembayaran->jumlah ?? 0 }}"
-                                        data-status="{{ strtoupper($bayarStatus) }}"
-                                        data-kasir="{{ $petugasName ?? Auth::user()->name }}"
-                                        data-metode="{{ $t->pembayaran->metode ?? '-' }}"
-                                    >
-                                        <i class="fa-solid fa-print"></i>
-                                    </button>
-                                    @endif
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">Belum ada tiket.</td>
+                                <td colspan="10" class="text-center text-muted py-4">Belum ada tiket.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -138,23 +117,6 @@
       <div class="modal-body d-flex flex-column align-items-center">
         <div id="qrContainer" class="mb-3"></div>
         <div id="qrCodeText" class="fw-semibold"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Struk -->
-<div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="receiptModalLabel">Struk Pembayaran</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="receiptBody"></div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-        <button type="button" class="btn btn-primary btn-sm" id="printReceiptBtn"><i class="fa-solid fa-print me-1"></i>Cetak</button>
       </div>
     </div>
   </div>
@@ -271,63 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Receipt preview
-  const receiptModalEl = document.getElementById('receiptModal');
-  const receiptBody = document.getElementById('receiptBody');
-  const printArea = document.getElementById('print-area');
-
-  function renderReceipt(data) {
-    const total = Number(data.total || 0);
-    const html = `
-      <div class="thermal-receipt">
-        <div style="text-align:center; margin-bottom:8px;">
-          <div style="font-weight:800; letter-spacing:1px;">SEWALAP</div>
-          <div style="font-size:12px;">Bukti Pembayaran</div>
-        </div>
-        <div class="receipt-divider"></div>
-        <div class="receipt-row"><span>Kode Tiket</span><span>${data.kode}</span></div>
-        <div class="receipt-row"><span>Status</span><span>${data.status}</span></div>
-        <div class="receipt-row"><span>Metode</span><span>${data.metode}</span></div>
-        <div class="receipt-row"><span>Kasir</span><span>${data.kasir}</span></div>
-        <div class="receipt-row"><span>Nama</span><span>${data.penyewa}</span></div>
-        <div class="receipt-divider"></div>
-        <div class="receipt-item">
-          <div>${data.lapangan} - ${data.section}</div>
-          <div>${data.tanggal} • ${data.jam}</div>
-          <div>Total: Rp ${total.toLocaleString('id-ID')}</div>
-        </div>
-        <div class="receipt-divider"></div>
-        <div class="receipt-total"><span>TOTAL</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
-        <div class="receipt-divider"></div>
-        <div style="text-align:center; font-size:11px;">Terima kasih</div>
-      </div>
-    `;
-    receiptBody.innerHTML = html;
-    if (printArea) printArea.innerHTML = html;
-  }
-
-  document.querySelectorAll('.view-receipt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const data = {
-        kode: btn.dataset.kode || '-',
-        penyewa: btn.dataset.penyewa || '-',
-        lapangan: btn.dataset.lapangan || '-',
-        section: btn.dataset.section || '-',
-        tanggal: btn.dataset.tanggal || '-',
-        jam: btn.dataset.jam || '-',
-        total: btn.dataset.total || 0,
-        status: btn.dataset.status || '-',
-        kasir: btn.dataset.kasir || '-',
-        metode: (btn.dataset.metode || '-').toUpperCase(),
-      };
-      renderReceipt(data);
-      const modal = new bootstrap.Modal(receiptModalEl);
-      modal.show();
-    });
-  });
-
-  document.getElementById('printReceiptBtn')?.addEventListener('click', () => {
-    window.print();
-  });
 });
 </script>
 @endpush
