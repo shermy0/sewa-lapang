@@ -1196,6 +1196,7 @@ function openJadwalModal(lapangan) {
   let penyewaTimeout = null;
   const MIN_PENYEWA_LEN = 2;
   const PENYEWA_STORAGE_KEY = 'petugasPenyewaSelection';
+  const KOMUNITAS_STORAGE_KEY = 'petugasKomunitas';
 
   const loadStoredPenyewa = () => {
     try {
@@ -1250,6 +1251,37 @@ function openJadwalModal(lapangan) {
   };
 
   restorePenyewaInput();
+
+  // ====== KOMUNITAS LOCAL STORAGE ======
+  const komunitasInput = document.getElementById('inputKomunitas');
+  const loadStoredKomunitas = () => {
+    try {
+      return localStorage.getItem(KOMUNITAS_STORAGE_KEY) || '';
+    } catch(err) {
+      console.warn('Gagal membaca komunitas tersimpan', err);
+      return '';
+    }
+  };
+  const saveStoredKomunitas = (value) => {
+    try {
+      const val = value ? value.trim() : '';
+      if(!val){
+        localStorage.removeItem(KOMUNITAS_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(KOMUNITAS_STORAGE_KEY, val);
+    } catch(err) {
+      console.warn('Gagal simpan komunitas', err);
+    }
+  };
+  if(komunitasInput){
+    const storedKomunitas = loadStoredKomunitas();
+    if(storedKomunitas){
+      komunitasInput.value = storedKomunitas;
+    }
+    komunitasInput.addEventListener('input', (e) => saveStoredKomunitas(e.target.value));
+    komunitasInput.addEventListener('blur', (e) => saveStoredKomunitas(e.target.value));
+  }
 
   function renderPenyewaDropdown(data, options = {}) {
     if (!list) return;
@@ -1449,7 +1481,10 @@ async function addToCartFromModal(payload) {
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if(!data.success) throw new Error('Gagal menambahkan ke cart');
+        if(!data.success){
+            Swal.fire('Perhatian', data.message || 'Jadwal sudah ada di keranjang.', 'warning');
+            return;
+        }
         renderCartFromDB(); // render ulang dari DB
     } catch(err) {
         console.error(err);

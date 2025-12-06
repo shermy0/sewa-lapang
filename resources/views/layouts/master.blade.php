@@ -111,6 +111,19 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* Avatar dropdown: fix crop & hide caret */
+    .avatar-toggle {
+      padding: 0;
+      border: 2px solid rgba(255,255,255,0.6);
+      overflow: hidden;
+    }
+    .avatar-toggle::after {
+      display: none;
+    }
+    .avatar-toggle img {
+      object-fit: cover;
+    }
   </style>
   @stack('styles')
 </head>
@@ -157,13 +170,6 @@
                 <i class="fa-solid fa-ticket-simple me-1"></i> Tiket
             </a>
 
-            {{-- Tombol History --}}
-            {{-- <a href="{{ route('petugas.history') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-clock-rotate-left me-1"></i> History
-            </a> --}}
-
-
-
             {{-- Nama Petugas --}}
             <div class="text-end d-none d-md-block">
                 <small>Petugas: <strong>{{ $petugasName ?? auth()->user()->name }}</strong></small>
@@ -171,9 +177,9 @@
 
             {{-- User Dropdown --}}
             <div class="dropdown">
-                <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle overflow-hidden"
+                <div class="avatar-toggle rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle"
                     role="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false"
-                    style="width:36px;height:36px;font-weight:600;cursor:pointer; padding: 0;">
+                    style="width:36px;height:36px;font-weight:600;cursor:pointer;">
                     @if(auth()->user()->foto_profil)
                         <img src="{{ asset('storage/' . auth()->user()->foto_profil) }}" alt="Profile" class="w-100 h-100 object-fit-cover">
                     @else

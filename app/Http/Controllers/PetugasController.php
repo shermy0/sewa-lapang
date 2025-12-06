@@ -812,6 +812,19 @@ class PetugasController extends Controller
         $tanggal   = $request->query('tanggal');      // ?tanggal=YYYY-MM-DD
         $jamMulai  = $request->query('jam_mulai');   // ?jam_mulai=HH:MM
         $sectionName = $request->query('section_name'); // ?section_name=VIP
+        $now = Carbon::now('Asia/Jakarta');
+        $today = $now->toDateString();
+
+        // Jika tanggal tidak dikirim, default hari ini
+        if (! $tanggal) {
+            $tanggal = $today;
+        }
+
+        // Untuk tanggal hari ini tanpa filter jam, otomatis buang slot yang sudah lewat
+        $jamMulaiEfektif = $jamMulai;
+        if ($tanggal === $today && ! $jamMulaiEfektif) {
+            $jamMulaiEfektif = $now->format('H:i:s');
+        }
 
         // Ambil section sesuai nama & lapangan
         $sectionIds = DB::table('section_lapangan')
@@ -823,8 +836,6 @@ class PetugasController extends Controller
             // Jika section tidak ditemukan, return kosong
             return response()->json([]);
         }
-
-        $now = Carbon::now('Asia/Jakarta');
 
         // Hapus jadwal yang lewat
         DB::table('jadwal_lapangan')
@@ -848,8 +859,8 @@ class PetugasController extends Controller
         }
 
         // Filter jam mulai jika ada
-        if ($jamMulai) {
-            $jadwalQuery->where('j.jam_mulai', '>=', $jamMulai);
+        if ($jamMulaiEfektif) {
+            $jadwalQuery->where('j.jam_mulai', '>=', $jamMulaiEfektif);
         }
 
         $jadwal = $jadwalQuery

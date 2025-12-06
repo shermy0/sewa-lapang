@@ -36,6 +36,19 @@ class CartTempController extends Controller
         $validated['created_at'] = now();
         $validated['updated_at'] = now();
 
+        // Cek duplikasi jadwal di cart user ini
+        $duplicate = DB::table('cart_temp')
+            ->where('user_id', $validated['user_id'])
+            ->where('jadwal_id', $validated['jadwal_id'])
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal ini sudah ada di keranjang.'
+            ]);
+        }
+
         $cart = DB::table('cart_temp')->insertGetId($validated);
 
         $cartData = DB::table('cart_temp')->where('id', $cart)->first();
