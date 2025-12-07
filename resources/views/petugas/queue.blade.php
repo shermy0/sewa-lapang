@@ -626,11 +626,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if(cart.length === 0){
       list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-      document.getElementById("cartCount").innerText = "0 item";
-      document.getElementById("subtotal").innerText = "Rp 0";
-      document.getElementById("totalPrice").innerText = "Rp 0";
+        document.getElementById("cartCount").innerText = "0 item";
+        document.getElementById("subtotal").innerText = "Rp 0";
+        document.getElementById("totalPrice").innerText = "Rp 0";
 
-      return;
+        return;
     } else {
       cart.forEach((it, index) => {
         const li = document.createElement("li");
@@ -1402,11 +1402,11 @@ function openJadwalModal(lapangan) {
 
         if(cart.length === 0){
             list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-            document.getElementById("cartCount").innerText = "0 item";
-            document.getElementById("subtotal").innerText = "Rp 0";
-            document.getElementById("totalPrice").innerText = "Rp 0";
+              document.getElementById("cartCount").innerText = "0 item";
+              document.getElementById("subtotal").innerText = "Rp 0";
+              document.getElementById("totalPrice").innerText = "Rp 0";
 
-            return;
+              return;
         } else {
             let subtotal = 0;
             carts.forEach((item, index) => {

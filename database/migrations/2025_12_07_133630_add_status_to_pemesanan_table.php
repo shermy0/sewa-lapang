@@ -6,23 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up()
     {
         Schema::table('pemesanan', function (Blueprint $table) {
-            $table->string('nama_komunitas')->nullable();
+            $table->enum('status', ['keranjang', 'menunggu', 'dibayar', 'selesai', 'batal', 'kadaluarsa'])
+                ->default('keranjang')
+                ->change();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down()
     {
         Schema::table('pemesanan', function (Blueprint $table) {
-            $table->dropColumn('nama_komunitas');
+            $table->enum('status', ['menunggu', 'dibayar', 'selesai', 'batal', 'kadaluarsa'])
+                ->default('menunggu')
+                ->change();
         });
     }
 };
