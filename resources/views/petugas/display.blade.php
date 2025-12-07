@@ -425,27 +425,43 @@
 <body>
 
   @php
-    $activeQueue = null;
-    $activeSectionName = 'Menunggu...';
-    // 1) Prioritaskan yang sedang main / masuk arena
-    foreach($sectionQueues as $section) {
-        foreach($section['queue'] as $item) {
-            if(in_array($item['status'], ['sedang_main', 'masuk_arena'], true)) {
-                $activeQueue = $item;
-                $activeSectionName = $section['label'];
-                break 2;
-            }
-        }
-    }
-    // 2) Jika tidak ada, ambil antrean pertama yang ada
-    if(!$activeQueue) {
-        foreach($sectionQueues as $section) {
-            if($section['queue']->isNotEmpty()) {
-                $activeQueue = $section['queue']->first();
-                $activeSectionName = $section['label'];
-                break;
-            }
-        }
+    $nowJakarta = \Carbon\Carbon::now('Asia/Jakarta');
+
+    $flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) {
+        return collect($section['schedules'] ?? [])->map(function ($item) {
+            $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+
+            return array_merge($item, [
+                'date_iso' => $dateIso,
+                'start_at' => $dateIso . 'T' . $item['jam_mulai'] . ':00',
+                'end_at' => $dateIso . 'T' . $item['jam_selesai'] . ':00',
+            ]);
+        });
+    })->sortBy('start_at')->values();
+
+    $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+        $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
+        $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
+        return $nowJakarta->between($start, $end);
+    }) ?? $flatSchedules->first(function ($item) use ($nowJakarta) {
+        $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
+        return $start->gt($nowJakarta);
+    }) ?? $flatSchedules->last();
+
+    // Pastikan tetap ada jadwal untuk ditampilkan walau kosong/tersedia
+    if (! $activeSchedule) {
+        $fallbackStart = $nowJakarta->copy()->startOfHour();
+        $fallbackEnd = $fallbackStart->copy()->addHour();
+        $activeSchedule = [
+            'jadwal_id' => null,
+            'tanggal' => $nowJakarta->format('d M Y'),
+            'jam_mulai' => $fallbackStart->format('H:i'),
+            'jam_selesai' => $fallbackEnd->format('H:i'),
+            'status' => 'tersedia',
+            'penyewa' => null,
+            'start_at' => $fallbackStart->format('Y-m-d H:i:s'),
+            'end_at' => $fallbackEnd->format('Y-m-d H:i:s'),
+        ];
     }
   @endphp
 
@@ -474,55 +490,19 @@
       <div class="active-card">
         <div class="card-header">NOMOR ANTRIAN</div>
         <div class="card-body">
-            @if($activeQueue)
-                @php
-                    $scanStatus = $activeQueue['status_scan'] ?? 'belum_scan';
-                    $scanLabel = $activeQueue['status_scan_label'] ?? 'Belum Scan';
-                    $scanClass = match($scanStatus) {
-                        'masuk_lapang', 'sudah_scan' => 'bg-success',
-                        'scan_lobby', 'masuk_arena' => 'bg-info text-dark',
-                        default => 'bg-secondary'
-                    };
-                @endphp
-                <div class="active-queue-label mb-3">{{ $activeQueue['penyewa'] }}</div>
-                <div class="mb-3">
-                    <span class="badge {{ $scanClass }}">{{ strtoupper($scanLabel) }}</span>
+            @php
+                $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
+                $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
+            @endphp
+            <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                <div id="countdownTimer" class="display-1 fw-bold text-danger mb-3"
+                     style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
+                     data-start="{{ $activeStart->format('Y-m-d H:i:s') }}"
+                     data-end="{{ $activeEnd->format('Y-m-d H:i:s') }}">
+                    00:00
                 </div>
-
-                <!-- Date and Category Info -->
-                <div class="mt-1"></div>
-
-                <!-- Countdown Timer -->
-                @if($activeQueue['status'] === 'sedang_main')
-                    @php
-                        $now = \Carbon\Carbon::now();
-                        $start = \Carbon\Carbon::parse($activeQueue['tanggal'] . ' ' . $activeQueue['jam_mulai']);
-                        $isPlaying = $now->gte($start);
-
-                        $topLabel = $isPlaying ? 'SEDANG BERMAIN' : 'JADWAL BOOKING';
-                        $bottomLabel = $isPlaying ? 'SISA WAKTU MAIN' : 'DIMULAI DALAM';
-                        $targetTime = $isPlaying ? $activeQueue['jam_selesai'] : $activeQueue['jam_mulai'];
-                    @endphp
-                <div class="mt-4 text-center">
-                    <div class="small text-muted text-uppercase fw-bold mb-3 mt-3">{{ $topLabel }}</div>
-                    <div class="h3 fw-bold text-dark mb-5">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
-                    <div class="small text-muted text-uppercase fw-bold mb-3">{{ $bottomLabel }}</div>
-                    <div id="countdownTimer" class="display-1 fw-bold text-danger mt-3"
-                         style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
-                         data-end="{{ $targetTime }}"
-                         data-date="{{ \Carbon\Carbon::parse($activeQueue['tanggal'])->format('Y-m-d') }}">
-                        --:--
-                    </div>
-                </div>
-                @else
-                <div class="mt-3 text-center">
-                    <div class="small text-muted text-uppercase fw-bold mb-1">JADWAL BOOKING</div>
-                    <div class="h4 fw-bold" style="color: #10b981;">{{ $activeQueue['jam_mulai'] }} - {{ $activeQueue['jam_selesai'] }}</div>
-                </div>
-                @endif
-            @else
-                <div class="active-queue-label">Belum ada antrian</div>
-            @endif
+                <div class="h3 fw-bold text-dark">{{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}</div>
+            </div>
         </div>
       </div>
     </div>
@@ -543,11 +523,12 @@
                     <div class="queue-grid">
                         @php
                             $schedules = collect($sectionGroup['schedules']);
+                            $activeScheduleId = $activeSchedule['jadwal_id'] ?? null;
 
-                            // Exclude the active queue if it exists
-                            if(isset($activeQueue)) {
-                                $schedules = $schedules->reject(function($item) use ($activeQueue) {
-                                    return isset($item['kode_tiket']) && $item['kode_tiket'] === $activeQueue['kode_tiket'];
+                            // Exclude the active schedule that is being highlighted on the left
+                            if($activeScheduleId) {
+                                $schedules = $schedules->reject(function($item) use ($activeScheduleId) {
+                                    return ($item['jadwal_id'] ?? null) === $activeScheduleId;
                                 });
                             }
                         @endphp
@@ -560,7 +541,7 @@
                                     'masuk_arena' => 'MASUK ARENA',
                                     'dibayar' => 'DIBAYAR',
                                     'menunggu' => 'MENUNGGU',
-                                    'tersedia' => 'TERSEDIA',
+                                    'tersedia' => 'Kosong',
                                     default => strtoupper($statusRaw)
                                 };
                                 $statusClass = match($statusRaw) {
@@ -573,8 +554,11 @@
                                 };
                                 $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
                                 $displayName = $scheduleItem['penyewa'] ?? '-';
-                                $dateIso = \Carbon\Carbon::parse($scheduleItem['tanggal'])->format('Y-m-d');
-                                $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'];
+                                if ($statusRaw === 'tersedia') {
+                                    $displayName = 'Kosong';
+                                }
+                                $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $scheduleItem['tanggal'])->format('Y-m-d');
+                                $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'] . ':00';
                             @endphp
                             <div class="queue-item-card color-{{ $index % 6 }}"
                                  data-end="{{ $endIso ?? '' }}">
@@ -607,7 +591,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     function updateClock() {
       const now = new Date();
@@ -621,52 +604,48 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Generate QR Code if active queue exists
-    @if($activeQueue)
-        const qrContainer = document.getElementById("qrcode");
-        if(qrContainer) {
-            new QRCode(qrContainer, {
-                text: "{{ $activeQueue['kode_tiket'] }}",
-                width: 120,
-                height: 120,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-        }
-    @endif
-
     // Countdown Logic
     function updateCountdown() {
         const timerEl = document.getElementById('countdownTimer');
         if (!timerEl) return;
-        const endTimeStr = timerEl.dataset.end; // "HH:MM"
-        const dateStr = timerEl.dataset.date;   // "YYYY-MM-DD"
+        const startTimeStr = timerEl.dataset.start;
+        const endTimeStr = timerEl.dataset.end;
 
-        if (!endTimeStr || !dateStr) return;
+        if (!startTimeStr || !endTimeStr) return;
+
         const now = new Date();
-        const endTime = new Date(`${dateStr}T${endTimeStr}:00`);
+        const startTime = new Date(startTimeStr.replace(' ', 'T'));
+        const endTime = new Date(endTimeStr.replace(' ', 'T'));
 
-        // If end time is tomorrow (e.g. playing until 01:00), handle date crossing?
-        // For simplicity assuming same day or handled by backend date.
+        if (isNaN(startTime) || isNaN(endTime)) return;
+
+        if (now < startTime) {
+            timerEl.textContent = "00:00";
+            timerEl.classList.add('text-muted');
+            timerEl.classList.remove('text-danger');
+            return;
+        }
 
         const diff = endTime - now;
 
         if (diff <= 0) {
-            timerEl.textContent = "Selesai";
+            timerEl.textContent = "00:00";
             timerEl.classList.remove('text-danger');
             timerEl.classList.add('text-muted');
             return;
         }
 
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        const totalSeconds = Math.floor(diff / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
 
         const hDisplay = hours > 0 ? hours + ":" : "";
         const mDisplay = minutes.toString().padStart(2, '0');
         const sDisplay = seconds.toString().padStart(2, '0');
 
+        timerEl.classList.add('text-danger');
+        timerEl.classList.remove('text-muted');
         timerEl.textContent = `${hDisplay}${mDisplay}:${sDisplay}`;
     }
 
