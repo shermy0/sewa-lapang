@@ -18,7 +18,7 @@
 
 @section('content')
 <div class="container mt-4">
-    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode me-2"></i>Scan Tiket QR</h2>
+    <h2 class="fw-bold mb-4 text-success"><i class="fas fa-qrcode me-2"></i>Scoan Tiket QR</h2>
 
     <div class="scan-wrapper">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
