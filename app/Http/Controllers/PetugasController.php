@@ -385,7 +385,7 @@ class PetugasController extends Controller
                 'metode' => 'cash',
                 'jumlah' => $jumlah,
                 'status' => 'berhasil',
-                'order_id' => $orderId,
+                'order_id' => 'CASH-' . now()->format('YmdHis') . '-' . $pemesanan->id,
                 'tanggal_pembayaran' => now(),
             ]);
 
