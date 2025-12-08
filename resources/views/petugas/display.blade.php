@@ -439,14 +439,40 @@
         });
     })->sortBy('start_at')->values();
 
-    $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-        $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
-        $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
-        return $nowJakarta->between($start, $end);
-    }) ?? $flatSchedules->first(function ($item) use ($nowJakarta) {
-        $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
-        return $start->gt($nowJakarta);
-    }) ?? $flatSchedules->last();
+    // Prioritas 1: Yang statusnya sedang main / masuk arena
+    $activeSchedule = $flatSchedules->first(function ($item) {
+        return in_array($item['status'], ['sedang_main', 'masuk_arena']);
+    });
+
+    // Prioritas 2: Yang statusnya dibayar (booked) dan belum lewat jam selesainya
+    if (! $activeSchedule) {
+        $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+             $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
+             return $item['status'] === 'dibayar' && $end->gt($nowJakarta);
+        });
+    }
+
+    // Prioritas 3: Yang sedang berlangsung secara waktu (meskipun kosong)
+    if (! $activeSchedule) {
+        $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+            $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
+            $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
+            return $nowJakarta->between($start, $end);
+        });
+    }
+    
+    // Fallback: Yang akan datang
+    if (! $activeSchedule) {
+         $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+            $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
+            return $start->gt($nowJakarta);
+        });
+    }
+
+    // Fallback terakhir
+    if (! $activeSchedule) {
+        $activeSchedule = $flatSchedules->last();
+    }
 
     // Pastikan tetap ada jadwal untuk ditampilkan walau kosong/tersedia
     if (! $activeSchedule) {
@@ -511,7 +537,8 @@
                 <div id="countdownTimer" class="display-1 fw-bold text-danger mb-3"
                      style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
                      data-start="{{ $activeStart->format('Y-m-d H:i:s') }}"
-                     data-end="{{ $activeEnd->format('Y-m-d H:i:s') }}">
+                     data-end="{{ $activeEnd->format('Y-m-d H:i:s') }}"
+                     data-status="{{ $activeSchedule['status'] ?? 'tersedia' }}">
                     00:00
                 </div>
                 <div class="h3 fw-bold text-dark">{{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}</div>
@@ -567,9 +594,6 @@
                                 };
                                 $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
                                 $displayName = $scheduleItem['penyewa'] ?? '-';
-                                if ($statusRaw === 'tersedia') {
-                                    $displayName = 'Kosong';
-                                }
                                 $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $scheduleItem['tanggal'])->format('Y-m-d');
                                 $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'] . ':00';
                             @endphp
@@ -632,12 +656,17 @@
 
         if (isNaN(startTime) || isNaN(endTime)) return;
 
-        if (now < startTime) {
+        const status = timerEl.dataset.status;
+        // Timer hanya jalan jika sudah masuk lapang (sedang_main), bukan masuk arena
+        if (status !== 'sedang_main') {
             timerEl.textContent = "00:00";
             timerEl.classList.add('text-muted');
             timerEl.classList.remove('text-danger');
             return;
         }
+
+        // Jika status active (masuk_arena/sedang_main), timer jalan terus (hitung mundur ke end time)
+        // Hapus pengecekan now < startTime agar timer tetap jalan walau masuk lebih awal.
 
         const diff = endTime - now;
 
