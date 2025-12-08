@@ -183,6 +183,8 @@ class PetugasController extends Controller
                     'harga_sewa' => $item->harga_sewa,
                     'status' => $status,
                     'penyewa' => $penyewa,
+                    'nama_komunitas' => $item->nama_komunitas,
+                    'penyewa_name' => $item->penyewa_name,
                     'kode_tiket' => $item->kode_tiket,
                     'nama_section' => $item->nama_section,
                     'nama_lapangan' => $item->nama_lapangan,

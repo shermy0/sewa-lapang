@@ -459,10 +459,22 @@
             'jam_selesai' => $fallbackEnd->format('H:i'),
             'status' => 'tersedia',
             'penyewa' => null,
+            'nama_komunitas' => null,
+            'nama_lapangan' => $displayTitle ?? null,
+            'nama_section' => null,
             'start_at' => $fallbackStart->format('Y-m-d H:i:s'),
             'end_at' => $fallbackEnd->format('Y-m-d H:i:s'),
         ];
     }
+
+    $brandLapangan = $activeSchedule['nama_lapangan'] ?? ($displayTitle ?? 'Layar Display');
+    $brandSection = $activeSchedule['nama_section'] ?? null;
+    $brandTitle = trim($brandLapangan . ($brandSection ? ' - ' . $brandSection : ''));
+    if ($brandTitle === '') {
+        $brandTitle = 'Layar Display';
+    }
+
+    $activeCommunity = $activeSchedule['nama_komunitas'] ?? $activeSchedule['penyewa'] ?? null;
   @endphp
 
   <!-- Header -->
@@ -471,7 +483,7 @@
       <div class="brand">
         <i class="fa-solid fa-layer-group"></i>
         <div>
-          <div>{{ $displayTitle ?? 'Layar Display' }}</div>
+          <div>{{ $brandTitle }}</div>
           <div style="font-size: 0.8rem; font-weight: 400;">Display Antrian</div>
         </div>
       </div>
@@ -488,7 +500,8 @@
     <!-- Left: Active Queue (Biggest/Latest) -->
     <div class="active-queue-panel">
       <div class="active-card">
-        <div class="card-header">NOMOR ANTRIAN</div>
+        @php $activeCommunityLabel = $activeCommunity ?: 'NOMOR ANTRIAN'; @endphp
+        <div class="card-header">{{ $activeCommunityLabel }}</div>
         <div class="card-body">
             @php
                 $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
