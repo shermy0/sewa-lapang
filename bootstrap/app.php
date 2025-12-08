@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\AutoExpirePemesanan;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,14 +15,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        // alias middleware
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
             'active' => EnsureAccountIsActive::class,
         ]);
 
+        // middleware di group web
         $middleware->appendToGroup('web', EnsureAccountIsActive::class);
 
-        // Atur redirect jika user sudah login tapi mengakses route guest (misal /login, /register)
+        // ★★ AUTO EXPIRE PEMESANAN (DITAMBAHKAN DI SINI)
+        $middleware->append(AutoExpirePemesanan::class);
+
+        // redirect user setelah login
         RedirectIfAuthenticated::redirectUsing(function ($request) {
             $user = $request->user();
 
@@ -37,7 +44,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 default => '/',
             };
         });
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->create();

@@ -145,7 +145,6 @@ Route::get('/jadwal/section/{section_id}', [PemesananController::class, 'getJadw
     Route::post('/midtrans/callback', [PemesananController::class, 'midtransCallback']);
     Route::post('/midtrans/token', [PemesananController::class, 'getSnapToken'])->name('midtrans.token');
     Route::get('/midtrans/token-again/{pemesanan}', [PemesananController::class, 'getSnapTokenAgain']);
-    Route::post('/pemesanan/{pemesanan}/expire', [PemesananController::class, 'expireNow'])->name('pemesanan.expire');
 
     Route::delete('/pemesanan/batalkan/{id}', [PemesananController::class, 'batalkan'])->name('pemesanan.batalkan');
     Route::get('/tiket/download/{id}', [PemesananController::class, 'downloadTiket'])->name('tiket.download');

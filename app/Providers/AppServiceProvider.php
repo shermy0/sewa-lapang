@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
+use App\Models\Pemesanan;
+use App\Models\Pembayaran; // kalau kamu cek pembayaran juga
+use Carbon\Carbon;
 use Midtrans\Config as MidtransConfig; // <── ini penting!
 
 class AppServiceProvider extends ServiceProvider

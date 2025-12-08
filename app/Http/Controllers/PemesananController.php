@@ -798,46 +798,5 @@ public function pindahLangsung(Request $request, $pemesananId)
         return view('penyewa.riwayat', compact('dibatalkan'));
     }
 
-    /**
-     * Tandai pemesanan sebagai kadaluarsa jika sudah melewati expires_at (dipanggil via AJAX countdown).
-     */
-    public function expireNow(Pemesanan $pemesanan)
-    {
-        if ($pemesanan->penyewa_id !== Auth::id()) {
-            abort(403, 'Tidak diizinkan.');
-        }
 
-        if ($pemesanan->status !== 'menunggu') {
-            return response()->json(['status' => $pemesanan->status]);
-        }
-
-        $now = Carbon::now('Asia/Jakarta');
-        $expiresAt = $pemesanan->expires_at ? Carbon::parse($pemesanan->expires_at, 'Asia/Jakarta') : null;
-
-        if (! $expiresAt || $expiresAt->gt($now)) {
-            return response()->json([
-                'status' => 'menunggu',
-                'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
-                'server_time' => $now->toIso8601String(),
-            ]);
-        }
-
-        DB::transaction(function () use ($pemesanan) {
-            $pemesanan->update(['status' => 'kadaluarsa']);
-
-            if ($pemesanan->jadwal) {
-                $pemesanan->jadwal->update(['tersedia' => true]);
-            }
-
-            if ($pemesanan->pembayaran) {
-                $pemesanan->pembayaran->update(['status' => 'kadaluarsa']);
-            }
-        });
-
-        return response()->json([
-            'status' => 'kadaluarsa',
-            'expires_at' => $expiresAt?->timezone('Asia/Jakarta')->toIso8601String(),
-            'server_time' => $now->toIso8601String(),
-        ]);
-    }
 }
