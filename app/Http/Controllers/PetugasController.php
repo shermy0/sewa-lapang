@@ -852,8 +852,19 @@ public function storeMidtrans(Request $request)
         // Filter tanggal jika ada
         if ($tanggal) {
             $jadwalQuery->whereDate('j.tanggal', $tanggal);
+            // Filter out schedules that have already ended for today
+            if ($tanggal === $now->toDateString()) {
+                $jadwalQuery->where('j.jam_selesai', '>', $now->format('H:i:s'));
+            }
         } else {
-            $jadwalQuery->where('j.tanggal', '>=', $now->toDateString());
+            // Filter jadwal hari ini yang belum selesai + jadwal masa depan
+            $jadwalQuery->where(function($q) use ($now) {
+                $q->where('j.tanggal', '>', $now->toDateString())
+                  ->orWhere(function($q2) use ($now) {
+                      $q2->where('j.tanggal', '=', $now->toDateString())
+                         ->where('j.jam_selesai', '>', $now->format('H:i:s'));
+                  });
+            });
         }
 
         // Filter jam mulai jika ada
@@ -1054,7 +1065,13 @@ public function storeMidtrans(Request $request)
                 $schedule['section_name'] = $section['section_name'];
                 return $schedule;
             });
-        })->sortBy('start_at')->values();
+        })
+        // Filter out schedules that have already ended
+        ->filter(function ($item) use ($nowJakarta) {
+            $endTime = Carbon::parse($item['end_at'], 'Asia/Jakarta');
+            return $endTime->gt($nowJakarta);
+        })
+        ->sortBy('start_at')->values();
 
         // Prioritas 1: sedang main
         $activeSchedule = $flatSchedules->first(fn ($item) => $item['status'] === 'sedang_main');
