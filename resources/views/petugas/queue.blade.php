@@ -829,8 +829,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if(method === 'cash'){
         swalSuccess("Pemesanan cash berhasil!");
+        
+        // Kosongkan cart
         cart = [];
         renderCart();
+
+        // Reset input nama penyewa & komunitas
+        const penyewaInput = document.getElementById('searchPenyewa');
+        const komunitasInput = document.getElementById('inputKomunitas');
+        if(penyewaInput){
+            penyewaInput.value = '';
+            penyewaInput.removeAttribute('data-id');
+        }
+        if(komunitasInput){
+            komunitasInput.value = '';
+        }
+
+        // Hapus penyewa tersimpan di localStorage
+        localStorage.removeItem('petugasPenyewaSelection');
+
+        // Sinkron ke server supaya field nama_penyewa di cart_temp null
+        fetch('/petugas/cart-temp/nama', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ nama_penyewa: null })
+        }).catch(err => console.error('Gagal sinkron nama penyewa', err));
+
         const paymentModalEl = document.getElementById('paymentModal');
         const modal = bootstrap.Modal.getInstance(paymentModalEl);
         if(modal) modal.hide();
