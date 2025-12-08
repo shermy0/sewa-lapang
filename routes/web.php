@@ -237,6 +237,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
         Route::get('/verify-tiket/{kode}', [ScanTiketController::class, 'verifyTiket'])->name('verify-tiket');
         Route::get('/display', [PetugasController::class, 'display'])->name('display');
+        Route::get('/api/display-data', [PetugasController::class, 'displayData'])->name('api.display-data');
         Route::get('/api/lapangan-list', [PetugasController::class, 'getLapanganList'])->name('api.lapangan-list');
     });
 

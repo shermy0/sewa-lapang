@@ -129,6 +129,8 @@ class PetugasController extends Controller
             ->leftJoin('users as u', 'p.penyewa_id', '=', 'u.id')
             ->whereIn('l.id', $lapanganIds)
             ->whereDate('j.tanggal', $date)
+            // Filter out schedules that have already ended
+            ->where('j.jam_selesai', '>', $now->format('H:i:s'))
             ->select([
                 'j.id as jadwal_id',
                 'j.tanggal',
@@ -180,6 +182,8 @@ class PetugasController extends Controller
                     'tanggal' => Carbon::parse($item->tanggal)->format('d M Y'),
                     'jam_mulai' => substr($item->jam_mulai, 0, 5),
                     'jam_selesai' => substr($item->jam_selesai, 0, 5),
+                    'start_at' => Carbon::parse($item->tanggal . ' ' . $item->jam_mulai, 'Asia/Jakarta')->format('Y-m-d H:i:s'),
+                    'end_at' => Carbon::parse($item->tanggal . ' ' . $item->jam_selesai, 'Asia/Jakarta')->format('Y-m-d H:i:s'),
                     'harga_sewa' => $item->harga_sewa,
                     'status' => $status,
                     'penyewa' => $penyewa,
@@ -1013,6 +1017,87 @@ public function storeMidtrans(Request $request)
             'carouselImages' => $carouselImages,
             'petugasName' => $petugas->name,
             'displayTitle' => $displayTitle,
+        ]);
+    }
+
+    /**
+     * API endpoint untuk data display (AJAX polling tanpa refresh halaman).
+     */
+    public function displayData(Request $request)
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+        $sectionId = $request->integer('section_id');
+
+        $lapangan = Lapangan::query()
+            ->with('kategori')
+            ->when($request->lapangan_id, fn ($q) => $q->where('id', $request->lapangan_id))
+            ->when(!$request->lapangan_id && $pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
+            ->get();
+
+        if ($lapangan->isEmpty()) {
+            $lapangan = Lapangan::with('kategori')->get();
+        }
+
+        $today = Carbon::today()->toDateString();
+        $allSchedulesToday = $this->buildAllSchedulesToday($lapangan->pluck('id'), $today);
+
+        if ($sectionId) {
+            $allSchedulesToday = collect($allSchedulesToday)->where('section_id', $sectionId)->values();
+        }
+
+        // Flatten schedules for active detection
+        $nowJakarta = Carbon::now('Asia/Jakarta');
+        $flatSchedules = collect($allSchedulesToday)->flatMap(function ($section) {
+            return collect($section['schedules'] ?? [])->map(function ($schedule) use ($section) {
+                $schedule['section_id'] = $section['section_id'];
+                $schedule['section_name'] = $section['section_name'];
+                return $schedule;
+            });
+        })->sortBy('start_at')->values();
+
+        // Prioritas 1: sedang main
+        $activeSchedule = $flatSchedules->first(fn ($item) => $item['status'] === 'sedang_main');
+
+        // Prioritas 2: masuk arena
+        if (!$activeSchedule) {
+            $activeSchedule = $flatSchedules->first(fn ($item) => $item['status'] === 'masuk_arena');
+        }
+
+        // Prioritas 3: dibayar dan belum lewat
+        if (!$activeSchedule) {
+            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+                $end = Carbon::parse($item['end_at'], 'Asia/Jakarta');
+                return $item['status'] === 'dibayar' && $end->gt($nowJakarta);
+            });
+        }
+
+        // Prioritas 4: sedang berlangsung
+        if (!$activeSchedule) {
+            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+                $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
+                $end = Carbon::parse($item['end_at'], 'Asia/Jakarta');
+                return $nowJakarta->between($start, $end);
+            });
+        }
+
+        // Fallback
+        if (!$activeSchedule) {
+            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+                $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
+                return $start->gt($nowJakarta);
+            }) ?? $flatSchedules->last();
+        }
+
+        $isPlaying = ($activeSchedule['status'] ?? 'tersedia') === 'sedang_main';
+        $activeCommunity = $activeSchedule['nama_komunitas'] ?? $activeSchedule['penyewa'] ?? null;
+
+        return response()->json([
+            'allSchedulesToday' => $allSchedulesToday,
+            'activeSchedule' => $activeSchedule,
+            'isPlaying' => $isPlaying,
+            'activeCommunityLabel' => $isPlaying ? ($activeCommunity ?: 'SEDANG BERMAIN') : 'SIAP BOOKING',
+            'activeCommunity' => $activeCommunity,
         ]);
     }
 
