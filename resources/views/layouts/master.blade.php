@@ -111,6 +111,19 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* Avatar dropdown: fix crop & hide caret */
+    .avatar-toggle {
+      padding: 0;
+      border: 2px solid rgba(255,255,255,0.6);
+      overflow: hidden;
+    }
+    .avatar-toggle::after {
+      display: none;
+    }
+    .avatar-toggle img {
+      object-fit: cover;
+    }
   </style>
   @stack('styles')
 </head>
@@ -157,13 +170,6 @@
                 <i class="fa-solid fa-ticket-simple me-1"></i> Tiket
             </a>
 
-            {{-- Tombol History --}}
-            {{-- <a href="{{ route('petugas.history') }}" class="btn btn-light btn-sm fw-semibold">
-                <i class="fa-solid fa-clock-rotate-left me-1"></i> History
-            </a> --}}
-
-
-
             {{-- Nama Petugas --}}
             <div class="text-end d-none d-md-block">
                 <small>Petugas: <strong>{{ $petugasName ?? auth()->user()->name }}</strong></small>
@@ -171,9 +177,9 @@
 
             {{-- User Dropdown --}}
             <div class="dropdown">
-                <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle overflow-hidden"
+                <div class="avatar-toggle rounded-circle bg-white text-dark d-flex align-items-center justify-content-center dropdown-toggle"
                     role="button" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false"
-                    style="width:36px;height:36px;font-weight:600;cursor:pointer; padding: 0;">
+                    style="width:36px;height:36px;font-weight:600;cursor:pointer;">
                     @if(auth()->user()->foto_profil)
                         <img src="{{ asset('storage/' . auth()->user()->foto_profil) }}" alt="Profile" class="w-100 h-100 object-fit-cover">
                     @else
@@ -244,64 +250,88 @@
         const dropdownMenu = document.getElementById('displayDropdownMenu');
         const loadingItem = document.getElementById('loadingDisplay');
         let isLoaded = false;
+        let isLoading = false;
 
-        dropdownBtn.addEventListener('show.bs.dropdown', function () {
-            if (isLoaded) return;
+        if (!dropdownBtn || !dropdownMenu) return;
 
-            fetch("{{ route('petugas.api.lapangan-sections') }}")
+        const dropdownInstance = window.bootstrap?.Dropdown
+            ? window.bootstrap.Dropdown.getOrCreateInstance(dropdownBtn)
+            : null;
+
+        const buildMenu = (data) => {
+            if(loadingItem) loadingItem.remove();
+
+            if(!data || data.length === 0){
+                const li = document.createElement('li');
+                li.innerHTML = '<span class="dropdown-item-text text-muted small">Tidak ada lapangan</span>';
+                dropdownMenu.appendChild(li);
+                return;
+            }
+
+            data.forEach(lapangan => {
+                const header = document.createElement('li');
+                header.innerHTML = `<h6 class="dropdown-header mb-0">${lapangan.nama_lapangan}</h6>`;
+                dropdownMenu.appendChild(header);
+
+                if (lapangan.sections && lapangan.sections.length) {
+                    lapangan.sections.forEach(sec => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.className = 'dropdown-item';
+                        a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}&section_id=${sec.id}`;
+                        a.target = '_blank';
+                        a.textContent = sec.nama_section;
+                        li.appendChild(a);
+                        dropdownMenu.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.className = 'dropdown-item';
+                    a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}`;
+                    a.target = '_blank';
+                    a.textContent = 'Semua Section';
+                    li.appendChild(a);
+                    dropdownMenu.appendChild(li);
+                }
+
+                const divider = document.createElement('li');
+                divider.innerHTML = '<hr class="dropdown-divider">';
+                dropdownMenu.appendChild(divider);
+            });
+
+            const last = dropdownMenu.lastElementChild;
+            if(last && last.querySelector('hr')) last.remove();
+        };
+
+        const loadDropdown = () => {
+            if (isLoaded || isLoading) return Promise.resolve();
+            isLoading = true;
+
+            return fetch("{{ route('petugas.api.lapangan-sections') }}")
                 .then(response => response.json())
                 .then(data => {
-                    // Remove loading item
-                    if(loadingItem) loadingItem.remove();
-
-                    if(!data || data.length === 0){
-                        const li = document.createElement('li');
-                        li.innerHTML = '<span class=\"dropdown-item-text text-muted small\">Tidak ada lapangan</span>';
-                        dropdownMenu.appendChild(li);
-                        return;
-                    }
-
-                    data.forEach(lapangan => {
-                        const header = document.createElement('li');
-                        header.innerHTML = `<h6 class=\"dropdown-header mb-0\">${lapangan.nama_lapangan}</h6>`;
-                        dropdownMenu.appendChild(header);
-
-                        if (lapangan.sections && lapangan.sections.length) {
-                            lapangan.sections.forEach(sec => {
-                                const li = document.createElement('li');
-                                const a = document.createElement('a');
-                                a.className = 'dropdown-item';
-                                a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}&section_id=${sec.id}`;
-                                a.target = '_blank';
-                                a.textContent = sec.nama_section;
-                                li.appendChild(a);
-                                dropdownMenu.appendChild(li);
-                            });
-                        } else {
-                            const li = document.createElement('li');
-                            const a = document.createElement('a');
-                            a.className = 'dropdown-item';
-                            a.href = `{{ route('petugas.display') }}?lapangan_id=${lapangan.id}`;
-                            a.target = '_blank';
-                            a.textContent = 'Semua Section';
-                            li.appendChild(a);
-                            dropdownMenu.appendChild(li);
-                        }
-
-                        const divider = document.createElement('li');
-                        divider.innerHTML = '<hr class=\"dropdown-divider\">';
-                        dropdownMenu.appendChild(divider);
-                    });
-
-                    // Remove trailing divider
-                    const last = dropdownMenu.lastElementChild;
-                    if(last && last.querySelector('hr')) last.remove();
+                    buildMenu(data);
                     isLoaded = true;
                 })
                 .catch(error => {
                     console.error('Error fetching lapangan:', error);
                     if(loadingItem) loadingItem.innerHTML = '<span class="dropdown-item-text text-danger small">Gagal memuat</span>';
+                })
+                .finally(() => {
+                    isLoading = false;
                 });
+        };
+
+        dropdownBtn.addEventListener('click', function (event) {
+            if (!isLoaded) {
+                event.preventDefault();
+                loadDropdown().finally(() => dropdownInstance?.show());
+            }
+        });
+
+        dropdownBtn.addEventListener('show.bs.dropdown', function () {
+            loadDropdown();
         });
       });
     </script>
