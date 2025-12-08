@@ -89,6 +89,16 @@
                         {{-- KANAN --}}
                         <div class="ticket-right p-4 bg-white flex-grow-1 position-relative">
                             <div class="ticket-info">
+                                                        {{-- TAMPILKAN NAMA KOMUNITAS --}}
+                        @if($p->nama_komunitas && $p->nama_komunitas !== 'Tidak ada komunitas')
+                        <div class="komunitas-info mb-3">
+                            <div class="alert alert-success py-2 mb-0">
+                                <i class="fa-solid fa-users me-2"></i>
+                                <strong>Komunitas:</strong> {{ $p->nama_komunitas }}
+                            </div>
+                        </div>
+                        @endif
+
                                 <p class="mb-1"><strong>Status:</strong>
                                     <span class="ticket-status-pay pending">
                                         <i class="fa-solid fa-coins me-1"></i> Belum Dibayar
