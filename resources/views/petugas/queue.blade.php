@@ -614,10 +614,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function addToCart(item){
-    const exist = cart.find(c=>c.id===item.id && c.jam_mulai===item.jam_mulai && c.tanggal===item.tanggal);
-    if(exist) exist.durasi+=item.durasi;
-    else cart.push({...item});
+    // Check duplicate by jadwal_id (unique schedule identifier)
+    const exist = cart.find(c => c.jadwal_id === item.jadwal_id);
+    if(exist) {
+      Swal.fire('Jadwal Sudah Dipilih', 'Jadwal ini sudah ada di keranjang.', 'warning');
+      return false;
+    }
+    cart.push({...item});
     renderCart();
+    return true;
   }
 
   function renderCart(){
@@ -1476,6 +1481,13 @@ function initCart() {
 
 // ======== ADD TO CART DARI MODAL ========
 async function addToCartFromModal(payload) {
+    // Check duplicate by jadwal_id before sending to server
+    const existingItem = cart.find(c => c.jadwal_id == payload.jadwal_id);
+    if(existingItem) {
+        Swal.fire('Jadwal Sudah Dipilih', 'Jadwal ini sudah ada di keranjang.', 'warning');
+        return false;
+    }
+
     try {
         const res = await fetch("{{ route('petugas.cart-temp.store') }}", {
             method: 'POST',
@@ -1486,11 +1498,13 @@ async function addToCartFromModal(payload) {
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if(!data.success) throw new Error('Gagal menambahkan ke cart');
+        if(!data.success) throw new Error(data.message || 'Gagal menambahkan ke cart');
         renderCartFromDB(); // render ulang dari DB
+        return true;
     } catch(err) {
         console.error(err);
-        Swal.fire('Error', 'Gagal menambahkan jadwal ke cart', 'error');
+        Swal.fire('Error', err.message || 'Gagal menambahkan jadwal ke cart', 'error');
+        return false;
     }
 }
 

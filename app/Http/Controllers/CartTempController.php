@@ -40,6 +40,21 @@ class CartTempController extends Controller
             'jadwal_id' => 'nullable|integer',
         ]);
 
+        // Check for duplicate jadwal_id in cart
+        if (!empty($validated['jadwal_id'])) {
+            $exists = DB::table('cart_temp')
+                ->where('pemilik_id', $pemilikId)
+                ->where('jadwal_id', $validated['jadwal_id'])
+                ->exists();
+            
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jadwal ini sudah ada di keranjang.'
+                ], 400);
+            }
+        }
+
         // Data untuk insert
         $data = [
             'pemilik_id' => $pemilikId,
