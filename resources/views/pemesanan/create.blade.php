@@ -455,6 +455,12 @@ document.querySelectorAll('.section-card').forEach(card => {
         document.querySelectorAll('.section-card').forEach(c => c.classList.remove('active'));
         this.classList.add('active');
         selectedSection = this.dataset.sectionId;
+        // Set tanggal otomatis ke hari ini saat section dipilih
+const inputTanggal = document.getElementById('inputTanggal');
+const today = new Date().toISOString().split('T')[0];
+inputTanggal.value = today;
+inputTanggal.dispatchEvent(new Event('change'));
+
 
         // Reset state
         selectedJadwals = [];
