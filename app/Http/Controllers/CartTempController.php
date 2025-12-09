@@ -4,68 +4,63 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Pemesanan; 
+use App\Models\Lapangan;
+use App\Models\JadwalLapangan;
 
 class CartTempController extends Controller
 {
-    // Ambil semua cart berdasarkan pemilik
+    // Ambil semua item dengan status keranjang
     public function index()
     {
-        $pemilikId = auth()->user()->pemilik_id;
-
-        $carts = DB::table('cart_temp')
-            ->where('pemilik_id', $pemilikId)
-            ->get();
+        $cart = Pemesanan::with(['lapangan', 'jadwal'])
+            ->where('status', 'keranjang')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'lapangan_id' => $item->lapangan_id,
+                    'jadwal_id' => $item->jadwal_id,
+                    'lapangan_name' => $item->lapangan->nama_lapangan ?? 'Lapangan',
+                    'harga' => $item->jadwal->harga_sewa ?? 0, // ambil harga dari jadwal
+                    'lokasi' => $item->lapangan->lokasi ?? '-',
+                    'jam_mulai' => $item->jadwal->jam_mulai ?? '-',
+                    'jam_selesai' => $item->jadwal->jam_selesai ?? '-',
+                    'tanggal' => $item->jadwal->tanggal ?? '-',
+                    'durasi' => $item->durasi_sewa ?? 1,
+                    'status' => $item->status,
+                    'kode_tiket' => $item->kode_tiket,
+                ];
+            });
     
-        return response()->json($carts);
-    }   
+        return response()->json($cart);
+    }
 
-    // Tambah item otomatis saat user klik "Pesan"
     public function store(Request $request)
     {
-        $pemilikId = auth()->user()->pemilik_id;
-
-        if (!$pemilikId) {
-            return response()->json(['success' => false, 'message' => 'User tidak punya pemilik_id'], 400);
-        }
-
-        // Validasi minimal
         $validated = $request->validate([
             'lapangan_id' => 'required|integer',
-            'lapangan_name' => 'required|string',
-            'harga' => 'required|numeric',
-            'nama_penyewa' => 'nullable|string',
-            'jam_mulai' => 'nullable|string',
-            'tanggal' => 'nullable|date',
-            'jadwal_id' => 'nullable|integer',
+            'jadwal_id' => 'required|integer',
         ]);
 
-        // Data untuk insert
         $data = [
-            'pemilik_id' => $pemilikId,
+            'penyewa_id' => auth()->id(), // user login
             'lapangan_id' => $validated['lapangan_id'],
-            'lapangan_name' => $validated['lapangan_name'],
-            'harga' => $validated['harga'],
-            'qty' => 1,
-            'nama_penyewa' => $validated['nama_penyewa'] ?? null,
-            'jadwal_id' => $validated['jadwal_id'] ?? null,
-            'jam_mulai' => $validated['jam_mulai'] ?? null,
-            'tanggal' => $validated['tanggal'] ?? null,
+            'jadwal_id' => $validated['jadwal_id'],
+            'status' => 'keranjang',
             'created_at' => now(),
             'updated_at' => now(),
         ];
 
         try {
-            // Insert ke DB
-            $cartId = DB::table('cart_temp')->insertGetId($data);
+            $cart = Pemesanan::create($data);
 
-            // Ambil data yang baru masuk
-            $cartData = DB::table('cart_temp')->where('id', $cartId)->first();
-
-            return response()->json(['success' => true, 'cart' => $cartData]);
+            return response()->json([
+                'success' => true,
+                'cart' => $cart->load('lapangan', 'jadwal')
+            ]);
 
         } catch (\Exception $e) {
-            // Kalau gagal, kasih tahu error
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
@@ -73,39 +68,42 @@ class CartTempController extends Controller
         }
     }
 
-    // Hapus item cart
+    // Hapus 1 item
     public function destroy($id)
     {
-        $pemilikId = auth()->user()->pemilik_id;
+        $userId = auth()->id();
 
-        DB::table('cart_temp')
+        DB::table('pemesanan')
             ->where('id', $id)
-            ->where('pemilik_id', $pemilikId)
+            ->where('penyewa_id', $userId)
+            ->where('status', 'keranjang')
             ->delete();
 
         return response()->json(['success' => true]);
     }
 
-    // Clear semua cart pemilik (dipanggil setelah bayar)
+    // Hapus semua item keranjang user
     public function clear()
     {
-        $pemilikId = auth()->user()->pemilik_id;
+        $userId = auth()->id();
 
-        DB::table('cart_temp')
-            ->where('pemilik_id', $pemilikId)
+        DB::table('pemesanan')
+            ->where('penyewa_id', $userId)
+            ->where('status', 'keranjang')
             ->delete();
 
         return response()->json(['success' => true]);
     }
 
-    // Update nama penyewa
-    public function updateNama(Request $r)
+    // Update nama komunitas (jika dipakai)
+    public function updateNama(Request $request)
     {
         $pemilikId = auth()->user()->pemilik_id;
 
-        DB::table('cart_temp')
-            ->where('pemilik_id', $pemilikId)
-            ->update(['nama_penyewa' => $r->nama_penyewa]);
+        DB::table('pemesanan')
+            ->where('penyewa_id', $pemilikId)
+            ->where('status', 'keranjang')
+            ->update(['nama_komunitas' => $request->nama_komunitas]);
 
         return response()->json(['success' => true]);
     }
