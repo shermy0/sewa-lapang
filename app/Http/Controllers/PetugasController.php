@@ -124,7 +124,7 @@ class PetugasController extends Controller
             ->join('lapangan as l', 's.lapangan_id', '=', 'l.id')
             ->leftJoin('pemesanan as p', function($join) {
                 $join->on('p.jadwal_id', '=', 'j.id')
-                     ->whereIn('p.status', ['menunggu', 'dibayar']);
+                     ->whereIn('p.status', ['menunggu', 'dibayar', 'terisi', 'terisi']);
             })
             ->leftJoin('users as u', 'p.penyewa_id', '=', 'u.id')
             ->whereIn('l.id', $lapanganIds)
@@ -154,18 +154,18 @@ class PetugasController extends Controller
         // Group by section
         $grouped = $schedules->groupBy('section_id')->map(function($sectionSchedules) use ($now) {
             $first = $sectionSchedules->first();
-            
+
             $scheduleItems = $sectionSchedules->map(function($item) use ($now) {
                 // Determine status
                 $status = 'tersedia';
                 $penyewa = $item->nama_komunitas ?: $item->penyewa_name;
-                
+
                 $displayName = $item->nama_komunitas ?: $item->penyewa_name;
 
-                if ($item->pemesanan_status === 'dibayar') {
-                    $status = 'dibayar';
+                if (in_array($item->pemesanan_status, ['dibayar', 'terisi', 'terisi'], true)) {
+                    $status = 'terisi';
                     $penyewa = $displayName;
-                    
+
                     // Check if playing
                     if (in_array($item->status_scan, ['masuk_lapang', 'sudah_scan'], true)) {
                         $status = 'sedang_main';
@@ -1057,6 +1057,9 @@ public function storeMidtrans(Request $request)
             $allSchedulesToday = collect($allSchedulesToday)->where('section_id', $sectionId)->values();
         }
 
+        // Status yang dianggap terbayar/terisi
+        $paidStatuses = ['dibayar', 'terisi', 'sedang_main', 'masuk_arena'];
+
         // Flatten schedules for active detection
         $nowJakarta = Carbon::now('Asia/Jakarta');
         $flatSchedules = collect($allSchedulesToday)->flatMap(function ($section) {
@@ -1065,6 +1068,10 @@ public function storeMidtrans(Request $request)
                 $schedule['section_name'] = $section['section_name'];
                 return $schedule;
             });
+        })
+        // Filter hanya jadwal yang sudah dibayar/terisi (PENTING: exclude jadwal kosong/tersedia)
+        ->filter(function ($item) use ($paidStatuses) {
+            return in_array($item['status'], $paidStatuses);
         })
         // Filter out schedules that have already ended
         ->filter(function ($item) use ($nowJakarta) {
@@ -1081,39 +1088,30 @@ public function storeMidtrans(Request $request)
             $activeSchedule = $flatSchedules->first(fn ($item) => $item['status'] === 'masuk_arena');
         }
 
-        // Prioritas 3: dibayar dan belum lewat
+        // Prioritas 3: dibayar/terisi dan belum lewat
         if (!$activeSchedule) {
-            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta, $paidStatuses) {
                 $end = Carbon::parse($item['end_at'], 'Asia/Jakarta');
-                return $item['status'] === 'dibayar' && $end->gt($nowJakarta);
+                return in_array($item['status'], $paidStatuses) && $end->gt($nowJakarta);
             });
         }
 
-        // Prioritas 4: sedang berlangsung
-        if (!$activeSchedule) {
-            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-                $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
-                $end = Carbon::parse($item['end_at'], 'Asia/Jakarta');
-                return $nowJakarta->between($start, $end);
-            });
-        }
-
-        // Fallback
-        if (!$activeSchedule) {
-            $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-                $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
-                return $start->gt($nowJakarta);
-            }) ?? $flatSchedules->last();
-        }
+        // Jika tidak ada jadwal terbayar, activeSchedule harus null (tidak ada fallback ke jadwal kosong)
 
         $isPlaying = ($activeSchedule['status'] ?? 'tersedia') === 'sedang_main';
         $activeCommunity = $activeSchedule['nama_komunitas'] ?? $activeSchedule['penyewa'] ?? null;
+        
+        // Determine hasActiveSchedule - hanya true jika ada jadwal terbayar
+        $hasActiveSchedule = $activeSchedule !== null;
 
         return response()->json([
             'allSchedulesToday' => $allSchedulesToday,
             'activeSchedule' => $activeSchedule,
             'isPlaying' => $isPlaying,
-            'activeCommunityLabel' => $isPlaying ? ($activeCommunity ?: 'SEDANG BERMAIN') : 'SIAP BOOKING',
+            'hasActiveSchedule' => $hasActiveSchedule,
+            'activeCommunityLabel' => $hasActiveSchedule 
+                ? ($isPlaying ? ($activeCommunity ?: 'SEDANG BERMAIN') : ($activeCommunity ?: 'TERISI'))
+                : 'LAPANGAN KOSONG',
             'activeCommunity' => $activeCommunity,
         ]);
     }

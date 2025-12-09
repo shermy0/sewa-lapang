@@ -427,41 +427,47 @@
   @php
     $nowJakarta = \Carbon\Carbon::now('Asia/Jakarta');
 
-    $flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) {
-        return collect($section['schedules'] ?? [])->map(function ($item) {
-            $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+    // Filter hanya jadwal yang sudah dibayar/terisi (TIDAK termasuk menunggu atau transaksi pending)
+    $paidStatuses = ['dibayar', 'terisi', 'sedang_main', 'masuk_arena'];
 
-            return array_merge($item, [
-                'date_iso' => $dateIso,
-                'start_at' => $dateIso . 'T' . $item['jam_mulai'] . ':00',
-                'end_at' => $dateIso . 'T' . $item['jam_selesai'] . ':00',
-            ]);
-        });
+    $flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) use ($paidStatuses) {
+        return collect($section['schedules'] ?? [])
+            ->filter(function ($item) use ($paidStatuses) {
+                // Hanya tampilkan yang sudah dibayar/terisi
+                return in_array($item['status'], $paidStatuses);
+            })
+            ->map(function ($item) {
+                $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+
+                return array_merge($item, [
+                    'date_iso' => $dateIso,
+                    'start_at' => $dateIso . 'T' . $item['jam_mulai'] . ':00',
+                    'end_at' => $dateIso . 'T' . $item['jam_selesai'] . ':00',
+                ]);
+            });
     })->sortBy('start_at')->values();
 
-    // Prioritas 1: Yang statusnya sedang main / masuk arena
+    // Prioritas 1: Yang statusnya sedang main
     $activeSchedule = $flatSchedules->first(function ($item) {
-        return in_array($item['status'], ['sedang_main', 'masuk_arena']);
+        return $item['status'] === 'sedang_main';
     });
 
-    // Prioritas 2: Yang statusnya dibayar (booked) dan belum lewat jam selesainya
+    // Prioritas 2: Yang statusnya masuk arena
+    if (! $activeSchedule) {
+        $activeSchedule = $flatSchedules->first(function ($item) {
+            return $item['status'] === 'masuk_arena';
+        });
+    }
+
+    // Prioritas 3: Yang statusnya dibayar/terisi dan belum lewat jam selesainya
     if (! $activeSchedule) {
         $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
              $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
-             return $item['status'] === 'dibayar' && $end->gt($nowJakarta);
+             return in_array($item['status'], ['dibayar', 'terisi']) && $end->gt($nowJakarta);
         });
     }
 
-    // Prioritas 3: Yang sedang berlangsung secara waktu (meskipun kosong)
-    if (! $activeSchedule) {
-        $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-            $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
-            $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
-            return $nowJakarta->between($start, $end);
-        });
-    }
-    
-    // Fallback: Yang akan datang
+    // Fallback: Jadwal terbayar selanjutnya
     if (! $activeSchedule) {
          $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
             $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
@@ -469,38 +475,34 @@
         });
     }
 
-    // Fallback terakhir
-    if (! $activeSchedule) {
-        $activeSchedule = $flatSchedules->last();
+    // activeSchedule bisa null jika tidak ada jadwal terbayar
+    $hasActiveSchedule = !is_null($activeSchedule);
+
+    $brandLapangan = $displayTitle ?? 'Layar Display';
+    $brandSection = null;
+    $activeCommunity = null;
+    $isPlaying = false;
+    $activeStatus = 'kosong';
+
+    // Ambil section name dari jadwal pertama jika tidak ada active schedule
+    if (!empty($allSchedulesToday)) {
+        $firstSection = collect($allSchedulesToday)->first();
+        $brandSection = $firstSection['section_name'] ?? null;
     }
 
-    // Pastikan tetap ada jadwal untuk ditampilkan walau kosong/tersedia
-    if (! $activeSchedule) {
-        $fallbackStart = $nowJakarta->copy()->startOfHour();
-        $fallbackEnd = $fallbackStart->copy()->addHour();
-        $activeSchedule = [
-            'jadwal_id' => null,
-            'tanggal' => $nowJakarta->format('d M Y'),
-            'jam_mulai' => $fallbackStart->format('H:i'),
-            'jam_selesai' => $fallbackEnd->format('H:i'),
-            'status' => 'tersedia',
-            'penyewa' => null,
-            'nama_komunitas' => null,
-            'nama_lapangan' => $displayTitle ?? null,
-            'nama_section' => null,
-            'start_at' => $fallbackStart->format('Y-m-d H:i:s'),
-            'end_at' => $fallbackEnd->format('Y-m-d H:i:s'),
-        ];
+    if ($hasActiveSchedule) {
+        $brandLapangan = $activeSchedule['nama_lapangan'] ?? ($displayTitle ?? 'Layar Display');
+        $brandSection = $activeSchedule['nama_section'] ?? $activeSchedule['section_name'] ?? $brandSection;
+        $activeCommunity = $activeSchedule['nama_komunitas'] ?? $activeSchedule['penyewa'] ?? null;
+        $activeStatus = $activeSchedule['status'] ?? 'kosong';
+        $isPlaying = ($activeStatus === 'sedang_main');
     }
 
-    $brandLapangan = $activeSchedule['nama_lapangan'] ?? ($displayTitle ?? 'Layar Display');
-    $brandSection = $activeSchedule['nama_section'] ?? null;
+    // Gabungkan nama lapangan + section untuk header
     $brandTitle = trim($brandLapangan . ($brandSection ? ' - ' . $brandSection : ''));
     if ($brandTitle === '') {
         $brandTitle = 'Layar Display';
     }
-
-    $activeCommunity = $activeSchedule['nama_komunitas'] ?? $activeSchedule['penyewa'] ?? null;
   @endphp
 
   <!-- Header -->
@@ -526,19 +528,29 @@
     <!-- Left: Active Queue (Biggest/Latest) -->
     <div class="active-queue-panel">
       <div class="active-card">
-        @php 
-            $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
-            $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
-            $activeStatus = $activeSchedule['status'] ?? 'tersedia';
-            $isPlaying = ($activeStatus === 'sedang_main');
-            $activeCommunityLabel = $isPlaying ? ($activeCommunity ?: 'SEDANG BERMAIN') : 'SIAP BOOKING';
+        @php
+            $activeCommunityLabel = 'LAPANGAN KOSONG';
+            if ($hasActiveSchedule) {
+                $communityName = $activeCommunity;
+
+                if ($isPlaying) {
+                    $activeCommunityLabel = $communityName ?: 'SEDANG BERMAIN';
+                } else {
+                    $activeCommunityLabel = $communityName ?: 'TERISI';
+                }
+            }
         @endphp
         <div class="card-header">{{ $activeCommunityLabel }}</div>
         <div class="card-body">
 
-            @if($isPlaying)
-                {{-- Tampilan saat ada yang main/booking --}}
+            @if($hasActiveSchedule && $isPlaying)
+                {{-- Tampilan saat sedang bermain (sudah scan masuk lapangan) --}}
+                @php
+                    $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
+                    $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
+                @endphp
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div class="text-muted mb-2" style="font-size: 1rem; font-weight: 600; letter-spacing: 1px;">SISA WAKTU MAIN</div>
                     <div id="countdownTimer" class="display-1 fw-bold text-danger mb-3"
                          style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
                          data-start="{{ $activeStart->format('Y-m-d H:i:s') }}"
@@ -548,69 +560,106 @@
                     </div>
                     <div class="h3 fw-bold text-dark">{{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}</div>
                 </div>
-            @else
-                {{-- Tampilan saat lapangan tersedia --}}
+            @elseif($hasActiveSchedule && $activeStatus === 'masuk_arena')
+                {{-- Tampilan saat sudah masuk arena (scan gor) tapi belum masuk lapangan --}}
+                @php
+                    $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
+                    $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
+                @endphp
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
-                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4); animation: pulse 2s ease-in-out infinite;">
+                    <div class="badge bg-warning text-dark mb-3" style="font-size: 1.2rem; padding: 10px 25px; animation: pulse 2s ease-in-out infinite;">MASUK ARENA</div>
+                    <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">MENUNGGU MASUK LAPANGAN</div>
+                    <div class="h1 fw-bold" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
+                        {{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}
+                    </div>
+                </div>
+            @elseif($hasActiveSchedule)
+                {{-- Tampilan saat terjadwal (sudah bayar, belum masuk arena) --}}
+                @php
+                    $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
+                    $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
+                @endphp
+                <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div class="badge bg-success mb-3" style="font-size: 1.2rem; padding: 10px 25px;">TERJADWAL</div>
+                    <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">JADWAL MAIN</div>
+                    <div class="h1 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
+                        {{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}
+                    </div>
+                </div>
+            @else
+                {{-- Tampilan saat lapangan kosong (tidak ada jadwal terbayar) --}}
+                <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(107, 114, 128, 0.3);">
                         <i class="fa-solid fa-futbol" style="font-size: 3.5rem; color: white;"></i>
                     </div>
-                    <div class="h2 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px;">
-                        LAPANGAN TERSEDIA
+                    <div class="h2 fw-bold" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px;">
+                        LAPANGAN KOSONG
                     </div>
-                    <div class="text-muted mt-2" style="font-size: 1.1rem;">Silakan booking sekarang!</div>
+                    <div class="text-muted mt-2" style="font-size: 1.1rem;">Tidak ada jadwal terisi saat ini</div>
                 </div>
             @endif
         </div>
       </div>
     </div>
 
-    <!-- Right: Queue Grid (Grouped by Section) -->
+    <!-- Right: Queue Grid (ALL Schedules Today) -->
     <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; height: 100%;">
         @php
-            $sectionGroups = $allSchedulesToday ?? collect();
+            // Ambil SEMUA jadwal hari ini (menunggu tetap tampil sebagai KOSONG)
+            $allSchedulesFlat = collect($allSchedulesToday ?? [])->flatMap(function ($section) use ($nowJakarta) {
+                return collect($section['schedules'] ?? [])
+                    ->filter(function ($item) use ($nowJakarta) {
+                        // Filter: hanya tampilkan jadwal yang belum berakhir
+                        $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+                        $endTime = \Carbon\Carbon::parse($dateIso . ' ' . $item['jam_selesai'], 'Asia/Jakarta');
+                        return $endTime->gt($nowJakarta);
+                    })
+                    ->map(function ($item) use ($section) {
+                        return array_merge($item, [
+                            'section_name' => $section['section_name'] ?? null,
+                            'lapangan_name' => $section['lapangan_name'] ?? null,
+                        ]);
+                    });
+            })->sortBy('jam_mulai')->values();
+
+            // Exclude the active schedule from the grid (karena sudah tampil di panel utama)
+            $activeScheduleId = $hasActiveSchedule ? ($activeSchedule['jadwal_id'] ?? null) : null;
+            if ($activeScheduleId && $hasActiveSchedule) {
+                $allSchedulesFlat = $allSchedulesFlat->reject(function($item) use ($activeScheduleId) {
+                    return ($item['jadwal_id'] ?? null) === $activeScheduleId;
+                })->values();
+            }
         @endphp
 
-        @forelse($sectionGroups as $sectionIndex => $sectionGroup)
-            <div class="section-group" style="animation: fadeInUp 0.6s ease; animation-delay: {{ $sectionIndex * 0.1 }}s; opacity: 0; animation-fill-mode: forwards;">
+        @if($allSchedulesFlat->isNotEmpty())
+            <div class="section-group" style="animation: fadeInUp 0.6s ease; opacity: 0; animation-fill-mode: forwards;">
                 <!-- Section Header -->
-                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 20px; border-radius: 16px 16px 0 0; font-weight: 700; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); display: flex; align-items: center; gap: 10px;"></div>
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 20px; border-radius: 16px 16px 0 0; font-weight: 700; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Jadwal Hari Ini</span>
+                </div>
 
-                <!-- Schedules for this section -->
+                <!-- All Schedules -->
                 <div class="queue-grid-container" style="margin-top: 0; padding: 15px; background: rgba(255, 255, 255, 0.5); border-radius: 0 0 16px 16px; backdrop-filter: blur(10px);">
                     <div class="queue-grid">
-                        @php
-                            $schedules = collect($sectionGroup['schedules']);
-                            $activeScheduleId = $activeSchedule['jadwal_id'] ?? null;
-
-                            // Exclude the active schedule ONLY if it's actually being played (sedang_main)
-                            if($activeScheduleId && $isPlaying) {
-                                $schedules = $schedules->reject(function($item) use ($activeScheduleId) {
-                                    return ($item['jadwal_id'] ?? null) === $activeScheduleId;
-                                });
-                            }
-                        @endphp
-
-                        @foreach($schedules as $index => $scheduleItem)
+                        @foreach($allSchedulesFlat as $index => $scheduleItem)
                             @php
-                                $statusRaw = $scheduleItem['status'] ?? 'tersedia';
+                                $statusRaw = $scheduleItem['status'] ?? 'kosong';
+                                // menunggu ditampilkan sebagai TERJADWAL (sudah ada yang booking)
                                 $statusLabel = match($statusRaw) {
-                                    'sedang_main' => 'SEDANG MAIN',
+                                    'sedang_main' => 'SEDANG BERMAIN',
                                     'masuk_arena' => 'MASUK ARENA',
-                                    'dibayar' => 'DIBAYAR',
-                                    'menunggu' => 'MENUNGGU',
-                                    'tersedia' => 'Kosong',
-                                    default => strtoupper($statusRaw)
+                                    'dibayar', 'terisi', 'menunggu' => 'TERJADWAL',
+                                    default => 'KOSONG'
                                 };
                                 $statusClass = match($statusRaw) {
-                                    'dibayar' => 'status-paid',
                                     'sedang_main' => 'status-playing',
                                     'masuk_arena' => 'status-playing',
-                                    'menunggu' => 'status-waiting',
-                                    'tersedia' => 'status-available',
-                                    default => 'status-waiting'
+                                    'dibayar', 'terisi', 'menunggu' => 'status-paid',
+                                    default => 'status-available'
                                 };
                                 $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
-                                $displayName = $scheduleItem['penyewa'] ?? '-';
+                                $displayName = $scheduleItem['nama_komunitas'] ?? $scheduleItem['penyewa'] ?? null;
                                 $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $scheduleItem['tanggal'])->format('Y-m-d');
                                 $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'] . ':00';
                             @endphp
@@ -618,7 +667,7 @@
                                  data-end="{{ $endIso ?? '' }}">
                                 <div class="queue-item-body">
                                     <div class="queue-item-status {{ $statusClass }} mb-2">{{ $statusLabel }}</div>
-                                    <div class="h5 fw-bold text-dark mb-1 text-center text-truncate w-100 px-2">{{ $displayName }}</div>
+                                    <div class="h5 fw-bold text-dark mb-1 text-center text-truncate w-100 px-2">{{ $displayName ?: '-' }}</div>
                                     <div class="text-muted small fw-medium">{{ $jamRange }}</div>
                                 </div>
                             </div>
@@ -626,14 +675,14 @@
                     </div>
                 </div>
             </div>
-        @empty
+        @else
             <div class="d-flex align-items-center justify-content-center w-100 text-muted" style="flex: 1;">
                 <div class="text-center">
                     <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity: 0.3;"></i>
                     <div>Tidak ada jadwal hari ini</div>
                 </div>
             </div>
-        @endforelse
+        @endif
     </div>
   </div>
 
@@ -732,21 +781,34 @@
     function updateDisplayFromData(data) {
         // Update header label
         const headerEl = document.querySelector('.active-card .card-header');
-        if (headerEl && data.activeCommunityLabel) {
-            headerEl.textContent = data.activeCommunityLabel;
+        const isPlaying = data.isPlaying;
+        const activeSchedule = data.activeSchedule;
+        const hasActiveSchedule = data.hasActiveSchedule ?? !!activeSchedule;
+        const activeCommunity = data.activeCommunity;
+
+        // Determine header label (hanya komunitas)
+        let activeCommunityLabel = 'LAPANGAN KOSONG';
+        if (hasActiveSchedule && activeSchedule) {
+            const communityName = activeCommunity;
+            if (communityName) {
+                activeCommunityLabel = communityName;
+            } else {
+                activeCommunityLabel = isPlaying ? 'SEDANG BERMAIN' : 'TERISI';
+            }
+        }
+        if (headerEl) {
+            headerEl.textContent = activeCommunityLabel;
         }
 
         // Update main panel content
         const cardBody = document.querySelector('.active-card .card-body');
         if (!cardBody) return;
 
-        const isPlaying = data.isPlaying;
-        const activeSchedule = data.activeSchedule;
-
-        if (isPlaying && activeSchedule) {
-            // Show timer view
+        if (hasActiveSchedule && isPlaying) {
+            // Show timer view (no badge, just timer)
             cardBody.innerHTML = `
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div class="text-muted mb-2" style="font-size: 1rem; font-weight: 600; letter-spacing: 1px;">SISA WAKTU MAIN</div>
                     <div id="countdownTimer" class="display-1 fw-bold text-danger mb-3"
                          style="font-size: 6rem; line-height: 1.05; letter-spacing: 2px;"
                          data-start="${activeSchedule.start_at}"
@@ -758,55 +820,93 @@
                 </div>
             `;
             updateCountdown(); // Re-run countdown for new element
-        } else {
-            // Show "Lapangan Tersedia" view
+        } else if (hasActiveSchedule && activeSchedule.status === 'masuk_arena') {
+            // Show MASUK ARENA view (entered gor but not yet on field)
             cardBody.innerHTML = `
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
-                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4); animation: pulse 2s ease-in-out infinite;">
+                    <div class="badge bg-warning text-dark mb-3" style="font-size: 1.2rem; padding: 10px 25px; animation: pulse 2s ease-in-out infinite;">MASUK ARENA </div>
+                    <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">MENUNGGU MASUK LAPANGAN</div>
+                    <div class="h1 fw-bold" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
+                        ${activeSchedule.jam_mulai} - ${activeSchedule.jam_selesai}
+                    </div>
+                </div>
+            `;
+        } else if (hasActiveSchedule) {
+            // Show TERJADWAL view (paid but not entered arena yet)
+            cardBody.innerHTML = `
+                <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div class="badge bg-success mb-3" style="font-size: 1.2rem; padding: 10px 25px;">TERJADWAL</div>
+                    <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">JADWAL MAIN</div>
+                    <div class="h1 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
+                        ${activeSchedule.jam_mulai} - ${activeSchedule.jam_selesai}
+                    </div>
+                </div>
+            `;
+        } else {
+            // Show "Lapangan Kosong" view (no paid schedules)
+            cardBody.innerHTML = `
+                <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(107, 114, 128, 0.3);">
                         <i class="fa-solid fa-futbol" style="font-size: 3.5rem; color: white;"></i>
                     </div>
-                    <div class="h2 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px;">
-                        LAPANGAN TERSEDIA
+                    <div class="h2 fw-bold" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 2px;">
+                        LAPANGAN KOSONG
                     </div>
-                    <div class="text-muted mt-2" style="font-size: 1.1rem;">Silakan booking sekarang!</div>
+                    <div class="text-muted mt-2" style="font-size: 1.1rem;">Tidak ada jadwal terisi saat ini</div>
                 </div>
             `;
         }
 
-        // Update grid cards
+        // Update grid cards (only paid schedules)
         updateGridFromData(data.allSchedulesToday, isPlaying, activeSchedule);
     }
 
     function updateGridFromData(allSchedules, isPlaying, activeSchedule) {
         const gridContainer = document.querySelector('.queue-grid');
-        if (!gridContainer || !allSchedules) return;
+        if (!gridContainer) return;
+
+        // Show/hide the empty state container
+        const sectionGroup = document.querySelector('.section-group');
+        const emptyState = document.querySelector('.queue-grid-container')?.parentElement?.nextElementSibling;
 
         const activeId = activeSchedule?.jadwal_id;
+        const now = new Date();
+
         let html = '';
         let colorIndex = 0;
 
+        if (!allSchedules) {
+            gridContainer.innerHTML = '';
+            return;
+        }
+
         allSchedules.forEach(section => {
             (section.schedules || []).forEach(item => {
-                // Skip active schedule if playing
-                if (isPlaying && item.jadwal_id === activeId) return;
+                // Filter: hanya tampilkan jadwal yang belum berakhir
+                const endTime = new Date(item.end_at);
+                if (endTime <= now) return;
 
+                // Skip active schedule (sudah tampil di panel utama)
+                if (hasActiveSchedule && item.jadwal_id === activeId) return;
+
+                // menunggu ditampilkan sebagai TERJADWAL (sudah ada yang booking)
                 const statusLabel = {
-                    'sedang_main': 'SEDANG MAIN',
+                    'sedang_main': 'SEDANG BERMAIN',
                     'masuk_arena': 'MASUK ARENA',
-                    'dibayar': 'DIBAYAR',
-                    'menunggu': 'MENUNGGU',
-                    'tersedia': 'KOSONG'
+                    'dibayar': 'TERJADWAL',
+                    'terisi': 'TERJADWAL',
+                    'menunggu': 'TERJADWAL'
                 }[item.status] || 'KOSONG';
 
                 const statusClass = {
-                    'dibayar': 'status-paid',
                     'sedang_main': 'status-playing',
                     'masuk_arena': 'status-playing',
-                    'menunggu': 'status-waiting',
-                    'tersedia': 'status-available'
+                    'dibayar': 'status-paid',
+                    'terisi': 'status-paid',
+                    'menunggu': 'status-paid'
                 }[item.status] || 'status-available';
 
-                const displayName = item.penyewa || '-';
+                const displayName = item.nama_komunitas || item.penyewa || '-';
                 const jamRange = `${item.jam_mulai} - ${item.jam_selesai}`;
 
                 html += `
