@@ -92,7 +92,7 @@
                                                         {{-- TAMPILKAN NAMA KOMUNITAS --}}
                         @if($p->nama_komunitas && $p->nama_komunitas !== 'Tidak ada komunitas')
                         <div class="komunitas-info mb-3">
-                            <div class="alert alert-success py-2 mb-0">
+                            <div class="alert Falert-success py-2 mb-0">
                                 <i class="fa-solid fa-users me-2"></i>
                                 <strong>Komunitas:</strong> {{ $p->nama_komunitas }}
                             </div>
