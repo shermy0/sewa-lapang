@@ -50,6 +50,14 @@ class PetugasController extends Controller
             ->orderBy('nama_kategori')
             ->get();
 
+        $jadwals = JadwalLapangan::with(['pemesanan' => function($q) {
+            $q->where('status', 'keranjang');
+        }])->get();
+
+        foreach($jadwals as $jadwal) {
+            $jadwal->isBooked = $jadwal->pemesanan->count() > 0;
+        }    
+
         // Map lapangan supaya JS bisa pakai
         $lapanganData = $lapangan->map(function ($l) {
             // Foto array
@@ -103,6 +111,7 @@ class PetugasController extends Controller
             'petugasName' => $petugasName,
             'sectionQueues' => $sectionQueues,
             'pemilikId' => $pemilikId,
+            'jadwals' => $jadwals,
         ]);
     }
 
@@ -421,194 +430,182 @@ class PetugasController extends Controller
 
     public function storeMidtrans(Request $request)
     {
-        $user = auth()->user();
-
         $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.cart_item_id' => 'required|exists:pemesanan,id',
-            'items.*.lapangan_id' => 'required|exists:lapangan,id',
-            'items.*.jadwal_id' => 'required|exists:jadwal_lapangan,id',
-            'items.*.harga' => 'required|numeric',
-            'komunitas' => 'required|string',
-            'nama_penyewa' => 'nullable|string',
             'penyewa_id' => 'nullable|integer',
+            'nama_penyewa' => 'nullable|string',
+            'komunitas' => 'required|string',
+            'total' => 'required|numeric',
+            'items' => 'required|array|min:1',
+            // 'kasir' => 'required|string', // Optional
         ]);
 
-        DB::beginTransaction();
+    DB::beginTransaction();
 
         try {
-            $pemilikId = $user->pemilik_id;
             $penyewaId = $validated['penyewa_id'] ?? null;
-
-            // Jika tidak ada penyewa → buat tamu
-            if (!$penyewaId) {
+            if (! $penyewaId) {
                 $guestName = $validated['nama_penyewa'] ?? 'Tamu';
                 $guestEmail = 'guest-' . Str::uuid() . '@guest.local';
-
                 $guest = User::create([
                     'name' => $guestName,
                     'email' => $guestEmail,
                     'password' => bcrypt('12345678'),
                     'role' => 'penyewa',
-                    'pemilik_id' => $pemilikId,
+                    'pemilik_id' => Auth::user()->pemilik_id,
                     'status' => 'aktif',
                 ]);
-
                 $penyewaId = $guest->id;
             }
 
-            // 1 kode tiket untuk semua transaksi
-            $kodeTiket = 'TK' . strtoupper(Str::random(6));
+            $grossAmount = 0;
+            $transactionId = 'TRX-' . time() . '-' . strtoupper(Str::random(4));
 
-            // ORDER ID (wajib disimpan)
-            $orderId = 'ORDER-' . time() . '-' . rand(1000, 9999);
-
-            $total = 0;
-            $orderItems = [];
-            $receiptItems = [];
-            $pemesananIds = [];
+            $slotPlans = [];
+            $orderIds = [];
 
             foreach ($validated['items'] as $item) {
-                $p = Pemesanan::findOrFail($item['cart_item_id']);
-                $jadwal = JadwalLapangan::findOrFail($item['jadwal_id']);
-                $lapangan = Lapangan::findOrFail($item['lapangan_id']);
+                $jadwalId = $item['jadwal_id'] ?? null;
+                if (! $jadwalId && isset($item['cart_item_id'])) {
+                    $cartRow = DB::table('cart_temp')->where('id', $item['cart_item_id'])->first();
+                    $jadwalId = $cartRow->jadwal_id ?? null;
+                }
 
-                // UPDATE PEMESANAN
-                $p->update([
-                    'status' => 'berhasil',
-                    'nama_komunitas' => $validated['komunitas'],
-                    'kode_tiket' => $kodeTiket,
-                    'order_id' => $orderId   // FIX UTAMA!!
-                ]);
+                if (! $jadwalId) {
+                    throw new \InvalidArgumentException('Jadwal tidak ditemukan.');
+                }
 
-                $pemesananIds[] = $p->id;
-                $total += $item['harga'];
+                $jadwal = JadwalLapangan::findOrFail($jadwalId);
+                $lapanganId = $item['id'] ?? optional($jadwal->section)->lapangan_id;
+                if (! $lapanganId) {
+                    throw new \RuntimeException('Lapangan tidak ditemukan.');
+                }
 
-                $orderItems[] = [
-                    'id' => "ITEM-" . $p->id,
-                    'price' => $item['harga'],
-                    'quantity' => 1,
-                    'name' => "Sewa Lapangan " . $lapangan->nama_lapangan
-                ];
+                $amount = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
 
-                $receiptItems[] = [
-                    'lapangan' => $lapangan->nama_lapangan,
-                    'section' => $jadwal->section->nama_section ?? '-',
-                    'tanggal' => $jadwal->tanggal->format('d M Y'),
-                    'jam' => substr($jadwal->jam_mulai,0,5) . ' - ' . substr($jadwal->jam_selesai,0,5),
-                    'harga' => $item['harga']
-                ];
-            }
+                // Cek existing pemesanan untuk jadwal ini
+                $existing = Pemesanan::with('pembayaran')
+                    ->where('jadwal_id', $jadwal->id)
+                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->first();
 
-            // Konfigurasi Midtrans
-            \Midtrans\Config::$serverKey = config('midtrans.server_key');
-            \Midtrans\Config::$isProduction = false;
-            \Midtrans\Config::$isSanitized = true;
-            \Midtrans\Config::$is3ds = true;
-
-            // Payload
-            $payload = [
-                'transaction_details' => [
-                    'order_id' => $orderId,
-                    'gross_amount' => $total,
-                ],
-                'item_details' => $orderItems,
-                'customer_details' => [
-                    'first_name' => $user->name,
-                    'email' => $user->email,
-                ],
-                'metadata' => [
-                    'pemesanan_ids' => $pemesananIds,
-                    'kode_tiket' => $kodeTiket,
-                    'komunitas' => $validated['komunitas'],
-                ]
-            ];
-
-            $snapToken = \Midtrans\Snap::getSnapToken($payload);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'snap_token' => $snapToken,
-                'snapToken' => $snapToken,
-                'order_id' => $orderId,
-                'pemesanan_ids' => $pemesananIds,
-                'receipt_preview' => [
-                    'kode_tiket' => $kodeTiket,
-                    'komunitas' => $validated['komunitas'],
-                    'items' => $receiptItems,
-                    'total' => $total
-                ]
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal membuat Midtrans: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-
-
-    // =============================
-    // MIDTRANS CALLBACK
-    // =============================
-    public function midtransCallback(Request $request)
-    {
-        \Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        \Midtrans\Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-        \Midtrans\Config::$isSanitized = true;
-        \Midtrans\Config::$is3ds = true;
-
-        $notif = new \Midtrans\Notification();
-
-        $transactionStatus = $notif->transaction_status;
-        $orderId = $notif->order_id;
-
-        // Ambil pemesanan berdasarkan order_id
-        $pemesananList = Pemesanan::where('order_id', $orderId)->get();
-
-        if ($pemesananList->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'Order ID tidak ditemukan'], 404);
-        }
-
-        DB::beginTransaction();
-        try {
-            foreach ($pemesananList as $pemesanan) {
-
-                // SUKSES = settlement / capture
-                if (in_array($transactionStatus, ['settlement', 'capture'])) {
-
-                    $pemesanan->update(['status' => 'dibayar']);
-
-                    // Jadwal otomatis tidak tersedia
-                    $jadwal = $pemesanan->jadwal;
-                    if ($jadwal) {
-                        $jadwal->update(['tersedia' => false]);
+                $expired = false;
+                if ($existing) {
+                    if ($existing->status === 'dibayar') {
+                        throw new \RuntimeException('Jadwal sudah dibooking.');
                     }
 
-                    // Simpan pembayaran
-                    Pembayaran::updateOrCreate(
-                        ['pemesanan_id' => $pemesanan->id],
-                        [
-                            'metode' => 'midtrans',
-                            'jumlah' => $pemesanan->total_harga,
-                            'status' => 'berhasil',
-                            'order_id' => $orderId,
-                            'kode_tiket' => $pemesanan->kode_tiket, // FIX: jangan ganti kode tiket!
-                            'tanggal_pembayaran' => now(),
-                        ]
-                    );
+                    $payment = $existing->pembayaran;
+                    $now = Carbon::now('Asia/Jakarta');
+
+                    if ($payment) {
+                        if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
+                            $expired = true;
+                        } elseif ($payment->status === 'pending') {
+                            $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
+                        }
+                    } else {
+                        $expired = $existing->created_at && $existing->created_at->addMinutes(15)->lt($now);
+                    }
+
+                    if (! $expired && $existing->penyewa_id != $penyewaId) {
+                        throw new \RuntimeException('Jadwal sudah dibooking.');
+                    }
+
+                    if ($expired) {
+                        $existing->update(['status' => 'kadaluarsa']);
+                        if ($payment && $payment->status === 'pending') {
+                            $payment->update(['status' => 'kadaluarsa']);
+                        }
+                        $jadwal->update(['tersedia' => true]);
+                        $existing = null; // treat as new
+                    }
                 }
 
-                // STATUS LAIN
-                elseif (in_array($transactionStatus, ['pending', 'deny', 'expire', 'cancel'])) {
-                    $pemesanan->update(['status' => 'menunggu']);
-                }
+                $grossAmount += $amount;
+                $slotPlans[] = [
+                    'jadwal' => $jadwal,
+                    'lapangan_id' => $lapanganId,
+                    'amount' => $amount,
+                    'reuse' => (bool) $existing,
+                    'pemesanan' => $existing,
+                    'payment' => $existing?->pembayaran,
+                ];
             }
+
+            $orderIds[] = $transactionId;
+
+            // Config Midtrans
+            Config::$serverKey = config('midtrans.server_key');
+            Config::$isProduction = config('midtrans.is_production');
+            Config::$isSanitized = true;
+            Config::$is3ds = true;
+
+            $customer = User::find($penyewaId);
+
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $transactionId,
+                    'gross_amount' => $grossAmount,
+                ],
+                'customer_details' => [
+                    'first_name' => $customer->name ?? 'Penyewa',
+                    'email' => $customer->email ?? 'no-reply@example.com',
+                ],
+            ];
+
+            $snapToken = Snap::getSnapToken($params);
+
+            foreach ($slotPlans as $plan) {
+                $jadwal = $plan['jadwal'];
+
+                if ($plan['reuse']) {
+                    $pemesanan = $plan['pemesanan'];
+                    $pemesanan->update([
+                        'status' => 'menunggu',
+                        'nama_komunitas' => $validated['komunitas'] ?? $pemesanan->nama_komunitas,
+                    ]);
+
+                    $payment = $plan['payment'];
+                    if ($payment) {
+                        $payment->update([
+                            'status' => 'pending',
+                            'jumlah' => $plan['amount'],
+                            'order_id' => $transactionId . '-' . $pemesanan->id,
+                        ]);
+                    } else {
+                        Pembayaran::create([
+                            'pemesanan_id' => $pemesanan->id,
+                            'metode' => 'midtrans',
+                            'jumlah' => $plan['amount'],
+                            'status' => 'pending',
+                            'order_id' => $transactionId . '-' . $pemesanan->id,
+                            'payment_url' => null,
+                        ]);
+                    }
+                } else {
+                    $pemesanan = Pemesanan::create([
+                        'penyewa_id' => $penyewaId,
+                        'lapangan_id' => $plan['lapangan_id'],
+                        'jadwal_id' => $jadwal->id,
+                        'status' => 'menunggu',
+                        'kode_tiket' => $this->generateTicketCode(),
+                        'status_scan' => 'belum_scan',
+                        'nama_komunitas' => $validated['komunitas'] ?? null,
+                    ]);
+
+                    Pembayaran::create([
+                        'pemesanan_id' => $pemesanan->id,
+                        'metode' => 'midtrans',
+                        'jumlah' => $plan['amount'],
+                        'status' => 'pending',
+                        'order_id' => $transactionId . '-' . $pemesanan->id,
+                        'payment_url' => null,
+                    ]);
+                }
+
+                $jadwal->update(['tersedia' => false]);
+            }
+            $orderIds = [$transactionId];
 
             DB::commit();
             return response()->json(['success' => true]);

@@ -353,6 +353,7 @@
         <div id="jadwalContent">
           <p class="text-center text-muted">Memuat jadwal...</p>
         </div>
+        
 
         <div class="d-flex justify-content-between align-items-center mt-2">
           <div id="paginationSummary"></div>
@@ -370,6 +371,7 @@
   <!-- MODAL PEMBAYARAN -->
   <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
+      
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="paymentModalLabel">Pilih Metode Pembayaran</h5>
@@ -614,15 +616,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function addToCart(item){
-    // Check duplicate by jadwal_id (unique schedule identifier)
-    const exist = cart.find(c => c.jadwal_id === item.jadwal_id);
-    if(exist) {
-      Swal.fire('Jadwal Sudah Dipilih', 'Jadwal ini sudah ada di keranjang.', 'warning');
-      return false;
-    }
-    cart.push({...item});
+    const exist = cart.find(c=>c.id===item.id && c.jam_mulai===item.jam_mulai && c.tanggal===item.tanggal);
+    if(exist) exist.durasi+=item.durasi;
+    else cart.push({...item});
     renderCart();
-    return true;
   }
 
   function renderCart(){
@@ -811,122 +808,94 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     try {
-        let url = '';
-        if(method === 'cash') {
-            url = "{{ route('petugas.store.cash') }}";
-        } else {
-            url = "{{ route('petugas.store.midtrans') }}";
-        }
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+      let url = method === 'cash' 
+          ? "/petugas/payment/cash"
+          : "/petugas/payment/midtrans";
 
       const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "X-CSRF-TOKEN": "{{ csrf_token() }}"
-        },
-        body: JSON.stringify(payload)
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              "X-CSRF-TOKEN": csrfToken
+          },
+          body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if(!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
+    if (!data.success) throw new Error(data.message || 'Gagal memproses pembayaran');
 
-      if(method === 'cash'){
+    // Ambil instance modal (jika ada)
+    const paymentModalEl = document.getElementById('paymentModal');
+    const modal = paymentModalEl ? bootstrap.Modal.getInstance(paymentModalEl) : null;
+
+    if (method === 'cash') {
         swalSuccess("Pemesanan cash berhasil!");
-        
-        // Kosongkan cart
         cart = [];
         renderCart();
+        if (modal) modal.hide();
+        if (typeof refreshJadwal === "function") refreshJadwal();
 
-        // Reset input nama penyewa & komunitas
-        const penyewaInput = document.getElementById('searchPenyewa');
-        const komunitasInput = document.getElementById('inputKomunitas');
-        if(penyewaInput){
-            penyewaInput.value = '';
-            penyewaInput.removeAttribute('data-id');
-        }
-        if(komunitasInput){
-            komunitasInput.value = '';
-        }
-
-        // Hapus penyewa tersimpan di localStorage
-        localStorage.removeItem('petugasPenyewaSelection');
-
-        // Sinkron ke server supaya field nama_penyewa di cart_temp null
-        fetch('/petugas/cart-temp/nama', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ nama_penyewa: null })
-        }).catch(err => console.error('Gagal sinkron nama penyewa', err));
-
-        const paymentModalEl = document.getElementById('paymentModal');
-        const modal = bootstrap.Modal.getInstance(paymentModalEl);
-        if(modal) modal.hide();
-
-        if(typeof refreshJadwal === "function") refreshJadwal();
-
-        // Show Receipt
-        if(data.receipt){
+        // Show receipt
+        if (data.receipt && typeof showReceiptModal === "function") {
             showReceiptModal(data.receipt);
         }
-      } else {
-        const paymentModalEl = document.getElementById('paymentModal');
-        const modal = bootstrap.Modal.getInstance(paymentModalEl);
-        if(modal) modal.hide();
 
-        if(data.snap_token){
-          snap.pay(data.snap_token, {
-            onSuccess: function(result){
-              fetch("{{ route('petugas.payment.check') }}", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ order_ids: data.orders })
-              })
-              .then(res => res.json())
-              .then(response => {
-                swalSuccess("Pembayaran berhasil!");
+    } else {
+        // Midtrans flow
+        if (!data.snap_token) throw new Error("Token pembayaran tidak ditemukan");
+
+        if (modal) modal.hide();
+
+        snap.pay(data.snap_token, {
+            onSuccess: function(result) {
+                fetch("{{ route('petugas.payment.check') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ order_ids: data.orders })
+                })
+                .then(res => res.json())
+                .then(response => {
+                    swalSuccess("Pembayaran berhasil!");
+                    cart = [];
+                    renderCart();
+                    if (typeof renderCartFromDB === "function") renderCartFromDB();
+                    if (typeof refreshJadwal === "function") refreshJadwal();
+
+                    const receipt = response?.receipt || (Array.isArray(response?.receipts) ? response.receipts[0] : null);
+                    if (receipt && typeof showReceiptModal === "function") {
+                        showReceiptModal(receipt);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    swalError("Pembayaran berhasil, tapi gagal mengambil struk.");
+                });
+            },
+            onPending: function(result) {
+                swalInfo("Menunggu Pembayaran...");
                 cart = [];
                 renderCart();
-                if(typeof renderCartFromDB === "function") renderCartFromDB();
-                if(typeof refreshJadwal === "function") refreshJadwal();
-
-                const receipt = response?.receipt || (Array.isArray(response?.receipts) ? response.receipts[0] : null);
-                if(receipt && typeof showReceiptModal === "function"){
-                  showReceiptModal(receipt);
-                }
-              })
-              .catch(err => {
-                console.error(err);
-                swalError("Pembayaran berhasil, tapi gagal mengambil struk.");
-              });
             },
-            onPending: function(result){
-              swalInfo("Menunggu Pembayaran...");
-              cart = [];
-              renderCart();
+            onError: function(result) {
+                swalError("Pembayaran Gagal!");
             },
-            onError: function(result){
-              swalError("Pembayaran Gagal!");
-            },
-            onClose: function(){
-              swalWarn('Anda menutup popup tanpa menyelesaikan pembayaran');
+            onClose: function() {
+                swalWarn('Anda menutup popup tanpa menyelesaikan pembayaran');
             }
-          });
-        } else {
-          swalError("Token pembayaran tidak ditemukan");
-        }
-      }
-    } catch(err) {
-      console.error(err);
-      swalError("Terjadi kesalahan: " + err.message);
+        });
     }
+
+} catch(err) {
+    console.error(err);
+    swalError("Terjadi kesalahan: " + err.message);
+}
   });
 
 
@@ -1082,6 +1051,7 @@ function openJadwalModal(lapangan) {
 
             const slotKey = `${currentLapanganId}_${j.jam_mulai}_${j.tanggal}`;
             const isInCart = bookedSlots.includes(slotKey);
+            const isDisabled = isInCart || j.booking_status === 'keranjang' || j.booking_status === 'menunggu';
 
             if(j.booking_status === "tersedia") {
                 card.innerHTML = `
@@ -1090,12 +1060,12 @@ function openJadwalModal(lapangan) {
                 <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
                 <div class="form-check mt-1">
                     <input class="form-check-input slot-checkbox"
-                           type="checkbox"
-                           data-jadwal-id="${j.id}"
-                           data-tanggal="${j.tanggal}"
-                           data-jam-mulai="${j.jam_mulai}"
-                           data-harga="${j.harga_sewa}"
-                           ${isInCart ? 'disabled' : ''}>
+                      type="checkbox"
+                      data-jadwal-id="${j.id}"
+                      data-tanggal="${j.tanggal}"
+                      data-jam-mulai="${j.jam_mulai}"
+                      data-harga="${j.harga_sewa}"
+                      ${isDisabled ? 'disabled' : ''}>
                     <label class="form-check-label small">
                         ${statusText}${isInCart ? ' (Sudah dipilih)' : ''}
                     </label>
@@ -1128,6 +1098,8 @@ function openJadwalModal(lapangan) {
                 `;
                 card.style.cursor = 'not-allowed';
             }
+
+          
 
             col.appendChild(card);
             grid.appendChild(col);
@@ -1199,15 +1171,10 @@ function openJadwalModal(lapangan) {
         const penyewaName = penyewaInput.value || null;
 
         for(const chk of selected){
-            const payload = {
-                lapangan_id: currentLapanganId,
-                lapangan_name: lapangan.nama,
-                harga: Number(chk.dataset.harga),
-                jam_mulai: chk.dataset.jamMulai,
-                tanggal: chk.dataset.tanggal,
-                nama_penyewa: penyewaName,
-                jadwal_id: chk.dataset.jadwalId
-            };
+          const payload = {
+              lapangan_id: currentLapanganId,
+              jadwal_id: chk.dataset.jadwalId
+          };
             await addToCartFromModal(payload);
         }
 
@@ -1276,7 +1243,7 @@ function openJadwalModal(lapangan) {
   };
 
   const syncPenyewaNameToCart = (name) => {
-    fetch('/petugas/cart-temp/nama', {
+    fetch('/petugas/pemesanan/nama', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1413,52 +1380,51 @@ function openJadwalModal(lapangan) {
 
   function renderCartFromDB() {
     fetch('/petugas/cart-temp')
-    .then(res => res.json())
-    .then(carts => {
-      cart = carts.map(item => ({
-        id: item.id,
-        lapangan_id: item.lapangan_id,
-        lapangan_name: item.lapangan_name,
-        jam_mulai: item.jam_mulai,
-        tanggal: item.tanggal,
-        durasi: item.durasi || 1,
-        harga: Number(item.harga) || 0,
-        nama: item.lapangan_name,         // nama lapangan
-        nama_penyewa: item.nama_penyewa,  // nama penyewa
-        jadwal_id: item.jadwal_id,
-        persisted: true
-    }));
+        .then(res => res.json())
+        .then(carts => {
+              cart = carts.map(item => ({
+              id: item.id,
+              lapangan_id: item.lapangan_id,
+              lapangan_name: item.lapangan_name,
+              jam_mulai: item.jam_mulai,
+              jam_selesai: item.jam_selesai,
+              tanggal: item.tanggal,
+              durasi: item.durasi,
+              harga: Number(item.harga),
+              jadwal_id: item.jadwal_id
+          }));
+            const list = document.getElementById("orderList");
+            list.innerHTML = "";
 
-        const list = document.getElementById("orderList");
-        list.innerHTML = "";
+            if(cart.length === 0){
+                list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
+                document.getElementById("cartCount").innerText = "0 item";
+                document.getElementById("subtotal").innerText = "Rp 0";
+                document.getElementById("totalPrice").innerText = "Rp 0";
+                return;
+            }
 
-        if(cart.length === 0){
-            list.innerHTML = '<li class="list-group-item text-center text-muted">Belum ada pesanan</li>';
-              document.getElementById("cartCount").innerText = "0 item";
-              document.getElementById("subtotal").innerText = "Rp 0";
-              document.getElementById("totalPrice").innerText = "Rp 0";
-
-              return;
-        } else {
             let subtotal = 0;
-            carts.forEach((item, index) => {
-                subtotal += parseInt(item.harga) * (item.durasi || 1);
+
+            cart.forEach(item => {
+                subtotal += item.harga * item.durasi;
 
                 const li = document.createElement("li");
                 li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
                 li.innerHTML = `
-                    <div>
-                        <div class="fw-bold">${item.lapangan_name}</div>
-                        <div class="small text-muted">${item.jam_mulai} • ${item.tanggal}</div>
-                        <div class="fw-bold">Rp ${Number(item.harga).toLocaleString('id-ID')}</div>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-danger btn-remove" data-id="${item.id}">&times;</button>
+                  <div>
+                      <div class="fw-bold">${item.lapangan_name}</div>
+                      <div class="small text-muted">  ${item.jam_mulai} - ${item.jam_selesai} | ${item.tanggal.split('T')[0]}</div>
+                      <div class="fw-bold">Rp ${item.harga.toLocaleString('id-ID')}</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-danger btn-remove" data-id="${item.id}">&times;</button>
                 `;
 
                 li.querySelector('.btn-remove').addEventListener('click', () => {
+                    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                     fetch(`/petugas/cart-temp/${item.id}`, {
                         method: 'DELETE',
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                        headers: { 'X-CSRF-TOKEN': token }
                     }).then(() => renderCartFromDB());
                 });
 
@@ -1468,11 +1434,9 @@ function openJadwalModal(lapangan) {
             document.getElementById("cartCount").innerText = cart.length + " item";
             document.getElementById("subtotal").innerText = "Rp " + subtotal.toLocaleString('id-ID');
             document.getElementById("totalPrice").innerText = "Rp " + subtotal.toLocaleString('id-ID');
-        }
-    })
-    .catch(err => console.error(err));
+        })
+        .catch(err => console.error(err));
 }
-
 
 // ======== INIT CART ========
 function initCart() {
@@ -1480,31 +1444,28 @@ function initCart() {
 }
 
 // ======== ADD TO CART DARI MODAL ========
-async function addToCartFromModal(payload) {
-    // Check duplicate by jadwal_id before sending to server
-    const existingItem = cart.find(c => c.jadwal_id == payload.jadwal_id);
-    if(existingItem) {
-        Swal.fire('Jadwal Sudah Dipilih', 'Jadwal ini sudah ada di keranjang.', 'warning');
-        return false;
-    }
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
+async function addToCartFromModal(payload) {
     try {
-        const res = await fetch("{{ route('petugas.cart-temp.store') }}", {
+        const res = await fetch("/petugas/cart-temp", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': csrfToken
             },
             body: JSON.stringify(payload)
         });
+
         const data = await res.json();
-        if(!data.success) throw new Error(data.message || 'Gagal menambahkan ke cart');
-        renderCartFromDB(); // render ulang dari DB
-        return true;
-    } catch(err) {
+
+        if (!data.success) throw new Error(data.error || 'Gagal menambahkan ke cart');
+
+        renderCartFromDB();
+
+    } catch (err) {
         console.error(err);
-        Swal.fire('Error', err.message || 'Gagal menambahkan jadwal ke cart', 'error');
-        return false;
+        Swal.fire('Error', 'Gagal menambahkan jadwal ke cart', 'error');
     }
 }
 
@@ -1527,13 +1488,12 @@ pesanBtn.onclick = async () => {
 
     for(const chk of selected){
         const payload = {
-            lapangan_id: currentLapanganId,
-            lapangan_name: lapangan.nama,
-            harga: Number(chk.dataset.harga),
-            jam_mulai: chk.dataset.jamMulai,
-            tanggal: chk.dataset.tanggal,
-            nama_penyewa: penyewaName,
-            jadwal_id: chk.dataset.jadwalId
+            penyewa_id: penyewaId || null,
+            items: itemsForServer,
+            total: total,
+            kasir: '{{ Auth::user()->name }}',
+            nama_penyewa: penyewaInput.value || null,
+            komunitas: komunitasInput.value || null
         };
         await addToCartFromModal(payload); // pakai ini
     }
