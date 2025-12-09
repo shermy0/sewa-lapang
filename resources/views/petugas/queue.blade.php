@@ -353,6 +353,7 @@
         <div id="jadwalContent">
           <p class="text-center text-muted">Memuat jadwal...</p>
         </div>
+        
 
         <div class="d-flex justify-content-between align-items-center mt-2">
           <div id="paginationSummary"></div>
@@ -807,19 +808,21 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     try {
-    let url = method === 'cash' 
-        ? "{{ route('petugas.store.cash') }}" 
-        : "{{ route('petugas.store.midtrans') }}";
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    const res = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-        },
-        body: JSON.stringify(payload)
-    });
+      let url = method === 'cash' 
+          ? "/petugas/payment/cash"
+          : "/petugas/payment/midtrans";
+
+      const res = await fetch(url, {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              "X-CSRF-TOKEN": csrfToken
+          },
+          body: JSON.stringify(payload)
+      });
 
     const data = await res.json();
 
@@ -1048,6 +1051,7 @@ function openJadwalModal(lapangan) {
 
             const slotKey = `${currentLapanganId}_${j.jam_mulai}_${j.tanggal}`;
             const isInCart = bookedSlots.includes(slotKey);
+            const isDisabled = isInCart || j.booking_status === 'keranjang' || j.booking_status === 'menunggu';
 
             if(j.booking_status === "tersedia") {
                 card.innerHTML = `
@@ -1056,12 +1060,12 @@ function openJadwalModal(lapangan) {
                 <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
                 <div class="form-check mt-1">
                     <input class="form-check-input slot-checkbox"
-                           type="checkbox"
-                           data-jadwal-id="${j.id}"
-                           data-tanggal="${j.tanggal}"
-                           data-jam-mulai="${j.jam_mulai}"
-                           data-harga="${j.harga_sewa}"
-                           ${isInCart ? 'disabled' : ''}>
+                      type="checkbox"
+                      data-jadwal-id="${j.id}"
+                      data-tanggal="${j.tanggal}"
+                      data-jam-mulai="${j.jam_mulai}"
+                      data-harga="${j.harga_sewa}"
+                      ${isDisabled ? 'disabled' : ''}>
                     <label class="form-check-label small">
                         ${statusText}${isInCart ? ' (Sudah dipilih)' : ''}
                     </label>
@@ -1094,6 +1098,8 @@ function openJadwalModal(lapangan) {
                 `;
                 card.style.cursor = 'not-allowed';
             }
+
+          
 
             col.appendChild(card);
             grid.appendChild(col);

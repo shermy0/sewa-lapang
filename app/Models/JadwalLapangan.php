@@ -54,7 +54,7 @@ class JadwalLapangan extends Model
 
     public function pemesanan()
     {
-        return $this->hasOne(Pemesanan::class, 'jadwal_id');
+        return $this->hasMany(Pemesanan::class, 'jadwal_id');
     }
 
     public function getHargaTotalAttribute(): float
