@@ -1037,8 +1037,8 @@ function openJadwalModal(lapangan) {
                 statusText = "Tidak Tersedia";
             } else {
                 statusClass = "bg-light text-dark";
-                const tanggalObj = new Date(j.tanggal);
-                statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+                const tanggalStr = new Date(j.tanggal).toISOString().split('T')[0];
+                statusText = tanggalStr;
             }
 
             const card = document.createElement('div');
@@ -1173,7 +1173,8 @@ function openJadwalModal(lapangan) {
         for(const chk of selected){
           const payload = {
               lapangan_id: currentLapanganId,
-              jadwal_id: chk.dataset.jadwalId
+              jadwal_id: chk.dataset.jadwalId,
+              tanggal: chk.dataset.tanggal
           };
             await addToCartFromModal(payload);
         }
