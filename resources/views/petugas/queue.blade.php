@@ -270,21 +270,18 @@
       <div class="cart">
         <!-- INPUT NAMA PENYEWA -->
         <div class="mb-3 position-relative">
-          <label class="fw-semibold mb-1">Nama Penyewa</label>
-          <input
-            type="text"
-            id="searchPenyewa"
-            class="form-control"
-            placeholder="Cari nama penyewa..."
-            autocomplete="off"
-            required
-          >
-          <ul id="penyewaResults" class="list-group position-absolute w-100"
-              style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
-
-          <!-- Hidden input yang bakal dikirim ke server -->
-          <input type="hidden" id="penyewaId" name="penyewa_id" value="{{ $pemesanan->id_penyewa ?? '' }}">
-        </div>
+        <label class="fw-semibold mb-1">Nama Penyewa</label>
+        <input
+          type="text"
+          id="searchPenyewa"
+          class="form-control"
+          placeholder="Cari nama penyewa..."
+          autocomplete="off"
+          required>
+        <ul id="penyewaResults" class="list-group position-absolute w-100"
+            style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+        <input type="hidden" id="penyewaId" name="penyewa_id" value="{{ $pemesanan->id_penyewa ?? auth()->user()->id }}">
+      </div>
 
         <!-- INPUT KOMUNITAS -->
 <div class="mb-3">
@@ -1390,26 +1387,37 @@ function openJadwalModal(lapangan) {
   }
 
   function selectPenyewa(penyewa) {
-      const penyewaInput = document.getElementById('searchPenyewa');
-      const hiddenInput = document.getElementById('penyewaId'); // hidden input
-
-      if (!penyewaInput || !hiddenInput) return;
-
-      // Update input text & hidden input
-      penyewaInput.dataset.id = penyewa.id;
+      if (!penyewaInput) return;
       penyewaInput.value = penyewa.name;
-      hiddenInput.value = penyewa.id; // PENTING: ini yang dikirim ke server
+      penyewaInput.dataset.id = penyewa.id;
 
-      // Simpan ke localStorage kalau mau
+      // **Update hidden input**
+      const hiddenInput = document.getElementById('penyewaId');
+      if(hiddenInput) hiddenInput.value = penyewa.id;
+
       saveStoredPenyewa(penyewa.name, penyewa.id);
-
-      // Update tampilan keranjang (opsional)
       syncPenyewaNameToCart(penyewa.name);
+      
+      fetch("/petugas/pilih-penyewa", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify({ penyewa_id: penyewa.id })
+      })
+      .then(res => res.json())
+      .then(data => {
+          if(data.success){
+              console.log("ID penyewa berhasil di-update di server:", penyewa.id);
+          } else {
+              console.warn("Gagal update ID penyewa:", data.message);
+          }
+      })
+      .catch(err => console.error("Error update ID penyewa:", err));
 
-      // Sembunyikan list hasil pencarian
-      const list = document.getElementById('penyewaResults');
-      list.style.display = 'none';
-  }
+      list.style.display = "none";
+    }
 
   function fetchPenyewa(keyword, options = {}) {
     fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(keyword))
