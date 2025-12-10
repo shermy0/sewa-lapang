@@ -515,9 +515,8 @@ public function pindahLangsung(Request $request, $pemesananId)
         $pemesanan = Pemesanan::with('jadwal.section')->findOrFail($pemesananId);
 
      // --- CEK: apakah sudah pernah pindah sebelumnya? ---
-$sudahPernahPindah = PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
-    ->whereIn('status', ['menunggu', 'disetujui']) // ✔ valid semua
-    ->exists();
+$sudahPernahPindah = PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)->exists();
+
 
 
     if ($sudahPernahPindah) {
@@ -565,8 +564,6 @@ $sudahPernahPindah = PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
             'jadwal_lama_id' => $pemesanan->jadwal_id,
             'jadwal_baru_id' => $request->jadwal_baru_id,
             'alasan' => $request->alasan,
-            'status' => 'disetujui', // bisa diubah menjadi 'menunggu' jika perlu approval
-            'expires_at' => now()->addMinutes(15),
         ]);
 
         // update pemesanan utama
@@ -574,6 +571,7 @@ $sudahPernahPindah = PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
             'jadwal_id' => $jadwalBaru->id,
             'alasan' => $request->alasan,
         ]);
+        
 
         // kunci jadwal baru
         $jadwalBaru->update(['tersedia' => false]);

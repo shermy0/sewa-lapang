@@ -26,17 +26,16 @@
             <div class="ticket shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="d-flex flex-column flex-md-row">
                     @php
-                        $jadwalAktif = $p->jadwal;
-                        $sectionAktif = $p->jadwal?->section;
-                        if (
-    $p->permintaanPerubahan &&
-    $p->permintaanPerubahan->status === 'disetujui' &&
-    $p->permintaanPerubahan->jadwal_baru_id == $p->jadwal_id
-) {
+$jadwalAktif = $p->jadwal;
+$sectionAktif = $p->jadwal?->section;
 
-                            $jadwalAktif = $p->permintaanPerubahan->jadwalBaru ?? $jadwalAktif;
-                            $sectionAktif = $p->permintaanPerubahan->sectionBaru ?? $sectionAktif;
-                        }
+// Jika ada permintaan perubahan, gunakan jadwal & section baru
+if ($p->permintaanPerubahan) {
+    $jadwalAktif = $p->permintaanPerubahan->jadwalBaru ?? $jadwalAktif;
+    $sectionAktif = $p->permintaanPerubahan->sectionBaru ?? $sectionAktif;
+}
+
+
                         \Carbon\Carbon::setLocale('id');
                         $tanggal = \Carbon\Carbon::parse($jadwalAktif->tanggal);
                         $hari = $tanggal->translatedFormat('l');
@@ -122,7 +121,7 @@
 
                             @php
     // cara sederhana: jika kamu sudah eager load relasi permintaanPerubahanCount
-    $sudahPindah = $p->permintaan_perubahan_count ?? ($p->permintaanPerubahan()->where('status','!=','ditol')->exists() ? 1 : 0);
+$sudahPindah = ($p->permintaanPerubahan()->count() > 0);
 @endphp
 
 @if($p->status_scan !== 'masuk_lapang' && !$sudahPindah)
