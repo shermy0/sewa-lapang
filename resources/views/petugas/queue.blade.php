@@ -1427,12 +1427,21 @@ function openJadwalModal(lapangan) {
             cart.forEach(item => {
                 subtotal += item.harga * item.durasi;
 
+                // Format tanggal ke format Indonesia
+                let tanggalFormatted = item.tanggal;
+                try {
+                    const dateObj = new Date(item.tanggal);
+                    tanggalFormatted = dateObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+                } catch(e) {
+                    tanggalFormatted = item.tanggal.split('T')[0];
+                }
+
                 const li = document.createElement("li");
                 li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
                 li.innerHTML = `
                   <div>
                       <div class="fw-bold">${item.lapangan_name}</div>
-                      <div class="small text-muted">  ${item.jam_mulai} - ${item.jam_selesai} | ${item.tanggal.split('T')[0]}</div>
+                      <div class="small text-muted">${item.jam_mulai} - ${item.jam_selesai} | ${tanggalFormatted}</div>
                       <div class="fw-bold">Rp ${item.harga.toLocaleString('id-ID')}</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-danger btn-remove" data-id="${item.id}">&times;</button>
