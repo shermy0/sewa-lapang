@@ -482,10 +482,10 @@ class PetugasController extends Controller
 
                 $amount = ($item['harga'] ?? 0) * ($item['durasi'] ?? 1);
 
-                // Cek existing pemesanan untuk jadwal ini
+                // Cek existing pemesanan untuk jadwal ini (termasuk yang di keranjang)
                 $existing = Pemesanan::with('pembayaran')
                     ->where('jadwal_id', $jadwal->id)
-                    ->whereIn('status', ['menunggu', 'dibayar'])
+                    ->whereIn('status', ['keranjang', 'menunggu', 'dibayar'])
                     ->first();
 
                 $expired = false;
@@ -493,31 +493,36 @@ class PetugasController extends Controller
                     if ($existing->status === 'dibayar') {
                         throw new \RuntimeException('Jadwal sudah dibooking.');
                     }
+                    
+                    // Jika status keranjang, langsung reuse (tidak perlu cek expired)
+                    if ($existing->status === 'keranjang') {
+                        // Langsung gunakan item keranjang ini
+                    } elseif ($existing->status === 'menunggu') {
+                        $payment = $existing->pembayaran;
+                        $now = Carbon::now('Asia/Jakarta');
 
-                    $payment = $existing->pembayaran;
-                    $now = Carbon::now('Asia/Jakarta');
-
-                    if ($payment) {
-                        if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
-                            $expired = true;
-                        } elseif ($payment->status === 'pending') {
-                            $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
+                        if ($payment) {
+                            if (in_array($payment->status, ['kadaluarsa', 'batal', 'gagal'], true)) {
+                                $expired = true;
+                            } elseif ($payment->status === 'pending') {
+                                $expired = $payment->created_at && $payment->created_at->addMinutes(15)->lt($now);
+                            }
+                        } else {
+                            $expired = $existing->created_at && $existing->created_at->addMinutes(15)->lt($now);
                         }
-                    } else {
-                        $expired = $existing->created_at && $existing->created_at->addMinutes(15)->lt($now);
-                    }
 
-                    if (! $expired && $existing->penyewa_id != $penyewaId) {
-                        throw new \RuntimeException('Jadwal sudah dibooking.');
-                    }
-
-                    if ($expired) {
-                        $existing->update(['status' => 'kadaluarsa']);
-                        if ($payment && $payment->status === 'pending') {
-                            $payment->update(['status' => 'kadaluarsa']);
+                        if (! $expired && $existing->penyewa_id != $penyewaId) {
+                            throw new \RuntimeException('Jadwal sudah dibooking.');
                         }
-                        $jadwal->update(['tersedia' => true]);
-                        $existing = null; // treat as new
+
+                        if ($expired) {
+                            $existing->update(['status' => 'kadaluarsa']);
+                            if ($payment && $payment->status === 'pending') {
+                                $payment->update(['status' => 'kadaluarsa']);
+                            }
+                            $jadwal->update(['tersedia' => true]);
+                            $existing = null; // treat as new
+                        }
                     }
                 }
 
