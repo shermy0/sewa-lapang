@@ -430,50 +430,34 @@
     // Filter hanya jadwal yang sudah dibayar/terisi (TIDAK termasuk menunggu atau transaksi pending)
     $paidStatuses = ['dibayar', 'terisi', 'sedang_main', 'masuk_arena'];
 
-    $flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) use ($paidStatuses) {
-        return collect($section['schedules'] ?? [])
-            ->filter(function ($item) use ($paidStatuses) {
-                // Hanya tampilkan yang sudah dibayar/terisi
-                return in_array($item['status'], $paidStatuses);
-            })
-            ->map(function ($item) {
-                $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+$flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) {
+    return collect($section['schedules'] ?? [])
+        ->map(function ($item) {
+            $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+            return array_merge($item, [
+                'date_iso' => $dateIso,
+                'start_at' => $dateIso . 'T' . $item['jam_mulai'] . ':00',
+                'end_at'   => $dateIso . 'T' . $item['jam_selesai'] . ':00',
+            ]);
+        });
+})->sortBy('start_at')->values();
 
-                return array_merge($item, [
-                    'date_iso' => $dateIso,
-                    'start_at' => $dateIso . 'T' . $item['jam_mulai'] . ':00',
-                    'end_at' => $dateIso . 'T' . $item['jam_selesai'] . ':00',
-                ]);
-            });
-    })->sortBy('start_at')->values();
 
-    // Prioritas 1: Yang statusnya sedang main
-    $activeSchedule = $flatSchedules->first(function ($item) {
-        return $item['status'] === 'sedang_main';
+// PRIORITAS UTAMA — jadwal yang sedang berlangsung SEKARANG
+$activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+    $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
+    $end   = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
+    return $nowJakarta->between($start, $end);
+});
+
+// FALLBACK — jadwal setelah NOW
+if (! $activeSchedule) {
+    $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+        return \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta')->gt($nowJakarta);
     });
+}
 
-    // Prioritas 2: Yang statusnya masuk arena
-    if (! $activeSchedule) {
-        $activeSchedule = $flatSchedules->first(function ($item) {
-            return $item['status'] === 'masuk_arena';
-        });
-    }
 
-    // Prioritas 3: Yang statusnya dibayar/terisi dan belum lewat jam selesainya
-    if (! $activeSchedule) {
-        $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-             $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
-             return in_array($item['status'], ['dibayar', 'terisi']) && $end->gt($nowJakarta);
-        });
-    }
-
-    // Fallback: Jadwal terbayar selanjutnya
-    if (! $activeSchedule) {
-         $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-            $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
-            return $start->gt($nowJakarta);
-        });
-    }
 
     // activeSchedule bisa null jika tidak ada jadwal terbayar
     $hasActiveSchedule = !is_null($activeSchedule);
@@ -529,16 +513,30 @@
     <div class="active-queue-panel">
       <div class="active-card">
         @php
-            $activeCommunityLabel = 'LAPANGAN KOSONG';
-            if ($hasActiveSchedule) {
-                $communityName = $activeCommunity;
+if (! $hasActiveSchedule) {
+    $activeCommunityLabel = 'KOSONG';
+} else {
+    $status = strtolower($activeStatus);
 
-                if ($isPlaying) {
-                    $activeCommunityLabel = $communityName ?: 'SEDANG BERMAIN';
-                } else {
-                    $activeCommunityLabel = $communityName ?: 'TERISI';
-                }
-            }
+    switch ($status) {
+        case 'sedang_main':
+            $activeCommunityLabel = $activeCommunity ?: 'SEDANG BERMAIN';
+            break;
+
+        case 'dibayar':
+        case 'terisi':
+            $activeCommunityLabel = $activeCommunity ?: 'TERISI';
+            break;
+
+        case 'kosong':
+            $activeCommunityLabel = 'KOSONG';
+            break;
+
+        default:
+            $activeCommunityLabel = strtoupper($status);
+    }
+}
+
         @endphp
         <div class="card-header">{{ $activeCommunityLabel }}</div>
         <div class="card-body">
@@ -573,20 +571,43 @@
                         {{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}
                     </div>
                 </div>
-            @elseif($hasActiveSchedule)
-                {{-- Tampilan saat terjadwal (sudah bayar, belum masuk arena) --}}
-                @php
-                    $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
-                    $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
-                @endphp
-                <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
-                    <div class="badge bg-success mb-3" style="font-size: 1.2rem; padding: 10px 25px;">TERJADWAL</div>
-                    <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">JADWAL MAIN</div>
-                    <div class="h1 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
-                        {{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}
-                    </div>
-                </div>
-            @else
+@elseif($hasActiveSchedule)
+    @php
+        $activeStart = \Carbon\Carbon::parse($activeSchedule['start_at'], 'Asia/Jakarta');
+        $activeEnd = \Carbon\Carbon::parse($activeSchedule['end_at'], 'Asia/Jakarta');
+
+        $status = strtolower($activeSchedule['status'] ?? 'tersedia');
+
+        $badgeText = match ($status) {
+            'sedang_main' => 'SEDANG BERMAIN',
+            'dibayar', 'terisi' => 'TERJADWAL',
+            'tersedia' => 'KOSONG',
+            default => strtoupper($status),
+        };
+
+        $badgeColor = match ($status) {
+            'sedang_main' => 'bg-primary',
+            'dibayar', 'terisi' => 'bg-success',
+            'tersedia' => 'bg-secondary',
+            default => 'bg-dark',
+        };
+    @endphp
+
+    <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+        <div class="badge {{ $badgeColor }} mb-3" style="font-size: 1.2rem; padding: 10px 25px;">
+            {{ $badgeText }}
+        </div>
+
+        <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">
+            JADWAL MAIN
+        </div>
+
+        <div class="h1 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
+            {{ $activeSchedule['jam_mulai'] }} - {{ $activeSchedule['jam_selesai'] }}
+        </div>
+    </div>
+@else
+
                 {{-- Tampilan saat lapangan kosong (tidak ada jadwal terbayar) --}}
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
                     <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(107, 114, 128, 0.3);">

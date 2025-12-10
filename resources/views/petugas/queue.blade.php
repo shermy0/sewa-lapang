@@ -934,15 +934,21 @@ function openJadwalModal(lapangan) {
     const today = new Date().toISOString().split('T')[0];
     if (!filterTanggal.value) filterTanggal.value = today;
 
-    const syncCurrentTimeFilter = () => {
-        const selectedDate = filterTanggal.value;
-        if (selectedDate === today && !manualTimeFilter) {
-            const now = new Date();
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
-            filterJamMulai.value = `${hh}:${mm}`;
-        }
-    };
+const syncCurrentTimeFilter = () => {
+    const selectedDate = filterTanggal.value;
+    if (selectedDate === today && !manualTimeFilter) {
+        const now = new Date();
+        let hour = now.getHours();
+        
+        // kalau menit > 0, bulatkan ke bawah ke awal jam tersebut
+        // agar slot yang sudah masuk jam tetap tampil
+        const hh = String(hour).padStart(2, '0');
+        
+        // set menit ke "00" supaya filter tidak melewatkan slot
+        filterJamMulai.value = `${hh}:00`;
+    }
+};
+
     syncCurrentTimeFilter();
 
     // ===== Load sections dulu, lalu fetch jadwal =====
