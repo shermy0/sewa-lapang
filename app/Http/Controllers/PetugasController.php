@@ -1280,68 +1280,117 @@ class PetugasController extends Controller
         return response()->json($sections);
     }
 
+    // Simpan semua pemesanan keranjang dengan nama komunitas yang sama
     public function simpanKomunitas(Request $request)
     {
         $request->validate([
             'nama_komunitas' => 'required|string|max:255',
         ]);
-    
-        // Ambil pemesanan aktif milik petugas (status keranjang)
-        $pemesanan = Pemesanan::where('status', 'keranjang')->latest()->first();
-    
-        if (!$pemesanan) {
+
+        // Ambil semua pemesanan aktif (status keranjang)
+        $pesanans = Pemesanan::where('status', 'keranjang')->get();
+
+        if ($pesanans->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak ada transaksi keranjang aktif'
             ]);
         }
-    
-        // Update kolom
-        $pemesanan->nama_komunitas = $request->nama_komunitas;
-        $pemesanan->save();
-    
-        return response()->json([
-            'success' => true,
-            'data' => $pemesanan
-        ]);
-    }     
-    
-    // PetugasController.php
-    public function ambilKomunitas()
-    {
-        // Ambil pemesanan aktif milik petugas (status keranjang)
-        $pemesanan = Pemesanan::where('status', 'keranjang')->latest()->first();
 
-        if (!$pemesanan) {
-            return response()->json(['nama' => '']);
+        // Update semua pemesanan dengan nama komunitas
+        foreach ($pesanans as $p) {
+            $p->nama_komunitas = $request->nama_komunitas;
+            $p->save();
         }
 
-        return response()->json(['nama' => $pemesanan->nama_komunitas ?? '']);
+        return response()->json([
+            'success' => true,
+            'data' => $request->nama_komunitas
+        ]);
     }
 
-    public function pilihPenyewa(Request $request)
+    // Ambil nama komunitas (cukup ambil salah satu karena semuanya sama)
+    public function ambilKomunitas()
     {
+        $pemesanan = Pemesanan::where('status', 'keranjang')->first();
+        return response()->json(['nama' => $pemesanan->nama_komunitas ?? '']);
+    }    
+
+    public function tambahKeranjang(Request $request)
+    {
+        // Validasi
         $request->validate([
-            'penyewa_id' => 'required|exists:users,id',
+            'id_lapangan' => 'required',
+            'id_jadwal' => 'required',
+            'tanggal' => 'required|date',
+            'harga' => 'required|numeric',
         ]);
 
-        // Ambil transaksi keranjang terbaru milik petugas
-        $pemesanan = Pemesanan::where('status', 'keranjang')->latest()->first();
+        // Buat pemesanan baru
+        $pemesananBaru = Pemesanan::create([
+            'id_lapangan' => $request->id_lapangan,
+            'id_jadwal' => $request->id_jadwal,
+            'tanggal' => $request->tanggal,
+            'harga' => $request->harga,
+            'status' => 'keranjang',
+        ]);
 
-        if (!$pemesanan) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tidak ada transaksi keranjang aktif'
-            ]);
+        // ===========================
+        //  AUTO SET NAMA KOMUNITAS
+        // ===========================
+
+        // Ambil nama komunitas yang sudah disimpan sebelumnya
+        $kom = Pemesanan::where('status', 'keranjang')
+            ->whereNotNull('nama_komunitas')
+            ->latest()
+            ->value('nama_komunitas');
+
+        // Kalau ada nama komunitas → set ke pesanan baru
+        if ($kom) {
+            $pemesananBaru->nama_komunitas = $kom;
+            $pemesananBaru->save();
         }
-
-        // Update kolom id_penyewa (atau ganti id_kasir jika memang ingin overwrite)
-        $pemesanan->id_penyewa = $request->penyewa_id;
-        $pemesanan->save();
 
         return response()->json([
             'success' => true,
-            'data' => $pemesanan
+            'data' => $pemesananBaru
+        ]);
+    }
+
+    public function storePemesanan(Request $request)
+    {
+        $request->validate([
+            'id_lapangan' => 'required',
+            'id_jadwal' => 'required',
+            'tanggal' => 'required|date',
+            'harga' => 'required|numeric',
+        ]);
+
+        // Buat pemesanan baru
+        $pemesananBaru = Pemesanan::create([
+            'id_lapangan' => $request->id_lapangan,
+            'id_jadwal' => $request->id_jadwal,
+            'tanggal' => $request->tanggal,
+            'harga' => $request->harga,
+            'status' => 'keranjang',
+        ]);
+
+        // ============================================
+        //     AUTO SET NAMA KOMUNITAS KE PESANAN BARU
+        // ============================================
+        $kom = Pemesanan::where('status', 'keranjang')
+            ->whereNotNull('nama_komunitas')
+            ->latest()
+            ->value('nama_komunitas');
+
+        if ($kom) {
+            $pemesananBaru->nama_komunitas = $kom;
+            $pemesananBaru->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $pemesananBaru
         ]);
     }
 }

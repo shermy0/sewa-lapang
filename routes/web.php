@@ -200,10 +200,6 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         Route::get('/', [PetugasController::class, 'index'])->name('index');
         Route::post('/store', [PetugasController::class, 'store'])->name('petugas.store');
 
-        // Tambah pesanan (untuk add to cart / add jadwal)
-        Route::post('/pemesanan/store', [PetugasController::class, 'storePemesanan'])
-            ->name('pemesanan.store');
-
         // Penyewa
         Route::get('/penyewa', [PetugasController::class, 'penyewa'])->name('penyewa');
         Route::post('/penyewa/store', [PetugasController::class, 'storePenyewa'])->name('penyewa.store');
@@ -233,9 +229,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         
         Route::post('/simpan-komunitas', [PetugasController::class, 'simpanKomunitas']);
         Route::get('/ambil-komunitas', [PetugasController::class, 'ambilKomunitas']);
-        
+        Route::post('/pemesanan/store', [PetugasController::class, 'storePemesanan'])->name('pemesanan.store');
+
         // CART TEMP — FULL DB AUTO SAVE
-        Route::post('/cart-temp', [CartTempController::class, 'store'])->name('pemesanan.store');
+        Route::post('/cart-temp', [CartTempController::class, 'store'])->name('cart-temp.store');
         Route::get('/cart-temp', [CartTempController::class, 'index'])->name('pemesanan.index');
         Route::delete('/cart-temp/{id}', [CartTempController::class, 'destroy']);
         Route::delete('/cart-temp', [CartTempController::class, 'clear']);

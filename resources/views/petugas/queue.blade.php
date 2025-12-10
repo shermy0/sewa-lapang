@@ -1,4 +1,3 @@
-
 @extends('layouts.master')
 
 @section('title', 'Petugas Kasir')
@@ -270,18 +269,18 @@
       <div class="cart">
         <!-- INPUT NAMA PENYEWA -->
         <div class="mb-3 position-relative">
-        <label class="fw-semibold mb-1">Nama Penyewa</label>
-        <input
-          type="text"
-          id="searchPenyewa"
-          class="form-control"
-          placeholder="Cari nama penyewa..."
-          autocomplete="off"
-          required>
-        <ul id="penyewaResults" class="list-group position-absolute w-100"
-            style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
-        <input type="hidden" id="penyewaId" name="penyewa_id" value="{{ $pemesanan->id_penyewa ?? auth()->user()->id }}">
-      </div>
+          <label class="fw-semibold mb-1">Nama Penyewa</label>
+          <input
+            type="text"
+            id="searchPenyewa"
+            class="form-control"
+            placeholder="Cari nama penyewa..."
+            autocomplete="off"
+            required>
+          <ul id="penyewaResults" class="list-group position-absolute w-100"
+              style="z-index: 1050; display: none; max-function selectPenyewa(penyewa) {height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+              <input type="hidden" name="penyewa_id" id="penyewa_id_input">
+        </div>
 
         <!-- INPUT KOMUNITAS -->
 <div class="mb-3">
@@ -294,7 +293,6 @@
     placeholder="Nama komunitas"
     autocomplete="off"
     required>
-  <small class="text-muted">Wajib diisi untuk setiap transaksi</small>
 </div>
 
         <div class="d-flex justify-content-between mb-2">
@@ -451,7 +449,19 @@
 
 <!-- NAMA KOMUN -->
 <script>
-  let komunitasTimeout = null;
+let komunitasTimeout = null;
+
+// Ambil nama komunitas saat halaman load
+window.addEventListener("DOMContentLoaded", () => {
+    fetch("/petugas/ambil-komunitas")
+    .then(r => r.json())
+    .then(res => {
+        if (res.nama) {
+            document.getElementById("inputKomunitas").value = res.nama;
+        }
+    })
+    .catch(err => console.error(err));
+});
 
 document.getElementById("inputKomunitas").addEventListener("keyup", function () {
     clearTimeout(komunitasTimeout);
@@ -461,7 +471,7 @@ document.getElementById("inputKomunitas").addEventListener("keyup", function () 
 
     komunitasTimeout = setTimeout(() => {
         simpanKomunitas(nama);
-    }, 1000); // 1 detik setelah berhenti mengetik
+    }, 1000);
 });
 
 function simpanKomunitas(nama) {
@@ -481,30 +491,6 @@ function simpanKomunitas(nama) {
 }
 </script>
 
-<!-- UPDATE ID KASIR->PENYEWA -->
-<script>
-  document.getElementById("dropdownPenyewa").addEventListener("change", function() {
-    const penyewaId = this.value;
-    if(!penyewaId) return;
-
-    fetch("/petugas/pilih-penyewa", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ penyewa_id: penyewaId })
-    })
-    .then(r => r.json())
-    .then(res => {
-        if(res.success) {
-            console.log("ID penyewa tersimpan:", res.data);
-        }
-    })
-    .catch(err => console.error(err));
-});
-</script>
-
 <script>
 const lapanganData = @json($lapangan);
 let cart = [];
@@ -514,15 +500,6 @@ let filterKategori = "all";
 let selectedLapangan = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-
-  fetch("/petugas/ambil-komunitas")
-        .then(res => res.json())
-        .then(data => {
-            if(data.nama) {
-                document.getElementById("inputKomunitas").value = data.nama;
-            }
-        })
-        .catch(err => console.error(err));
 
   function onLapanganClick(lapangan) {
         selectedLapangan = lapangan;
@@ -777,7 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaId = penyewaInput.dataset.id;
+    const penyewaId = document.getElementById('penyewa_id_input')?.value || null;
     const komunitasInput = document.getElementById('inputKomunitas');
     const radioCash = document.getElementById('payCash');
     const radioMidtrans = document.getElementById('payMidtrans');
@@ -814,7 +791,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Delay validasi supaya modal muncul dulu
     setTimeout(() => {
-      const penyewaId = penyewaInput.dataset.id;
+      const penyewaId = document.getElementById('penyewa_id_input')?.value || null;
       if(cart.length === 0){
         swalWarn("Keranjang kosong!");
         return;
@@ -826,7 +803,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('confirmPaymentBtn').addEventListener('click', async function() {
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaId = penyewaInput.dataset.id;
+    const penyewaId = document.getElementById('penyewa_id_input')?.value || null;
     const komunitasInput = document.getElementById('inputKomunitas');
     const total = getCartTotal();
 
@@ -865,14 +842,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const cartSnapshot = cart.map(i => ({...i}));
 
     const payload = {
-        penyewa_id: penyewaId,
-        items: itemsForServer,
-        total: total,
-        kasir: '{{ Auth::user()->name }}',
-        kasir: '{{ Auth::user()->name }}',
-        nama_penyewa: penyewaInput.value || null,
-        komunitas: komunitasInput.value || null
-    };
+      penyewa_id: penyewaId, // pasti ikut
+      items: itemsForServer,
+      total: total,
+      kasir: '{{ Auth::user()->name }}',
+      nama_penyewa: document.getElementById('searchPenyewa').value || null,
+      komunitas: document.getElementById('inputKomunitas').value || null
+  };
 
     try {
       const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -925,10 +901,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         "Content-Type": "application/json",
                         "X-CSRF-TOKEN": "{{ csrf_token() }}"
                     },
-                    body: JSON.stringify({ 
-                        order_ids: data.orders,
-                        force_success: true  // Langsung update status karena onSuccess pasti berhasil
-                    })
+                    body: JSON.stringify({ order_ids: data.orders })
                 })
                 .then(res => res.json())
                 .then(response => {
@@ -1387,37 +1360,24 @@ function openJadwalModal(lapangan) {
   }
 
   function selectPenyewa(penyewa) {
-      if (!penyewaInput) return;
-      penyewaInput.value = penyewa.name;
-      penyewaInput.dataset.id = penyewa.id;
+    if (!penyewaInput) return;
 
-      // **Update hidden input**
-      const hiddenInput = document.getElementById('penyewaId');
-      if(hiddenInput) hiddenInput.value = penyewa.id;
+    // Isi input text dengan nama
+    penyewaInput.value = penyewa.name;
 
-      saveStoredPenyewa(penyewa.name, penyewa.id);
-      syncPenyewaNameToCart(penyewa.name);
-      
-      fetch("/petugas/pilih-penyewa", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
-          },
-          body: JSON.stringify({ penyewa_id: penyewa.id })
-      })
-      .then(res => res.json())
-      .then(data => {
-          if(data.success){
-              console.log("ID penyewa berhasil di-update di server:", penyewa.id);
-          } else {
-              console.warn("Gagal update ID penyewa:", data.message);
-          }
-      })
-      .catch(err => console.error("Error update ID penyewa:", err));
+    // Simpan id di dataset (optional)
+    penyewaInput.dataset.id = penyewa.id;
 
-      list.style.display = "none";
-    }
+    // Simpan ke local storage / cart
+    saveStoredPenyewa(penyewa.name, penyewa.id);
+    syncPenyewaNameToCart(penyewa.name);
+
+    // --- BARU: set hidden input untuk dikirim ke backend ---
+    const hiddenInput = document.getElementById('penyewa_id_input');
+    if(hiddenInput) hiddenInput.value = penyewa.id;
+
+    list.style.display = "none";
+  }
 
   function fetchPenyewa(keyword, options = {}) {
     fetch(`/petugas/penyewa/search?q=` + encodeURIComponent(keyword))
@@ -1521,12 +1481,21 @@ function openJadwalModal(lapangan) {
             cart.forEach(item => {
                 subtotal += item.harga * item.durasi;
 
+                // Format tanggal ke format Indonesia
+                let tanggalFormatted = item.tanggal;
+                try {
+                    const dateObj = new Date(item.tanggal);
+                    tanggalFormatted = dateObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+                } catch(e) {
+                    tanggalFormatted = item.tanggal.split('T')[0];
+                }
+
                 const li = document.createElement("li");
                 li.className = "list-group-item py-2 d-flex justify-content-between align-items-center";
                 li.innerHTML = `
                   <div>
                       <div class="fw-bold">${item.lapangan_name}</div>
-                      <div class="small text-muted">${item.jam_mulai} - ${item.jam_selesai} | ${item.tanggal}</div>
+                      <div class="small text-muted">${item.jam_mulai} - ${item.jam_selesai} | ${tanggalFormatted}</div>
                       <div class="fw-bold">Rp ${item.harga.toLocaleString('id-ID')}</div>
                   </div>
                   <button type="button" class="btn btn-sm btn-danger btn-remove" data-id="${item.id}">&times;</button>
@@ -1560,13 +1529,22 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute
 
 async function addToCartFromModal(payload) {
     try {
+        // Ambil penyewa ID dari hidden input
+        const penyewaId = document.getElementById('penyewa_id_input')?.value || null;
+
+        // Sertakan penyewa_id di payload
+        const fullPayload = {
+            ...payload,
+            penyewa_id: penyewaId
+        };
+
         const res = await fetch("/petugas/cart-temp", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(fullPayload)
         });
 
         const data = await res.json();
@@ -1575,6 +1553,7 @@ async function addToCartFromModal(payload) {
             throw new Error(data.error || data.message || 'Gagal menambahkan ke cart');
         }
 
+        // Render ulang cart dari server
         renderCartFromDB();
         return true;
 
