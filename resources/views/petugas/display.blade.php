@@ -433,15 +433,48 @@
 $flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) {
     return collect($section['schedules'] ?? [])
         ->map(function ($item) {
-            $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
+            // Handle multiple date formats (Indonesian and English months)
+            $tanggal = $item['tanggal'];
+            $dateIso = null;
+            
+            // Try multiple formats
+            $formats = ['d M Y', 'Y-m-d', 'd F Y'];
+            foreach ($formats as $fmt) {
+                try {
+                    $dateIso = \Carbon\Carbon::createFromFormat($fmt, $tanggal)->format('Y-m-d');
+                    break;
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+            
+            // Fallback: try parse() which can handle various formats
+            if (!$dateIso) {
+                try {
+                    $dateIso = \Carbon\Carbon::parse($tanggal)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dateIso = \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d');
+                }
+            }
+            
+            // Pastikan jam_mulai dan jam_selesai dalam format HH:MM
+            $jamMulai = substr($item['jam_mulai'], 0, 5);
+            $jamSelesai = substr($item['jam_selesai'], 0, 5);
+            
             return array_merge($item, [
                 'date_iso' => $dateIso,
-                'start_at' => $dateIso . 'T' . $item['jam_mulai'] . ':00',
-                'end_at'   => $dateIso . 'T' . $item['jam_selesai'] . ':00',
+                'start_at' => $dateIso . ' ' . $jamMulai . ':00',
+                'end_at'   => $dateIso . ' ' . $jamSelesai . ':00',
             ]);
         });
 })->sortBy('start_at')->values();
 
+
+// Filter: buang jadwal yang sudah completely ended (end time < now)
+$flatSchedules = $flatSchedules->filter(function ($item) use ($nowJakarta) {
+    $end = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
+    return $end->gte($nowJakarta); // hanya jadwal yang belum berakhir
+})->values();
 
 // PRIORITAS UTAMA — jadwal yang sedang berlangsung SEKARANG
 $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
@@ -631,8 +664,13 @@ if (! $hasActiveSchedule) {
                 return collect($section['schedules'] ?? [])
                     ->filter(function ($item) use ($nowJakarta) {
                         // Filter: hanya tampilkan jadwal yang belum berakhir
-                        $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $item['tanggal'])->format('Y-m-d');
-                        $endTime = \Carbon\Carbon::parse($dateIso . ' ' . $item['jam_selesai'], 'Asia/Jakarta');
+                        try {
+                            $dateIso = \Carbon\Carbon::parse($item['tanggal'])->format('Y-m-d');
+                        } catch (\Exception $e) {
+                            $dateIso = \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d');
+                        }
+                        $jamSelesai = substr($item['jam_selesai'], 0, 5);
+                        $endTime = \Carbon\Carbon::parse($dateIso . ' ' . $jamSelesai . ':00', 'Asia/Jakarta');
                         return $endTime->gt($nowJakarta);
                     })
                     ->map(function ($item) use ($section) {
@@ -681,8 +719,15 @@ if (! $hasActiveSchedule) {
                                 };
                                 $jamRange = $scheduleItem['jam_mulai'] . ' - ' . $scheduleItem['jam_selesai'];
                                 $displayName = $scheduleItem['nama_komunitas'] ?? $scheduleItem['penyewa'] ?? null;
-                                $dateIso = \Carbon\Carbon::createFromFormat('d M Y', $scheduleItem['tanggal'])->format('Y-m-d');
-                                $endIso = $dateIso . 'T' . $scheduleItem['jam_selesai'] . ':00';
+                                
+                                // Use robust date parsing
+                                try {
+                                    $dateIso = \Carbon\Carbon::parse($scheduleItem['tanggal'])->format('Y-m-d');
+                                } catch (\Exception $e) {
+                                    $dateIso = \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d');
+                                }
+                                $jamSelesai = substr($scheduleItem['jam_selesai'], 0, 5);
+                                $endIso = $dateIso . ' ' . $jamSelesai . ':00';
                             @endphp
                             <div class="queue-item-card color-{{ $index % 6 }}"
                                  data-end="{{ $endIso ?? '' }}">
@@ -735,13 +780,39 @@ if (! $hasActiveSchedule) {
         const startTimeStr = timerEl.dataset.start;
         const endTimeStr = timerEl.dataset.end;
 
-        if (!startTimeStr || !endTimeStr) return;
+        if (!startTimeStr || !endTimeStr) {
+            console.log('Countdown: Missing start or end time');
+            return;
+        }
+
+        // Robust parse: support both 'YYYY-MM-DD HH:MM:SS' and 'YYYY-MM-DDTHH:MM:SS'
+        function parseDateTime(str) {
+            if (!str) return null;
+            // Bersihkan spasi ekstra
+            str = str.trim();
+            // Ganti spasi dengan T untuk ISO format
+            const normalized = str.includes('T') ? str : str.replace(' ', 'T');
+            const date = new Date(normalized);
+            return isNaN(date.getTime()) ? null : date;
+        }
 
         const now = new Date();
-        const startTime = new Date(startTimeStr.replace(' ', 'T'));
-        const endTime = new Date(endTimeStr.replace(' ', 'T'));
+        const startTime = parseDateTime(startTimeStr);
+        const endTime = parseDateTime(endTimeStr);
 
-        if (isNaN(startTime) || isNaN(endTime)) return;
+        console.log('Countdown Debug:', {
+            startTimeStr,
+            endTimeStr,
+            now: now.toISOString(),
+            startTime: startTime?.toISOString(),
+            endTime: endTime?.toISOString(),
+            status: timerEl.dataset.status
+        });
+
+        if (!startTime || !endTime) {
+            console.log('Countdown: Failed to parse times');
+            return;
+        }
 
         const status = timerEl.dataset.status;
         // Timer hanya jalan jika sudah masuk lapang (sedang_main), bukan masuk arena

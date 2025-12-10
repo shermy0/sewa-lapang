@@ -1017,6 +1017,136 @@ class PetugasController extends Controller
     }
 
     /**
+     * JSON endpoint for AJAX polling display data.
+     */
+    public function displayData(Request $request)
+    {
+        $petugas = Auth::user();
+        $pemilikId = $petugas->pemilik_id;
+        $sectionId = $request->integer('section_id');
+
+        $lapangan = Lapangan::query()
+            ->with('kategori')
+            ->when($request->lapangan_id, fn ($q) => $q->where('id', $request->lapangan_id))
+            ->when(!$request->lapangan_id && $pemilikId, fn ($q) => $q->where('pemilik_id', $pemilikId))
+            ->get();
+
+        if ($lapangan->isEmpty()) {
+            $lapangan = Lapangan::with('kategori')->get();
+        }
+
+        if (! $pemilikId && $lapangan->isNotEmpty()) {
+            $pemilikId = $lapangan->first()->pemilik_id;
+        }
+
+        $today = Carbon::today()->toDateString();
+        $now = Carbon::now('Asia/Jakarta');
+
+        // Build all schedules for today
+        $allSchedulesToday = $this->buildAllSchedulesToday($lapangan->pluck('id'), $today);
+
+        // Filter per section jika diberikan
+        if ($sectionId) {
+            $allSchedulesToday = collect($allSchedulesToday)->where('section_id', $sectionId)->values();
+        }
+
+        // Flatten schedules and add ISO datetime
+        $flatSchedules = collect($allSchedulesToday)->flatMap(function ($section) {
+            return collect($section['schedules'] ?? [])->map(function ($item) {
+                // Parse tanggal to ISO format
+                $tanggal = $item['tanggal'];
+                $dateIso = null;
+                
+                $formats = ['d M Y', 'Y-m-d', 'd F Y'];
+                foreach ($formats as $fmt) {
+                    try {
+                        $dateIso = Carbon::createFromFormat($fmt, $tanggal)->format('Y-m-d');
+                        break;
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+                }
+                
+                if (!$dateIso) {
+                    try {
+                        $dateIso = Carbon::parse($tanggal)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $dateIso = Carbon::now('Asia/Jakarta')->format('Y-m-d');
+                    }
+                }
+                
+                // Ensure jam_mulai and jam_selesai are in HH:MM format
+                $jamMulai = substr($item['jam_mulai'], 0, 5);
+                $jamSelesai = substr($item['jam_selesai'], 0, 5);
+                
+                return array_merge($item, [
+                    'date_iso' => $dateIso,
+                    'start_at' => $dateIso . ' ' . $jamMulai . ':00',
+                    'end_at'   => $dateIso . ' ' . $jamSelesai . ':00',
+                ]);
+            });
+        })->sortBy('start_at')->values();
+
+        // Filter: only schedules that haven't ended
+        $flatSchedules = $flatSchedules->filter(function ($item) use ($now) {
+            $end = Carbon::parse($item['end_at'], 'Asia/Jakarta');
+            return $end->gte($now);
+        })->values();
+
+        // Priority: currently active schedule
+        $activeSchedule = $flatSchedules->first(function ($item) use ($now) {
+            $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
+            $end   = Carbon::parse($item['end_at'], 'Asia/Jakarta');
+            return $now->between($start, $end);
+        });
+
+        // Fallback: next upcoming schedule
+        if (! $activeSchedule) {
+            $activeSchedule = $flatSchedules->first(function ($item) use ($now) {
+                return Carbon::parse($item['start_at'], 'Asia/Jakarta')->gt($now);
+            });
+        }
+
+        $hasActiveSchedule = !is_null($activeSchedule);
+        $isPlaying = false;
+        $activeStatus = 'kosong';
+        $activeCommunity = null;
+
+        if ($hasActiveSchedule) {
+            $activeStatus = $activeSchedule['status'] ?? 'kosong';
+            $isPlaying = ($activeStatus === 'sedang_main');
+            $activeCommunity = $activeSchedule['nama_komunitas'] ?? $activeSchedule['penyewa'] ?? null;
+        }
+
+        // Prepare response
+        $responseSchedule = null;
+        if ($hasActiveSchedule) {
+            $responseSchedule = [
+                'jadwal_id' => $activeSchedule['jadwal_id'],
+                'jam_mulai' => $activeSchedule['jam_mulai'],
+                'jam_selesai' => $activeSchedule['jam_selesai'],
+                'tanggal' => $activeSchedule['tanggal'],
+                'start_at' => $activeSchedule['start_at'], // Format: 'YYYY-MM-DD HH:MM:SS'
+                'end_at' => $activeSchedule['end_at'],
+                'status' => $activeSchedule['status'],
+                'penyewa' => $activeSchedule['penyewa'],
+                'nama_komunitas' => $activeSchedule['nama_komunitas'] ?? null,
+                'nama_lapangan' => $activeSchedule['nama_lapangan'],
+                'nama_section' => $activeSchedule['nama_section'],
+            ];
+        }
+
+        return response()->json([
+            'hasActiveSchedule' => $hasActiveSchedule,
+            'isPlaying' => $isPlaying,
+            'activeStatus' => $activeStatus,
+            'activeCommunity' => $activeCommunity,
+            'activeSchedule' => $responseSchedule,
+            'allSchedulesToday' => $allSchedulesToday,
+        ]);
+    }
+
+    /**
      * List tiket yang sudah dibuat oleh petugas (dibatasi ke lapangan milik pemilik terkait).
      */
     public function tiket()
