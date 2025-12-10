@@ -453,6 +453,7 @@ let cart = [];
 let perPage = 9;
 let page = 1;
 let filterKategori = "all";
+let selectedLapangan = null;
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -1181,10 +1182,15 @@ function openJadwalModal(lapangan) {
         const penyewaName = penyewaInput.value || null;
 
         for(const chk of selected){
-          const payload = {
-              lapangan_id: currentLapanganId,
-              jadwal_id: chk.dataset.jadwalId
-          };
+            const jadwalId = parseInt(chk.dataset.jadwalId, 10);
+            if(!jadwalId || isNaN(jadwalId)){
+                console.error('Invalid jadwal_id:', chk.dataset.jadwalId);
+                continue;
+            }
+            const payload = {
+                lapangan_id: parseInt(currentLapanganId, 10),
+                jadwal_id: jadwalId
+            };
             await addToCartFromModal(payload);
         }
 
@@ -1468,48 +1474,19 @@ async function addToCartFromModal(payload) {
 
         const data = await res.json();
 
-        if (!data.success) throw new Error(data.error || 'Gagal menambahkan ke cart');
+        if (!res.ok || !data.success) {
+            throw new Error(data.error || data.message || 'Gagal menambahkan ke cart');
+        }
 
         renderCartFromDB();
+        return true;
 
     } catch (err) {
-        console.error(err);
-        Swal.fire('Error', 'Gagal menambahkan jadwal ke cart', 'error');
+        console.error('addToCartFromModal error:', err);
+        Swal.fire('Error', err.message || 'Gagal menambahkan jadwal ke cart', 'error');
+        return false;
     }
 }
-
-// ======== PESAN BTN DI MODAL ========
-pesanBtn.onclick = async () => {
-    const selected = content.querySelectorAll('.slot-checkbox:checked');
-    if(selected.length === 0){
-        Swal.fire('Perhatian', 'Pilih setidaknya satu jadwal untuk dipesan!', 'warning');
-        return;
-    }
-
-    const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaName = penyewaInput.value || null;
-
-    const lapangan = lapanganData.find(l => l.id === currentLapanganId);
-    if(!lapangan){
-        Swal.fire('Error', 'Data lapangan tidak ditemukan', 'error');
-        return;
-    }
-
-    for(const chk of selected){
-        const payload = {
-            penyewa_id: penyewaId || null,
-            items: itemsForServer,
-            total: total,
-            kasir: '{{ Auth::user()->name }}',
-            nama_penyewa: penyewaInput.value || null,
-            komunitas: komunitasInput.value || null
-        };
-        await addToCartFromModal(payload); // pakai ini
-    }
-
-    const modal = bootstrap.Modal.getInstance(document.getElementById('jadwalModal'));
-    if(modal) modal.hide();
-};
 
 // ======== INIT ========
 initCart();
