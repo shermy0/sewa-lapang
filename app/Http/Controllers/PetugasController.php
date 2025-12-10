@@ -608,12 +608,16 @@ class PetugasController extends Controller
             $orderIds = [$transactionId];
 
             DB::commit();
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'snap_token' => $snapToken,
+                'orders' => $orderIds,
+            ]);
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            \Log::error('Midtrans callback gagal', [
-                'order_id' => $orderId,
+            \Log::error('Midtrans payment gagal', [
+                'order_id' => $transactionId ?? null,
                 'error' => $e->getMessage()
             ]);
 

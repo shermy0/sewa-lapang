@@ -575,9 +575,8 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>`;
 
       col.querySelector(".lapangan-card").addEventListener("click",()=>{
-    onLapanganClick(l)
-        .then(() => openJadwalModal(l))
-        .catch(() => openJadwalModal(l));
+    // Langsung buka modal dengan loading state, sections akan di-load di dalam openJadwalModal
+    openJadwalModal(l);
 });
       grid.appendChild(col);
     });
@@ -911,6 +910,7 @@ let manualTimeFilter = false;
 
 function openJadwalModal(lapangan) {
     currentLapanganId = lapangan.id;
+    selectedLapangan = lapangan;
     const modalEl = document.getElementById('jadwalModal');
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
@@ -922,6 +922,9 @@ function openJadwalModal(lapangan) {
     const pesanBtn = document.getElementById('pesanBtn');
     const summaryEl = document.getElementById('paginationSummary');
     const paginationEl = document.getElementById('jadwalPagination');
+
+    // Tampilkan loading segera
+    content.innerHTML = '<p class="text-center text-muted">Memuat jadwal...</p>';
 
   // ===== Set default tanggal hari ini =====
     const today = new Date().toISOString().split('T')[0];
@@ -937,6 +940,13 @@ function openJadwalModal(lapangan) {
         }
     };
     syncCurrentTimeFilter();
+
+    // ===== Load sections dulu, lalu fetch jadwal =====
+    loadSections(lapangan.id).then(() => {
+        fetchJadwal();
+    }).catch(() => {
+        fetchJadwal();
+    });
 
     // ===== Fungsi fetch jadwal =====
     function fetchJadwal() {
@@ -1182,8 +1192,7 @@ function openJadwalModal(lapangan) {
         if(modal) modal.hide();
     };
 
-    // ===== Fetch jadwal pertama =====
-    fetchJadwal();
+    // fetchJadwal sudah dipanggil di dalam loadSections callback
 }
 
   // ======== EVENT FILTER & SEARCH ========
