@@ -43,6 +43,25 @@ class CartTempController extends Controller
             'jadwal_id' => 'required|integer',
         ]);
 
+        // Cek apakah jadwal sudah ada di keranjang atau sudah dibooking
+        $existing = Pemesanan::where('jadwal_id', $validated['jadwal_id'])
+            ->whereIn('status', ['keranjang', 'menunggu', 'dibayar'])
+            ->first();
+
+        if ($existing) {
+            $statusMessage = match($existing->status) {
+                'keranjang' => 'Jadwal sudah ada di keranjang',
+                'menunggu' => 'Jadwal sedang dalam proses pembayaran',
+                'dibayar' => 'Jadwal sudah dibooking',
+                default => 'Jadwal tidak tersedia'
+            };
+            
+            return response()->json([
+                'success' => false,
+                'error' => $statusMessage
+            ], 400);
+        }
+
         $data = [
             'penyewa_id' => auth()->id(), // user login
             'lapangan_id' => $validated['lapangan_id'],
