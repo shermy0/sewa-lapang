@@ -117,13 +117,19 @@ class CartTempController extends Controller
     // Update nama komunitas (jika dipakai)
     public function updateNama(Request $request)
     {
-        $pemilikId = auth()->user()->pemilik_id;
-
-        DB::table('pemesanan')
-            ->where('penyewa_id', $pemilikId)
-            ->where('status', 'keranjang')
-            ->update(['nama_komunitas' => $request->nama_komunitas]);
-
+        $request->validate([
+            'penyewa_id' => 'required|exists:users,id',
+            'nama_komunitas' => 'nullable|string|max:255'
+        ]);
+    
+        // Ambil semua pemesanan 'keranjang' milik petugas ini
+        CartTemp::where('penyewa_id', auth()->id()) // awalnya id kasir/petugas
+                ->where('status', 'keranjang')
+                ->update([
+                    'penyewa_id' => $request->penyewa_id,
+                    'nama_komunitas' => $request->nama_komunitas,
+                ]);
+    
         return response()->json(['success' => true]);
-    }
+    }       
 }

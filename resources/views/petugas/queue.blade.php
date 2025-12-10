@@ -280,6 +280,7 @@
             required>
           <ul id="penyewaResults" class="list-group position-absolute w-100"
               style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
+          <input type="hidden" id="penyewaId" name="penyewa_id" value="{{ auth()->user()->id }}">
         </div>
 
         <!-- INPUT KOMUNITAS -->
@@ -447,6 +448,38 @@
 @push('scripts')
 
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+
+<script>
+  let komunitasTimeout = null;
+
+document.getElementById("inputKomunitas").addEventListener("keyup", function () {
+    clearTimeout(komunitasTimeout);
+
+    const nama = this.value.trim();
+    if (nama === "") return;
+
+    komunitasTimeout = setTimeout(() => {
+        simpanKomunitas(nama);
+    }, 1000); // 1 detik setelah berhenti mengetik
+});
+
+function simpanKomunitas(nama) {
+    fetch("/petugas/simpan-komunitas", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ nama_komunitas: nama })
+    })
+    .then(r => r.json())
+    .then(res => {
+        console.log("Nama komunitas tersimpan:", res.data);
+    })
+    .catch(err => console.error(err));
+}
+</script>
+
 <script>
 const lapanganData = @json($lapangan);
 let cart = [];
@@ -938,9 +971,14 @@ function openJadwalModal(lapangan) {
         const selectedDate = filterTanggal.value;
         if (selectedDate === today && !manualTimeFilter) {
             const now = new Date();
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
-            filterJamMulai.value = `${hh}:${mm}`;
+            let hour = now.getHours();
+            
+            // kalau menit > 0, bulatkan ke bawah ke awal jam tersebut
+            // agar slot yang sudah masuk jam tetap tampil
+            const hh = String(hour).padStart(2, '0');
+            
+            // set menit ke "00" supaya filter tidak melewatkan slot
+            filterJamMulai.value = `${hh}:00`;
         }
     };
     syncCurrentTimeFilter();

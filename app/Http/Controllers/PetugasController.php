@@ -1279,4 +1279,30 @@ class PetugasController extends Controller
 
         return response()->json($sections);
     }
+
+    public function simpanKomunitas(Request $request)
+    {
+        $request->validate([
+            'nama_komunitas' => 'required|string|max:255',
+        ]);
+    
+        // Ambil pemesanan aktif milik petugas (status keranjang)
+        $pemesanan = Pemesanan::where('status', 'keranjang')->latest()->first();
+    
+        if (!$pemesanan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada transaksi keranjang aktif'
+            ]);
+        }
+    
+        // Update kolom
+        $pemesanan->nama_komunitas = $request->nama_komunitas;
+        $pemesanan->save();
+    
+        return response()->json([
+            'success' => true,
+            'data' => $pemesanan
+        ]);
+    }     
 }
