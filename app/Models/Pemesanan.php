@@ -68,10 +68,11 @@ class Pemesanan extends Model
         return $this->hasOne(Ulasan::class);
     }
 
-    public function permintaanPerubahan()
-    {
-        return $this->hasOne(PermintaanPerubahan::class)->latestOfMany();
-    }
+public function permintaanPerubahan()
+{
+    return $this->hasOne(PermintaanPerubahan::class);
+}
+
 
     public function isExpired()
     {

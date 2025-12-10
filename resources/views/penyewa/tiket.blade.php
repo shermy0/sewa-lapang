@@ -26,17 +26,16 @@
             <div class="ticket shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="d-flex flex-column flex-md-row">
                     @php
-                        $jadwalAktif = $p->jadwal;
-                        $sectionAktif = $p->jadwal?->section;
-                        if (
-    $p->permintaanPerubahan &&
-    $p->permintaanPerubahan->status === 'disetujui' &&
-    $p->permintaanPerubahan->jadwal_baru_id == $p->jadwal_id
-) {
+$jadwalAktif = $p->jadwal;
+$sectionAktif = $p->jadwal?->section;
 
-                            $jadwalAktif = $p->permintaanPerubahan->jadwalBaru ?? $jadwalAktif;
-                            $sectionAktif = $p->permintaanPerubahan->sectionBaru ?? $sectionAktif;
-                        }
+// Jika ada permintaan perubahan, gunakan jadwal & section baru
+if ($p->permintaanPerubahan) {
+    $jadwalAktif = $p->permintaanPerubahan->jadwalBaru ?? $jadwalAktif;
+    $sectionAktif = $p->permintaanPerubahan->sectionBaru ?? $sectionAktif;
+}
+
+
                         \Carbon\Carbon::setLocale('id');
                         $tanggal = \Carbon\Carbon::parse($jadwalAktif->tanggal);
                         $hari = $tanggal->translatedFormat('l');
@@ -111,7 +110,7 @@
                                 <i class="fa-solid fa-download me-1"></i> Download
                             </a>
                             
-                            @if($p->status_scan !== 'sudah_scan')
+                            @if($p->status_scan !== 'masuk_lapang')
                             @php
                                 $jadwalAktifText = '-';
                                 if($jadwalAktif){
@@ -120,17 +119,29 @@
                                 }
                             @endphp
 
-                            <button class="btn btn-warning btn-sm px-3"
-                                    onclick="pindahLapang(
-                                        {{ $p->id }}, 
-                                        {{ $p->lapangan->id }}, 
-                                        '{{ $p->lapangan->nama_lapangan }}', 
-                                        '{{ $sectionAktif?->nama_section ?? '-' }}', 
-                                        '{{ $jadwalAktifText }}', 
-                                        {{ $jadwalAktif?->id ?? 'null' }}
-                                    )">
-                                <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
-                            </button>
+                            @php
+    // cara sederhana: jika kamu sudah eager load relasi permintaanPerubahanCount
+$sudahPindah = ($p->permintaanPerubahan()->count() > 0);
+@endphp
+
+@if($p->status_scan !== 'masuk_lapang' && !$sudahPindah)
+    <button class="btn btn-warning btn-sm px-3"
+            onclick="pindahLapang(
+                {{ $p->id }}, 
+                {{ $p->lapangan->id }}, 
+                '{{ $p->lapangan->nama_lapangan }}', 
+                '{{ $sectionAktif?->nama_section ?? '-' }}', 
+                '{{ $jadwalAktifText }}', 
+                {{ $jadwalAktif?->id ?? 'null' }}
+            )">
+        <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
+    </button>
+@elseif($sudahPindah)
+    <button class="btn btn-warning btn-sm px-3" disabled title="Sudah pernah dipindah sekali">
+        <i class="fa-solid fa-arrows-rotate me-1"></i> Sudah Pernah Pindah
+    </button>
+@endif
+
                             @endif
                         </div>
                     </div>
