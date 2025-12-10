@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Lapangan;
 use App\Models\Pemesanan;
 use App\Models\JadwalLapangan;
+use App\Models\PermintaanPerubahan;
 use App\Models\Pembayaran;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -511,13 +512,23 @@ class PemesananController extends Controller
     // ==================== PINDAH LANGSUNG ====================
 public function pindahLangsung(Request $request, $pemesananId)
 {
+        $pemesanan = Pemesanan::with('jadwal.section')->findOrFail($pemesananId);
+
+     // --- CEK: apakah sudah pernah pindah sebelumnya? ---
+$sudahPernahPindah = PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)
+    ->whereIn('status', ['menunggu', 'disetujui']) // ✔ valid semua
+    ->exists();
+
+
+    if ($sudahPernahPindah) {
+        return response()->json(['error' => 'Pemesanan ini sudah pernah dipindahkan sekali. Tidak dapat dipindah lagi.'], 422);
+    }
     $request->validate([
         'jadwal_baru_id' => 'required|exists:jadwal_lapangan,id',
         'section_baru_id' => 'nullable|exists:section_lapangan,id',
         'alasan' => 'nullable|string|max:500',
     ]);
 
-    $pemesanan = Pemesanan::with('jadwal.section')->findOrFail($pemesananId);
 
     if ($pemesanan->penyewa_id !== Auth::id()) {
         abort(403, 'Tidak boleh memindahkan pemesanan orang lain.');

@@ -111,7 +111,7 @@
                                 <i class="fa-solid fa-download me-1"></i> Download
                             </a>
                             
-                            @if($p->status_scan !== 'sudah_scan')
+                            @if($p->status_scan !== 'masuk_lapang')
                             @php
                                 $jadwalAktifText = '-';
                                 if($jadwalAktif){
@@ -120,17 +120,29 @@
                                 }
                             @endphp
 
-                            <button class="btn btn-warning btn-sm px-3"
-                                    onclick="pindahLapang(
-                                        {{ $p->id }}, 
-                                        {{ $p->lapangan->id }}, 
-                                        '{{ $p->lapangan->nama_lapangan }}', 
-                                        '{{ $sectionAktif?->nama_section ?? '-' }}', 
-                                        '{{ $jadwalAktifText }}', 
-                                        {{ $jadwalAktif?->id ?? 'null' }}
-                                    )">
-                                <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
-                            </button>
+                            @php
+    // cara sederhana: jika kamu sudah eager load relasi permintaanPerubahanCount
+    $sudahPindah = $p->permintaan_perubahan_count ?? ($p->permintaanPerubahan()->where('status','!=','ditol')->exists() ? 1 : 0);
+@endphp
+
+@if($p->status_scan !== 'masuk_lapang' && !$sudahPindah)
+    <button class="btn btn-warning btn-sm px-3"
+            onclick="pindahLapang(
+                {{ $p->id }}, 
+                {{ $p->lapangan->id }}, 
+                '{{ $p->lapangan->nama_lapangan }}', 
+                '{{ $sectionAktif?->nama_section ?? '-' }}', 
+                '{{ $jadwalAktifText }}', 
+                {{ $jadwalAktif?->id ?? 'null' }}
+            )">
+        <i class="fa-solid fa-arrows-rotate me-1"></i> Pindah Lapang
+    </button>
+@elseif($sudahPindah)
+    <button class="btn btn-warning btn-sm px-3" disabled title="Sudah pernah dipindah sekali">
+        <i class="fa-solid fa-arrows-rotate me-1"></i> Sudah Pernah Pindah
+    </button>
+@endif
+
                             @endif
                         </div>
                     </div>
