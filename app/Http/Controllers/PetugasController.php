@@ -1093,19 +1093,33 @@ class PetugasController extends Controller
             return $end->gte($now);
         })->values();
 
-        // Priority: currently active schedule
-        $activeSchedule = $flatSchedules->first(function ($item) use ($now) {
+        // Status yang dianggap sudah "terisi/terbayar"
+        $paidStatuses = ['dibayar', 'terisi', 'sedang_main', 'masuk_arena'];
+        
+        // Filter jadwal yang sudah dibayar/booked untuk panel utama
+        $paidSchedules = $flatSchedules->filter(function ($item) use ($paidStatuses) {
+            return in_array($item['status'] ?? 'tersedia', $paidStatuses);
+        });
+
+        // PRIORITAS UTAMA — jadwal TERBAYAR yang sedang berlangsung SEKARANG
+        $activeSchedule = $paidSchedules->first(function ($item) use ($now) {
             $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
             $end   = Carbon::parse($item['end_at'], 'Asia/Jakarta');
             return $now->between($start, $end);
         });
 
-        // Fallback: next upcoming schedule
+        // FALLBACK — Jika tidak ada jadwal terbayar saat ini, cek apakah ada jadwal TERSEDIA saat ini
+        // (untuk menampilkan "KOSONG" dengan jam yang sedang berlangsung)
         if (! $activeSchedule) {
             $activeSchedule = $flatSchedules->first(function ($item) use ($now) {
-                return Carbon::parse($item['start_at'], 'Asia/Jakarta')->gt($now);
+                $start = Carbon::parse($item['start_at'], 'Asia/Jakarta');
+                $end   = Carbon::parse($item['end_at'], 'Asia/Jakarta');
+                return $now->between($start, $end);
             });
         }
+
+        // CATATAN: Jadwal masa depan TIDAK ditampilkan di panel besar
+        // Jadwal masa depan hanya tampil di grid "Jadwal Hari Ini"
 
         $hasActiveSchedule = !is_null($activeSchedule);
         $isPlaying = false;
