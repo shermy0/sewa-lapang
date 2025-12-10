@@ -277,10 +277,13 @@
             class="form-control"
             placeholder="Cari nama penyewa..."
             autocomplete="off"
-            required>
+            required
+          >
           <ul id="penyewaResults" class="list-group position-absolute w-100"
               style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
-          <input type="hidden" id="penyewaId" name="penyewa_id" value="{{ auth()->user()->id }}">
+
+          <!-- Hidden input yang bakal dikirim ke server -->
+          <input type="hidden" id="penyewaId" name="penyewa_id" value="{{ $pemesanan->id_penyewa ?? '' }}">
         </div>
 
         <!-- INPUT KOMUNITAS -->
@@ -449,6 +452,7 @@
 
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 
+<!-- NAMA KOMUN -->
 <script>
   let komunitasTimeout = null;
 
@@ -480,6 +484,30 @@ function simpanKomunitas(nama) {
 }
 </script>
 
+<!-- UPDATE ID KASIR->PENYEWA -->
+<script>
+  document.getElementById("dropdownPenyewa").addEventListener("change", function() {
+    const penyewaId = this.value;
+    if(!penyewaId) return;
+
+    fetch("/petugas/pilih-penyewa", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ penyewa_id: penyewaId })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if(res.success) {
+            console.log("ID penyewa tersimpan:", res.data);
+        }
+    })
+    .catch(err => console.error(err));
+});
+</script>
+
 <script>
 const lapanganData = @json($lapangan);
 let cart = [];
@@ -489,6 +517,15 @@ let filterKategori = "all";
 let selectedLapangan = null;
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  fetch("/petugas/ambil-komunitas")
+        .then(res => res.json())
+        .then(data => {
+            if(data.nama) {
+                document.getElementById("inputKomunitas").value = data.nama;
+            }
+        })
+        .catch(err => console.error(err));
 
   function onLapanganClick(lapangan) {
         selectedLapangan = lapangan;
@@ -971,14 +1008,9 @@ function openJadwalModal(lapangan) {
         const selectedDate = filterTanggal.value;
         if (selectedDate === today && !manualTimeFilter) {
             const now = new Date();
-            let hour = now.getHours();
-            
-            // kalau menit > 0, bulatkan ke bawah ke awal jam tersebut
-            // agar slot yang sudah masuk jam tetap tampil
-            const hh = String(hour).padStart(2, '0');
-            
-            // set menit ke "00" supaya filter tidak melewatkan slot
-            filterJamMulai.value = `${hh}:00`;
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            filterJamMulai.value = `${hh}:${mm}`;
         }
     };
     syncCurrentTimeFilter();
@@ -1358,12 +1390,25 @@ function openJadwalModal(lapangan) {
   }
 
   function selectPenyewa(penyewa) {
-    if (!penyewaInput) return;
-    penyewaInput.value = penyewa.name;
-    penyewaInput.dataset.id = penyewa.id;
-    saveStoredPenyewa(penyewa.name, penyewa.id);
-    syncPenyewaNameToCart(penyewa.name);
-    list.style.display = "none";
+      const penyewaInput = document.getElementById('searchPenyewa');
+      const hiddenInput = document.getElementById('penyewaId'); // hidden input
+
+      if (!penyewaInput || !hiddenInput) return;
+
+      // Update input text & hidden input
+      penyewaInput.dataset.id = penyewa.id;
+      penyewaInput.value = penyewa.name;
+      hiddenInput.value = penyewa.id; // PENTING: ini yang dikirim ke server
+
+      // Simpan ke localStorage kalau mau
+      saveStoredPenyewa(penyewa.name, penyewa.id);
+
+      // Update tampilan keranjang (opsional)
+      syncPenyewaNameToCart(penyewa.name);
+
+      // Sembunyikan list hasil pencarian
+      const list = document.getElementById('penyewaResults');
+      list.style.display = 'none';
   }
 
   function fetchPenyewa(keyword, options = {}) {

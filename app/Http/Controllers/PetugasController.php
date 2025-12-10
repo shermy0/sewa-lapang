@@ -1305,4 +1305,17 @@ class PetugasController extends Controller
             'data' => $pemesanan
         ]);
     }     
+    
+    // PetugasController.php
+    public function ambilKomunitas()
+    {
+        // Ambil pemesanan aktif milik petugas (status keranjang)
+        $pemesanan = Pemesanan::where('status', 'keranjang')->latest()->first();
+
+        if (!$pemesanan) {
+            return response()->json(['nama' => '']);
+        }
+
+        return response()->json(['nama' => $pemesanan->nama_komunitas ?? '']);
+    }
 }
