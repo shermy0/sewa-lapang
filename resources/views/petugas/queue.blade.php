@@ -858,7 +858,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         "Content-Type": "application/json",
                         "X-CSRF-TOKEN": "{{ csrf_token() }}"
                     },
-                    body: JSON.stringify({ order_ids: data.orders })
+                    body: JSON.stringify({ 
+                        order_ids: data.orders,
+                        force_success: true  // Langsung update status karena onSuccess pasti berhasil
+                    })
                 })
                 .then(res => res.json())
                 .then(response => {

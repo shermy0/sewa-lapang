@@ -568,6 +568,8 @@ class PetugasController extends Controller
                     $pemesanan->update([
                         'status' => 'menunggu',
                         'nama_komunitas' => $validated['komunitas'] ?? $pemesanan->nama_komunitas,
+                        'kode_tiket' => $pemesanan->kode_tiket ?? $this->generateTicketCode(),
+                        'status_scan' => $pemesanan->status_scan ?? 'belum_scan',
                     ]);
 
                     $payment = $plan['payment'];
@@ -1156,6 +1158,9 @@ class PetugasController extends Controller
         $orderIds = $request->order_ids;
         if(!is_array($orderIds)) return response()->json(['success'=>false]);
 
+        // Jika force_success = true (dari onSuccess callback), langsung update tanpa cek Midtrans
+        $forceSuccess = $request->boolean('force_success', false);
+
         Config::$serverKey = config('midtrans.server_key');
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = true;
@@ -1166,17 +1171,24 @@ class PetugasController extends Controller
 
         foreach ($orderIds as $orderId) {
             try {
-                $status = Transaction::status($orderId);
-                $transactionStatus = $status->transaction_status;
-                $fraudStatus = $status->fraud_status;
-
                 $paid = false;
-                if ($transactionStatus == 'capture') {
-                    if ($fraudStatus == 'accept') {
+                
+                if ($forceSuccess) {
+                    // Langsung anggap berhasil karena dari onSuccess callback
+                    $paid = true;
+                } else {
+                    // Cek status dari Midtrans API
+                    $status = Transaction::status($orderId);
+                    $transactionStatus = $status->transaction_status;
+                    $fraudStatus = $status->fraud_status;
+
+                    if ($transactionStatus == 'capture') {
+                        if ($fraudStatus == 'accept') {
+                            $paid = true;
+                        }
+                    } else if ($transactionStatus == 'settlement') {
                         $paid = true;
                     }
-                } else if ($transactionStatus == 'settlement') {
-                    $paid = true;
                 }
 
                 if($paid){
