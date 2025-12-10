@@ -17,16 +17,32 @@ class CartTempController extends Controller
             ->where('status', 'keranjang')
             ->get()
             ->map(function($item) {
+                $jadwal = $item->jadwal;
+                
+                // Format tanggal ke format Indonesia
+                $tanggalFormatted = '-';
+                if ($jadwal && $jadwal->tanggal) {
+                    $tanggalFormatted = \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d M Y');
+                }
+                
+                // Format waktu tanpa detik
+                $jamMulai = '-';
+                $jamSelesai = '-';
+                if ($jadwal) {
+                    $jamMulai = $jadwal->jam_mulai ? substr($jadwal->jam_mulai, 0, 5) : '-';
+                    $jamSelesai = $jadwal->jam_selesai ? substr($jadwal->jam_selesai, 0, 5) : '-';
+                }
+                
                 return [
                     'id' => $item->id,
                     'lapangan_id' => $item->lapangan_id,
                     'jadwal_id' => $item->jadwal_id,
                     'lapangan_name' => $item->lapangan->nama_lapangan ?? 'Lapangan',
-                    'harga' => $item->jadwal->harga_sewa ?? 0, // ambil harga dari jadwal
+                    'harga' => $jadwal->harga_sewa ?? 0,
                     'lokasi' => $item->lapangan->lokasi ?? '-',
-                    'jam_mulai' => $item->jadwal->jam_mulai ?? '-',
-                    'jam_selesai' => $item->jadwal->jam_selesai ?? '-',
-                    'tanggal' => $item->jadwal->tanggal ?? '-',
+                    'jam_mulai' => $jamMulai,
+                    'jam_selesai' => $jamSelesai,
+                    'tanggal' => $tanggalFormatted,
                     'durasi' => $item->durasi_sewa ?? 1,
                     'status' => $item->status,
                     'kode_tiket' => $item->kode_tiket,
