@@ -453,6 +453,7 @@ let cart = [];
 let perPage = 9;
 let page = 1;
 let filterKategori = "all";
+let selectedLapangan = null;
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -1009,110 +1010,119 @@ function openJadwalModal(lapangan) {
         syncCurrentTimeFilter();
     });
 
+    // ===== Fungsi render halaman jadwal =====
     function renderJadwalPage(page) {
-    const totalPages = Math.ceil(jadwalData.length / rowsPerPage) || 1;
-    currentPage = Math.min(Math.max(1, page), totalPages);
-    const start = (currentPage - 1) * rowsPerPage;
-    const pageData = jadwalData.slice(start, start + rowsPerPage);
+        const totalPages = Math.ceil(jadwalData.length / rowsPerPage) || 1;
+        currentPage = Math.min(Math.max(1, page), totalPages);
+        const start = (currentPage - 1) * rowsPerPage;
+        const pageData = jadwalData.slice(start, start + rowsPerPage);
 
-    const bookedSlots = cart.map(c => `${c.lapangan_id}_${c.jam_mulai}_${c.tanggal}`);
+        const bookedSlots = cart.map(c => `${c.lapangan_id}_${c.jam_mulai}_${c.tanggal}`);
 
-    content.innerHTML = '';
+        content.innerHTML = '';
 
-    if (pageData.length === 0) {
-        content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
-        summaryEl.textContent = '';
-        renderJadwalPagination(totalPages);
-        return;
-    }
+        if (pageData.length === 0) {
+            content.innerHTML = '<p class="text-center text-muted">Tidak ada jadwal tersedia</p>';
+            summaryEl.textContent = '';
+            renderJadwalPagination(totalPages);
+            return;
+        }
 
-    const grid = document.createElement('div');
-    grid.className = 'row g-3';
+        const grid = document.createElement('div');
+        grid.className = 'row g-3';
 
-    pageData.forEach(j => {
-    const col = document.createElement('div');
-    col.className = 'col-md-4';
+        pageData.forEach(j => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4';
 
-    // Tentukan status slot
-    let statusClass = '', statusText = '';
-    let isSelectable = false;
-
-    if (j.booking_status === "dibayar") {
-        statusClass = "bg-success text-white";
-        statusText = "Sudah Dibayar";
-    } else if (j.booking_status === "menunggu") {
-        statusClass = "bg-warning text-dark";
-        statusText = "Sedang Dibooking";
-    } else if (j.booking_status === "keranjang") {
-        statusClass = "bg-secondary text-white";
-        statusText = "Tidak Tersedia";
-        isSelectable = false; // pastikan jelas
-    } else if (j.booking_status === "tersedia") {
-        statusClass = "bg-light text-dark";
-        statusText = "Tersedia";
-        isSelectable = true;
-    }
-
-    const card = document.createElement('div');
-    card.className = `card p-2 text-center ${statusClass}`;
-    card.style.borderRadius = '8px';
-    card.style.minHeight = '120px';
-    card.style.display = 'flex';
-    card.style.flexDirection = 'column';
-    card.style.justifyContent = 'center';
-
-    const slotKey = `${currentLapanganId}_${j.jam_mulai}_${j.tanggal}`;
-    const isInCart = bookedSlots.includes(slotKey);
-
-    if(isSelectable){
-        card.innerHTML = `
-            <div class="lapangan-name fw-bold mb-1">${lapangan.nama}</div>
-            <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
-            <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
-            <div class="form-check mt-1">
-                <input class="form-check-input slot-checkbox"
-                  type="checkbox"
-                  data-jadwal-id="${j.id}"
-                  data-tanggal="${j.tanggal}"
-                  data-jam-mulai="${j.jam_mulai}"
-                  data-harga="${j.harga_sewa}"
-                  ${isInCart ? 'checked disabled' : ''}>
-                <label class="form-check-label small">
-                    ${isInCart ? ' (Sudah dipilih)' : ''}
-                </label>
-            </div>
-        `;
-        // Event klik card untuk toggle checkbox
-        card.addEventListener('click', e => {
-            if(e.target.type !== 'checkbox'){
-                const checkbox = card.querySelector('.slot-checkbox');
-                if(checkbox && !checkbox.disabled){
-                    checkbox.checked = !checkbox.checked;
-                }
+            // Tentukan status slot
+            let statusClass = '', statusText = '';
+            if (j.booking_status === "dibayar") {
+                statusClass = "bg-success text-white";
+                statusText = "Sudah Dibayar";
+            } else if (j.booking_status === "menunggu") {
+                statusClass = "bg-warning text-dark";
+                statusText = "Sedang Dibooking";
+            } else if (j.booking_status === "tidak_tersedia") {
+                statusClass = "bg-secondary text-white";
+                statusText = "Tidak Tersedia";
+            } else {
+                statusClass = "bg-light text-dark";
+                const tanggalObj = new Date(j.tanggal);
+                statusText = tanggalObj.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
             }
+
+            const card = document.createElement('div');
+            card.className = `card p-2 text-center ${statusClass}`;
+            card.style.borderRadius = '8px';
+            card.style.minHeight = '120px';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.justifyContent = 'center';
+
+            const slotKey = `${currentLapanganId}_${j.jam_mulai}_${j.tanggal}`;
+            const isInCart = bookedSlots.includes(slotKey);
+            const isDisabled = isInCart || j.booking_status === 'keranjang' || j.booking_status === 'menunggu';
+
+            if(j.booking_status === "tersedia") {
+                card.innerHTML = `
+                <div class="lapangan-name fw-bold mb-1">${lapangan.nama}</div>
+                <div class="jam-text fw-bold">${j.jam_mulai} - ${j.jam_selesai}</div>
+                <div class="mt-1 fw-bold harga-text text-success">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+                <div class="form-check mt-1">
+                    <input class="form-check-input slot-checkbox"
+                      type="checkbox"
+                      data-jadwal-id="${j.id}"
+                      data-tanggal="${j.tanggal}"
+                      data-jam-mulai="${j.jam_mulai}"
+                      data-harga="${j.harga_sewa}"
+                      ${isDisabled ? 'disabled' : ''}>
+                    <label class="form-check-label small">
+                        ${statusText}${isInCart ? ' (Sudah dipilih)' : ''}
+                    </label>
+                </div>
+                `;
+                if(!isInCart){
+                    card.addEventListener('click', e => {
+                        if(e.target.type !== 'checkbox'){
+                            const checkbox = card.querySelector('.slot-checkbox');
+                            checkbox.checked = !checkbox.checked;
+                            if(checkbox.checked){
+                                card.style.backgroundColor = '#e8f5e8';
+                                card.style.borderColor = '#28a745';
+                            } else {
+                                card.style.backgroundColor = '';
+                                card.style.borderColor = '';
+                            }
+                        }
+                    });
+                } else {
+                    card.style.backgroundColor = '#f8d7da';
+                    card.style.borderColor = '#f5c2c7';
+                    card.style.cursor = 'not-allowed';
+                }
+            } else {
+                card.innerHTML = `
+                    <div class="jam-text">${j.jam_mulai} - ${j.jam_selesai}</div>
+                    <div class="mt-1 fw-bold harga-text">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
+                    <div class="small">${statusText}</div>
+                `;
+                card.style.cursor = 'not-allowed';
+            }
+
+          
+
+            col.appendChild(card);
+            grid.appendChild(col);
         });
-    } else {
-        card.innerHTML = `
-            <div class="jam-text">${j.jam_mulai} - ${j.jam_selesai}</div>
-            <div class="mt-1 fw-bold harga-text">Rp ${Number(j.harga_sewa).toLocaleString('id-ID')}</div>
-            <div class="small">${statusText}</div>
-        `;
-        card.style.cursor = 'not-allowed';
+
+        content.appendChild(grid);
+
+        summaryEl.textContent = jadwalData.length === 0 ? 'Jadwal tidak tersedia' :
+            `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, jadwalData.length)} dari ${jadwalData.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
+
+        renderJadwalPagination(totalPages);
     }
-
-    col.appendChild(card);
-    grid.appendChild(col);
-});
-
-
-    content.appendChild(grid);
-
-    summaryEl.textContent = jadwalData.length === 0 ? 'Jadwal tidak tersedia' :
-        `Menampilkan ${start+1} - ${Math.min(start+rowsPerPage, jadwalData.length)} dari ${jadwalData.length} jadwal | Halaman ${currentPage} / ${totalPages}`;
-
-    renderJadwalPagination(totalPages);
-}
-
 
     function renderJadwalPagination(totalPages){
         if(!paginationEl) return;
@@ -1172,11 +1182,15 @@ function openJadwalModal(lapangan) {
         const penyewaName = penyewaInput.value || null;
 
         for(const chk of selected){
-          const payload = {
-              lapangan_id: currentLapanganId,
-              jadwal_id: chk.dataset.jadwalId,
-              tanggal: chk.dataset.tanggal
-          };
+            const jadwalId = parseInt(chk.dataset.jadwalId, 10);
+            if(!jadwalId || isNaN(jadwalId)){
+                console.error('Invalid jadwal_id:', chk.dataset.jadwalId);
+                continue;
+            }
+            const payload = {
+                lapangan_id: parseInt(currentLapanganId, 10),
+                jadwal_id: jadwalId
+            };
             await addToCartFromModal(payload);
         }
 
@@ -1460,48 +1474,19 @@ async function addToCartFromModal(payload) {
 
         const data = await res.json();
 
-        if (!data.success) throw new Error(data.error || 'Gagal menambahkan ke cart');
+        if (!res.ok || !data.success) {
+            throw new Error(data.error || data.message || 'Gagal menambahkan ke cart');
+        }
 
         renderCartFromDB();
+        return true;
 
     } catch (err) {
-        console.error(err);
-        Swal.fire('Error', 'Gagal menambahkan jadwal ke cart', 'error');
+        console.error('addToCartFromModal error:', err);
+        Swal.fire('Error', err.message || 'Gagal menambahkan jadwal ke cart', 'error');
+        return false;
     }
 }
-
-// ======== PESAN BTN DI MODAL ========
-pesanBtn.onclick = async () => {
-    const selected = content.querySelectorAll('.slot-checkbox:checked');
-    if(selected.length === 0){
-        Swal.fire('Perhatian', 'Pilih setidaknya satu jadwal untuk dipesan!', 'warning');
-        return;
-    }
-
-    const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaName = penyewaInput.value || null;
-
-    const lapangan = lapanganData.find(l => l.id === currentLapanganId);
-    if(!lapangan){
-        Swal.fire('Error', 'Data lapangan tidak ditemukan', 'error');
-        return;
-    }
-
-    for(const chk of selected){
-        const payload = {
-            penyewa_id: penyewaId || null,
-            items: itemsForServer,
-            total: total,
-            kasir: '{{ Auth::user()->name }}',
-            nama_penyewa: penyewaInput.value || null,
-            komunitas: komunitasInput.value || null
-        };
-        await addToCartFromModal(payload); // pakai ini
-    }
-
-    const modal = bootstrap.Modal.getInstance(document.getElementById('jadwalModal'));
-    if(modal) modal.hide();
-};
 
 // ======== INIT ========
 initCart();
