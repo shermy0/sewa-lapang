@@ -12,14 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('permintaan_perubahan', function (Blueprint $table) {
-            // Hapus kolom status
+
             if (Schema::hasColumn('permintaan_perubahan', 'status')) {
                 $table->dropColumn('status');
             }
 
-            // Hapus kolom alasan_internal jika ada
             if (Schema::hasColumn('permintaan_perubahan', 'alasan_internal')) {
                 $table->dropColumn('alasan_internal');
+            }
+
+            if (Schema::hasColumn('permintaan_perubahan', 'expires_at')) {
+                $table->dropColumn('expires_at');
             }
         });
     }
@@ -31,12 +34,19 @@ return new class extends Migration
     {
         Schema::table('permintaan_perubahan', function (Blueprint $table) {
 
-            // Tambahkan kembali kolom status
-            $table->enum('status', ['menunggu', 'disetujui', 'ditolak'])
-                  ->default('menunggu');
+            // Tambahkan ulang jika rollback
+            if (!Schema::hasColumn('permintaan_perubahan', 'status')) {
+                $table->enum('status', ['menunggu', 'disetujui', 'ditolak'])
+                      ->default('menunggu');
+            }
 
-            // Tambahkan kembali kolom alasan_internal
-            $table->text('alasan_internal')->nullable();
+            if (!Schema::hasColumn('permintaan_perubahan', 'alasan_internal')) {
+                $table->text('alasan_internal')->nullable();
+            }
+
+            if (!Schema::hasColumn('permintaan_perubahan', 'expires_at')) {
+                $table->timestamp('expires_at')->nullable();
+            }
         });
     }
 };
