@@ -564,7 +564,6 @@ $sudahPernahPindah = PermintaanPerubahan::where('pemesanan_id', $pemesanan->id)-
             'jadwal_lama_id' => $pemesanan->jadwal_id,
             'jadwal_baru_id' => $request->jadwal_baru_id,
             'alasan' => $request->alasan,
-            'expires_at' => now()->addMinutes(15),
         ]);
 
         // update pemesanan utama
