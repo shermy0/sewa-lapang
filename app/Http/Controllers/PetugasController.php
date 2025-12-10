@@ -443,7 +443,9 @@ class PetugasController extends Controller
 
         try {
             $penyewaId = $validated['penyewa_id'] ?? null;
-            if (! $penyewaId) {
+
+            if (!$penyewaId) {
+                // buat guest jika penyewa_id tidak ada
                 $guestName = $validated['nama_penyewa'] ?? 'Tamu';
                 $guestEmail = 'guest-' . Str::uuid() . '@guest.local';
                 $guest = User::create([
@@ -451,7 +453,7 @@ class PetugasController extends Controller
                     'email' => $guestEmail,
                     'password' => bcrypt('12345678'),
                     'role' => 'penyewa',
-                    'pemilik_id' => Auth::user()->pemilik_id,
+                    'pemilik_id' => $user->pemilik_id,
                     'status' => 'aktif',
                 ]);
                 $penyewaId = $guest->id;
@@ -592,13 +594,13 @@ class PetugasController extends Controller
                 } else {
                     $pemesanan = Pemesanan::create([
                         'penyewa_id' => $penyewaId,
-                        'lapangan_id' => $plan['lapangan_id'],
-                        'jadwal_id' => $jadwal->id,
+                        'lapangan_id' => $lapanganId,
+                        'jadwal_id' => $jadwalId,
                         'status' => 'menunggu',
                         'kode_tiket' => $this->generateTicketCode(),
                         'status_scan' => 'belum_scan',
                         'nama_komunitas' => $validated['komunitas'] ?? null,
-                    ]);
+                    ]);                    
 
                     Pembayaran::create([
                         'pemesanan_id' => $pemesanan->id,
@@ -1346,43 +1348,6 @@ class PetugasController extends Controller
             ->value('nama_komunitas');
 
         // Kalau ada nama komunitas → set ke pesanan baru
-        if ($kom) {
-            $pemesananBaru->nama_komunitas = $kom;
-            $pemesananBaru->save();
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $pemesananBaru
-        ]);
-    }
-
-    public function storePemesanan(Request $request)
-    {
-        $request->validate([
-            'id_lapangan' => 'required',
-            'id_jadwal' => 'required',
-            'tanggal' => 'required|date',
-            'harga' => 'required|numeric',
-        ]);
-
-        // Buat pemesanan baru
-        $pemesananBaru = Pemesanan::create([
-            'id_lapangan' => $request->id_lapangan,
-            'id_jadwal' => $request->id_jadwal,
-            'tanggal' => $request->tanggal,
-            'harga' => $request->harga,
-            'status' => 'keranjang',
-        ]);
-
-        // ============================================
-        //     AUTO SET NAMA KOMUNITAS KE PESANAN BARU
-        // ============================================
-        $kom = Pemesanan::where('status', 'keranjang')
-            ->whereNotNull('nama_komunitas')
-            ->latest()
-            ->value('nama_komunitas');
-
         if ($kom) {
             $pemesananBaru->nama_komunitas = $kom;
             $pemesananBaru->save();

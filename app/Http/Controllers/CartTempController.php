@@ -41,6 +41,7 @@ class CartTempController extends Controller
         $validated = $request->validate([
             'lapangan_id' => 'required|integer',
             'jadwal_id' => 'required|integer',
+            'penyewa_id' => 'required|integer|exists:users,id',
         ]);
 
         // Cek apakah jadwal sudah ada di keranjang atau sudah dibooking
@@ -63,7 +64,7 @@ class CartTempController extends Controller
         }
 
         $data = [
-            'penyewa_id' => auth()->id(), // user login
+            'penyewa_id' => $validated['penyewa_id'],
             'lapangan_id' => $validated['lapangan_id'],
             'jadwal_id' => $validated['jadwal_id'],
             'status' => 'keranjang',

@@ -278,8 +278,9 @@
             autocomplete="off"
             required>
           <ul id="penyewaResults" class="list-group position-absolute w-100"
-              style="z-index: 1050; display: none; max-function selectPenyewa(penyewa) {height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
-              <input type="hidden" name="penyewa_id" id="penyewa_id_input">
+              style="z-index: 1050; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          </ul>
+          <input type="hidden" name="penyewa_id" id="penyewa_id_input">
         </div>
 
         <!-- INPUT KOMUNITAS -->
@@ -754,7 +755,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById('payBtn').addEventListener('click', function () {
     const penyewaInput = document.getElementById('searchPenyewa');
-    const penyewaId = document.getElementById('penyewa_id_input')?.value || null;
+    const penyewaId = document.getElementById('penyewa_id_input').value;
+    if(!penyewaId){
+        swalWarn("Pilih penyewa terlebih dahulu!");
+        penyewaInput.focus();
+        return;
+    }
     const komunitasInput = document.getElementById('inputKomunitas');
     const radioCash = document.getElementById('payCash');
     const radioMidtrans = document.getElementById('payMidtrans');
@@ -1304,7 +1310,7 @@ function openJadwalModal(lapangan) {
   };
 
   const syncPenyewaNameToCart = (name) => {
-    fetch('/petugas/pemesanan/nama', {
+    fetch('/petugas/cart-temp/nama', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1360,23 +1366,14 @@ function openJadwalModal(lapangan) {
   }
 
   function selectPenyewa(penyewa) {
-    if (!penyewaInput) return;
+      console.log('Penyewa dipilih:', penyewa);
+      penyewaInput.value = penyewa.name || '';
+      document.getElementById('penyewa_id_input').value = penyewa.id;
+      penyewaInput.dataset.id = penyewa.id || null;
 
-    // Isi input text dengan nama
-    penyewaInput.value = penyewa.name;
-
-    // Simpan id di dataset (optional)
-    penyewaInput.dataset.id = penyewa.id;
-
-    // Simpan ke local storage / cart
-    saveStoredPenyewa(penyewa.name, penyewa.id);
-    syncPenyewaNameToCart(penyewa.name);
-
-    // --- BARU: set hidden input untuk dikirim ke backend ---
-    const hiddenInput = document.getElementById('penyewa_id_input');
-    if(hiddenInput) hiddenInput.value = penyewa.id;
-
-    list.style.display = "none";
+      saveStoredPenyewa(penyewa.name, penyewa.id);
+      syncPenyewaNameToCart(penyewa.name);
+      list.style.display = "none";
   }
 
   function fetchPenyewa(keyword, options = {}) {
@@ -1529,14 +1526,14 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute
 
 async function addToCartFromModal(payload) {
     try {
-        // Ambil penyewa ID dari hidden input
         const penyewaId = document.getElementById('penyewa_id_input')?.value || null;
 
-        // Sertakan penyewa_id di payload
-        const fullPayload = {
-            ...payload,
-            penyewa_id: penyewaId
-        };
+        if(!penyewaId){
+            Swal.fire('Perhatian', 'Pilih penyewa terlebih dahulu sebelum menambahkan ke keranjang!', 'warning');
+            return false;
+        }
+
+        const fullPayload = { ...payload, penyewa_id: penyewaId };
 
         const res = await fetch("/petugas/cart-temp", {
             method: 'POST',
@@ -1548,18 +1545,14 @@ async function addToCartFromModal(payload) {
         });
 
         const data = await res.json();
+        if(!res.ok || !data.success) throw new Error(data.message || 'Gagal menambahkan ke cart');
 
-        if (!res.ok || !data.success) {
-            throw new Error(data.error || data.message || 'Gagal menambahkan ke cart');
-        }
-
-        // Render ulang cart dari server
         renderCartFromDB();
         return true;
 
-    } catch (err) {
-        console.error('addToCartFromModal error:', err);
-        Swal.fire('Error', err.message || 'Gagal menambahkan jadwal ke cart', 'error');
+    } catch(err) {
+        console.error(err);
+        Swal.fire('Error', err.message || 'Gagal menambahkan ke cart', 'error');
         return false;
     }
 }
