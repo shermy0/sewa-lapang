@@ -442,20 +442,30 @@ $flatSchedules = collect($allSchedulesToday ?? [])->flatMap(function ($section) 
         });
 })->sortBy('start_at')->values();
 
+// Filter jadwal yang sudah dibayar/booked untuk panel utama (active schedule)
+$paidSchedules = $flatSchedules->filter(function ($item) use ($paidStatuses) {
+    return in_array($item['status'] ?? 'tersedia', $paidStatuses);
+});
 
-// PRIORITAS UTAMA — jadwal yang sedang berlangsung SEKARANG
-$activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
+// PRIORITAS UTAMA — jadwal TERBAYAR yang sedang berlangsung SEKARANG
+$activeSchedule = $paidSchedules->first(function ($item) use ($nowJakarta) {
     $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
     $end   = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
     return $nowJakarta->between($start, $end);
 });
 
-// FALLBACK — jadwal setelah NOW
+// FALLBACK — Jika tidak ada jadwal terbayar saat ini, cek apakah ada jadwal TERSEDIA saat ini
+// (untuk menampilkan "KOSONG" dengan jam yang sedang berlangsung)
 if (! $activeSchedule) {
     $activeSchedule = $flatSchedules->first(function ($item) use ($nowJakarta) {
-        return \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta')->gt($nowJakarta);
+        $start = \Carbon\Carbon::parse($item['start_at'], 'Asia/Jakarta');
+        $end   = \Carbon\Carbon::parse($item['end_at'], 'Asia/Jakarta');
+        return $nowJakarta->between($start, $end);
     });
 }
+
+// CATATAN: Jadwal masa depan TIDAK ditampilkan di panel besar
+// Jadwal masa depan hanya tampil di grid "Jadwal Hari Ini" di sebelah kanan
 
 
 
@@ -529,6 +539,7 @@ if (! $hasActiveSchedule) {
             break;
 
         case 'kosong':
+        case 'tersedia':
             $activeCommunityLabel = 'KOSONG';
             break;
 
@@ -804,18 +815,30 @@ if (! $hasActiveSchedule) {
         const headerEl = document.querySelector('.active-card .card-header');
         const isPlaying = data.isPlaying;
         const activeSchedule = data.activeSchedule;
+        const activeStatus = data.activeStatus || (activeSchedule?.status ?? 'kosong');
         const hasActiveSchedule = data.hasActiveSchedule ?? !!activeSchedule;
         const activeCommunity = data.activeCommunity;
 
-        // Determine header label (hanya komunitas)
-        let activeCommunityLabel = 'LAPANGAN KOSONG';
-        if (hasActiveSchedule && activeSchedule) {
+        // Status yang dianggap sudah "terisi/terbayar"
+        const paidStatuses = ['dibayar', 'terisi', 'sedang_main', 'masuk_arena'];
+        const isPaid = paidStatuses.includes(activeStatus);
+
+        // Determine header label
+        let activeCommunityLabel = 'KOSONG';
+        if (hasActiveSchedule && activeSchedule && isPaid) {
             const communityName = activeCommunity;
             if (communityName) {
                 activeCommunityLabel = communityName;
+            } else if (isPlaying) {
+                activeCommunityLabel = 'SEDANG BERMAIN';
+            } else if (activeStatus === 'masuk_arena') {
+                activeCommunityLabel = 'MASUK ARENA';
             } else {
-                activeCommunityLabel = isPlaying ? 'SEDANG BERMAIN' : 'TERISI';
+                activeCommunityLabel = 'TERISI';
             }
+        } else if (hasActiveSchedule && activeSchedule) {
+            // Ada jadwal tapi belum terbayar - tetap KOSONG
+            activeCommunityLabel = 'KOSONG';
         }
         if (headerEl) {
             headerEl.textContent = activeCommunityLabel;
@@ -825,7 +848,7 @@ if (! $hasActiveSchedule) {
         const cardBody = document.querySelector('.active-card .card-body');
         if (!cardBody) return;
 
-        if (hasActiveSchedule && isPlaying) {
+        if (hasActiveSchedule && isPlaying && isPaid) {
             // Show timer view (no badge, just timer)
             cardBody.innerHTML = `
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
@@ -841,7 +864,7 @@ if (! $hasActiveSchedule) {
                 </div>
             `;
             updateCountdown(); // Re-run countdown for new element
-        } else if (hasActiveSchedule && activeSchedule.status === 'masuk_arena') {
+        } else if (hasActiveSchedule && activeStatus === 'masuk_arena' && isPaid) {
             // Show MASUK ARENA view (entered gor but not yet on field)
             cardBody.innerHTML = `
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
@@ -852,7 +875,7 @@ if (! $hasActiveSchedule) {
                     </div>
                 </div>
             `;
-        } else if (hasActiveSchedule) {
+        } else if (hasActiveSchedule && isPaid) {
             // Show TERJADWAL view (paid but not entered arena yet)
             cardBody.innerHTML = `
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
@@ -863,8 +886,19 @@ if (! $hasActiveSchedule) {
                     </div>
                 </div>
             `;
+        } else if (hasActiveSchedule && activeSchedule) {
+            // Show KOSONG view (has schedule but not paid - tersedia/menunggu)
+            cardBody.innerHTML = `
+                <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
+                    <div class="badge bg-secondary mb-3" style="font-size: 1.2rem; padding: 10px 25px;">KOSONG</div>
+                    <div class="text-muted mb-2" style="font-size: 0.9rem; font-weight: 600; letter-spacing: 1px;">JADWAL MAIN</div>
+                    <div class="h1 fw-bold" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 3rem;">
+                        ${activeSchedule.jam_mulai} - ${activeSchedule.jam_selesai}
+                    </div>
+                </div>
+            `;
         } else {
-            // Show "Lapangan Kosong" view (no paid schedules)
+            // Show "Lapangan Kosong" view (no schedules at all)
             cardBody.innerHTML = `
                 <div class="d-flex flex-column justify-content-center align-items-center text-center w-100" style="min-height: 260px;">
                     <div style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; box-shadow: 0 10px 40px rgba(107, 114, 128, 0.3);">
