@@ -18,7 +18,6 @@ class PermintaanPerubahan extends Model
         'jadwal_lama_id',
         'jadwal_baru_id',
         'alasan',
-        'status',
         'expires_at'
     ];
 public function pemesanan()
