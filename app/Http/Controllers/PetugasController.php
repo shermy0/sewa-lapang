@@ -867,6 +867,8 @@ class PetugasController extends Controller
 
             if ($j->pemesanan_status === 'dibayar') {
                 $status = 'dibayar';
+            } elseif ($j->pemesanan_status === 'keranjang') {
+                $status = 'keranjang';
             } elseif ($j->pemesanan_status === 'menunggu') {
                 $paymentStatus = $j->payment_status;
                 $paymentCreated = $j->payment_created_at ? Carbon::parse($j->payment_created_at) : null;

@@ -1040,6 +1040,9 @@ function openJadwalModal(lapangan) {
             if (j.booking_status === "dibayar") {
                 statusClass = "bg-success text-white";
                 statusText = "Sudah Dibayar";
+            } else if (j.booking_status === "keranjang") {
+                statusClass = "bg-info text-white";
+                statusText = "Di Keranjang";
             } else if (j.booking_status === "menunggu") {
                 statusClass = "bg-warning text-dark";
                 statusText = "Sedang Dibooking";
