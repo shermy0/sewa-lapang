@@ -91,29 +91,34 @@ class CartTempController extends Controller
     // Hapus 1 item
     public function destroy($id)
     {
-        $userId = auth()->id();
-
-        DB::table('pemesanan')
-            ->where('id', $id)
-            ->where('penyewa_id', $userId)
-            ->where('status', 'keranjang')
-            ->delete();
-
+        $user = auth()->user();
+    
+        $query = Pemesanan::where('id', $id)
+                          ->where('status', 'keranjang');
+    
+        // Kalau bukan penyewa, kasir bisa hapus semua
+        if ($user->role === 'penyewa') {
+            $query->where('penyewa_id', $user->id);
+        }
+    
+        $query->delete();
+    
         return response()->json(['success' => true]);
-    }
+    }    
 
     // Hapus semua item keranjang user
-    public function clear()
+    public function clear(Request $request)
     {
-        $userId = auth()->id();
-
-        DB::table('pemesanan')
-            ->where('penyewa_id', $userId)
+        $request->validate([
+            'penyewa_id' => 'required|exists:users,id'
+        ]);
+    
+        Pemesanan::where('penyewa_id', $request->penyewa_id)
             ->where('status', 'keranjang')
             ->delete();
-
+    
         return response()->json(['success' => true]);
-    }
+    }    
 
     // Update nama komunitas (jika dipakai)
     public function updateNama(Request $request)
@@ -133,4 +138,17 @@ class CartTempController extends Controller
     
         return response()->json(['success' => true]);
     }       
+
+    public function updatePenyewa(Request $request)
+    {
+        $request->validate([
+            'penyewa_id' => 'required|exists:users,id'
+        ]);
+
+        // Update semua item keranjang ke penyewa baru
+        Pemesanan::where('status', 'keranjang')
+            ->update(['penyewa_id' => $request->penyewa_id]);
+
+        return response()->json(['success' => true]);
+    }
 }
