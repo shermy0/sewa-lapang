@@ -91,31 +91,17 @@ class CartTempController extends Controller
     // Hapus 1 item
     public function destroy($id)
     {
-        $user = auth()->user();
-    
-        $query = Pemesanan::where('id', $id)
-                          ->where('status', 'keranjang');
-    
-        // Kalau bukan penyewa, kasir bisa hapus semua
-        if ($user->role === 'penyewa') {
-            $query->where('penyewa_id', $user->id);
-        }
-    
-        $query->delete();
+        Pemesanan::where('id', $id)
+            ->where('status', 'keranjang')
+            ->delete();
     
         return response()->json(['success' => true]);
     }    
 
     // Hapus semua item keranjang user
-    public function clear(Request $request)
+    public function clear()
     {
-        $request->validate([
-            'penyewa_id' => 'required|exists:users,id'
-        ]);
-    
-        Pemesanan::where('penyewa_id', $request->penyewa_id)
-            ->where('status', 'keranjang')
-            ->delete();
+        Pemesanan::where('status', 'keranjang')->delete();
     
         return response()->json(['success' => true]);
     }    
@@ -137,18 +123,30 @@ class CartTempController extends Controller
                 ]);
     
         return response()->json(['success' => true]);
-    }       
-
-    public function updatePenyewa(Request $request)
+    }   
+    
+    public function updateNamaPenyewa(Request $request)
     {
         $request->validate([
-            'penyewa_id' => 'required|exists:users,id'
+            'nama_penyewa' => 'nullable|string|max:255',
         ]);
-
-        // Update semua item keranjang ke penyewa baru
-        Pemesanan::where('status', 'keranjang')
-            ->update(['penyewa_id' => $request->penyewa_id]);
-
-        return response()->json(['success' => true]);
-    }
+    
+        // Ambil penyewa aktif yang dipilih dari FE
+        $nama = $request->nama_penyewa;
+    
+        // Cari user berdasarkan nama (FE kamu kirim name)
+        $penyewa = \App\Models\User::where('name', $nama)->first();
+    
+        // Update cart-temp (status = keranjang)
+        Pemesanan::where('status', 'keranjang')->update([
+            'nama_komunitas' => $nama,
+            'penyewa_id'     => $penyewa ? $penyewa->id : null,
+            'updated_at'     => now()
+        ]);
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Nama penyewa & penyewa_id berhasil disinkronkan'
+        ]);
+    }    
 }

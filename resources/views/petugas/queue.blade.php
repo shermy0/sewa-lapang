@@ -475,42 +475,21 @@ document.getElementById("inputKomunitas").addEventListener("keyup", function () 
     }, 1000);
 });
 
-const inputKom = document.getElementById('inputKomunitas');
-
-function sebelumTambahKeKeranjang() {
-    if (inputKom.value.trim() === "") {
-        Swal.fire('Perhatian', 'Isi nama komunitas terlebih dahulu', 'warning');
-        return false;
-    }
-    return true;
-}
-
 function simpanKomunitas(nama) {
     fetch("/petugas/simpan-komunitas", {
-      method: "POST",
-      credentials: "same-origin",        // WAJIB ADA
-      headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
-      },
-      body: JSON.stringify({ nama_komunitas: nama })
-  })
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ nama_komunitas: nama })
+    })
     .then(r => r.json())
     .then(res => {
         console.log("Nama komunitas tersimpan:", res.data);
     })
     .catch(err => console.error(err));
 }
-
-fetch("/petugas/tambah-keranjang", {
-    method: "POST",
-    credentials: "same-origin",     // INI PALING PENTING
-    headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-TOKEN": token
-    },
-    body: JSON.stringify(data)
-})
 </script>
 
 <script>

@@ -1284,29 +1284,32 @@ class PetugasController extends Controller
 
     // Simpan semua pemesanan keranjang dengan nama komunitas yang sama
     public function simpanKomunitas(Request $request)
-    {   
+    {
         $request->validate([
             'nama_komunitas' => 'required|string|max:255',
         ]);
 
-        // Simpan ke session DULU
-        session(['nama_komunitas' => $request->nama_komunitas]);
-
-        // Update ke database JIKA sudah ada keranjang
+        // Ambil semua pemesanan aktif (status keranjang)
         $pesanans = Pemesanan::where('status', 'keranjang')->get();
 
-        if (!$pesanans->isEmpty()) {
-            foreach ($pesanans as $p) {
-                $p->nama_komunitas = $request->nama_komunitas;
-                $p->save();
-            }
+        if ($pesanans->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada transaksi keranjang aktif'
+            ]);
+        }
+
+        // Update semua pemesanan dengan nama komunitas
+        foreach ($pesanans as $p) {
+            $p->nama_komunitas = $request->nama_komunitas;
+            $p->save();
         }
 
         return response()->json([
             'success' => true,
             'data' => $request->nama_komunitas
         ]);
-    }                                                       
+    }
 
     // Ambil nama komunitas (cukup ambil salah satu karena semuanya sama)
     public function ambilKomunitas()
@@ -1339,16 +1342,12 @@ class PetugasController extends Controller
         // ===========================
 
         // Ambil nama komunitas yang sudah disimpan sebelumnya
-        $kom = session('nama_komunitas');
+        $kom = Pemesanan::where('status', 'keranjang')
+            ->whereNotNull('nama_komunitas')
+            ->latest()
+            ->value('nama_komunitas');
 
-        if (!$kom) {
-            // Kalau belum ada di session, cek di database
-            $kom = Pemesanan::where('status', 'keranjang')
-                ->whereNotNull('nama_komunitas')
-                ->value('nama_komunitas');
-        }
-
-        // Set ke pemesanan baru
+        // Kalau ada nama komunitas → set ke pesanan baru
         if ($kom) {
             $pemesananBaru->nama_komunitas = $kom;
             $pemesananBaru->save();

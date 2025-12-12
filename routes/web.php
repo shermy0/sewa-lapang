@@ -237,6 +237,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         Route::delete('/cart-temp/{id}', [CartTempController::class, 'destroy']);
         Route::delete('/cart-temp', [CartTempController::class, 'clear']);
         Route::post('/cart-temp/nama', [CartTempController::class, 'updateNama']);
+        Route::post('/cart-temp/nama', [CartTempController::class, 'updateNamaPenyewa']);
 
         // Scan tiket
         Route::get('/scan', [ScanTiketController::class, 'index'])->name('scan');
