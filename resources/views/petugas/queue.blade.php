@@ -448,31 +448,28 @@
 
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
 
-<!-- NAMA KOMUN -->
 <script>
+const inputKomunitas = document.getElementById("inputKomunitas");
 let komunitasTimeout = null;
 
-// Ambil nama komunitas saat halaman load
-window.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     fetch("/petugas/ambil-komunitas")
-    .then(r => r.json())
-    .then(res => {
-        if (res.nama) {
-            document.getElementById("inputKomunitas").value = res.nama;
-        }
-    })
-    .catch(err => console.error(err));
+        .then(r => r.json())
+        .then(res => {
+            if (res.nama_komunitas) {
+                inputKomunitas.value = res.nama_komunitas;
+            }
+        });
 });
 
-document.getElementById("inputKomunitas").addEventListener("keyup", function () {
+inputKomunitas.addEventListener("input", function () {
     clearTimeout(komunitasTimeout);
 
     const nama = this.value.trim();
-    if (nama === "") return;
 
     komunitasTimeout = setTimeout(() => {
         simpanKomunitas(nama);
-    }, 1000);
+    }, 800);
 });
 
 function simpanKomunitas(nama) {
@@ -480,15 +477,18 @@ function simpanKomunitas(nama) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                .content
         },
         body: JSON.stringify({ nama_komunitas: nama })
     })
     .then(r => r.json())
     .then(res => {
-        console.log("Nama komunitas tersimpan:", res.data);
-    })
-    .catch(err => console.error(err));
+        if (res.success) {
+            console.log("🔄 Komunitas di-update:", nama);
+        }
+    });
 }
 </script>
 

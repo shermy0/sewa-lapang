@@ -40,52 +40,40 @@ class CartTempController extends Controller
     {
         $validated = $request->validate([
             'lapangan_id' => 'required|integer',
-            'jadwal_id' => 'required|integer',
-            'penyewa_id' => 'required|integer|exists:users,id',
+            'jadwal_id'   => 'required|integer',
+            'penyewa_id'  => 'required|integer|exists:users,id',
         ]);
 
-        // Cek apakah jadwal sudah ada di keranjang atau sudah dibooking
         $existing = Pemesanan::where('jadwal_id', $validated['jadwal_id'])
             ->whereIn('status', ['keranjang', 'menunggu', 'dibayar'])
             ->first();
 
         if ($existing) {
-            $statusMessage = match($existing->status) {
-                'keranjang' => 'Jadwal sudah ada di keranjang',
-                'menunggu' => 'Jadwal sedang dalam proses pembayaran',
-                'dibayar' => 'Jadwal sudah dibooking',
-                default => 'Jadwal tidak tersedia'
-            };
-            
             return response()->json([
                 'success' => false,
-                'error' => $statusMessage
+                'error' => 'Jadwal tidak tersedia'
             ], 400);
         }
 
+        // 🔥 AMBIL DARI SESSION
+        $namaKomunitas = session('cart.nama_komunitas');
+
         $data = [
-            'penyewa_id' => $validated['penyewa_id'],
-            'lapangan_id' => $validated['lapangan_id'],
-            'jadwal_id' => $validated['jadwal_id'],
-            'status' => 'keranjang',
-            'created_at' => now(),
-            'updated_at' => now(),
+            'penyewa_id'     => $validated['penyewa_id'],
+            'lapangan_id'    => $validated['lapangan_id'],
+            'jadwal_id'      => $validated['jadwal_id'],
+            'nama_komunitas' => $namaKomunitas, // 👈 PENTING
+            'status'         => 'keranjang',
+            'created_at'     => now(),
+            'updated_at'     => now(),
         ];
 
-        try {
-            $cart = Pemesanan::create($data);
+        $cart = Pemesanan::create($data);
 
-            return response()->json([
-                'success' => true,
-                'cart' => $cart->load('lapangan', 'jadwal')
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'cart' => $cart->load('lapangan', 'jadwal')
+        ]);
     }
 
     // Hapus 1 item
@@ -148,5 +136,34 @@ class CartTempController extends Controller
             'success' => true,
             'message' => 'Nama penyewa & penyewa_id berhasil disinkronkan'
         ]);
-    }    
+    } 
+    
+    public function setKomunitas(Request $request)
+    {
+        $request->validate([
+            'nama_komunitas' => 'nullable|string|max:255'
+        ]);
+
+        session([
+            'cart.nama_komunitas' => $request->nama_komunitas
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'nama_komunitas' => $request->nama_komunitas
+        ]);
+    }
+
+    public function syncKomunitasToCart()
+    {
+        $namaKomunitas = session('cart.nama_komunitas');
+
+        Pemesanan::where('status', 'keranjang')
+            ->update([
+                'nama_komunitas' => $namaKomunitas,
+                'updated_at' => now()
+            ]);
+
+        return response()->json(['success' => true]);
+    }
 }

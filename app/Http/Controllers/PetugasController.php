@@ -1286,37 +1286,31 @@ class PetugasController extends Controller
     public function simpanKomunitas(Request $request)
     {
         $request->validate([
-            'nama_komunitas' => 'required|string|max:255',
+            'nama_komunitas' => 'nullable|string|max:255'
         ]);
-
-        // Ambil semua pemesanan aktif (status keranjang)
-        $pesanans = Pemesanan::where('status', 'keranjang')->get();
-
-        if ($pesanans->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tidak ada transaksi keranjang aktif'
+    
+        // 1️⃣ Simpan ke SESSION
+        session(['cart.nama_komunitas' => $request->nama_komunitas]);
+    
+        // 2️⃣ Update semua item keranjang
+        \App\Models\Pemesanan::where('status', 'keranjang')
+            ->update([
+                'nama_komunitas' => $request->nama_komunitas,
+                'updated_at' => now()
             ]);
-        }
-
-        // Update semua pemesanan dengan nama komunitas
-        foreach ($pesanans as $p) {
-            $p->nama_komunitas = $request->nama_komunitas;
-            $p->save();
-        }
-
+    
         return response()->json([
             'success' => true,
-            'data' => $request->nama_komunitas
+            'nama_komunitas' => $request->nama_komunitas
         ]);
-    }
+    }    
 
-    // Ambil nama komunitas (cukup ambil salah satu karena semuanya sama)
     public function ambilKomunitas()
     {
-        $pemesanan = Pemesanan::where('status', 'keranjang')->first();
-        return response()->json(['nama' => $pemesanan->nama_komunitas ?? '']);
-    }    
+        return response()->json([
+            'nama_komunitas' => session('cart.nama_komunitas')
+        ]);
+    }  
 
     public function tambahKeranjang(Request $request)
     {
