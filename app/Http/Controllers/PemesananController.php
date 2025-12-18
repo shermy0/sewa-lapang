@@ -93,12 +93,20 @@ class PemesananController extends Controller
             ->map(function($j) {
 
                 // cari pemesanan aktif utk jadwal ini (menunggu atau dibayar)
-                $p = Pemesanan::where('jadwal_id', $j->id)
-                    ->whereIn('status', ['menunggu', 'dibayar'])
-                    ->whereHas('pembayaran', function($q) {
-                        $q->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
-                    })
-                    ->first();
+$p = Pemesanan::where('jadwal_id', $j->id)
+    ->where(function ($q) {
+        // 1️⃣ KERANJANG → langsung lock
+        $q->where('status', 'keranjang')
+
+          // 2️⃣ MENUNGGU / DIBAYAR → lock + pembayaran valid
+          ->orWhere(function ($q2) {
+              $q2->whereIn('status', ['menunggu', 'dibayar'])
+                 ->whereHas('pembayaran', function ($q3) {
+                     $q3->whereNotIn('status', ['kadaluarsa', 'gagal', 'batal']);
+                 });
+          });
+    })
+    ->first();
 
                 if ($p) {
                     $j->booking_status = $p->status; // menunggu / dibayar
