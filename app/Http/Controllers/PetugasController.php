@@ -879,19 +879,40 @@ class PetugasController extends Controller
             } elseif ($j->pemesanan_status === 'keranjang') {
                 $status = 'keranjang';
             } elseif ($j->pemesanan_status === 'menunggu') {
-                $paymentStatus = $j->payment_status;
-                $paymentCreated = $j->payment_created_at ? Carbon::parse($j->payment_created_at) : null;
-                $orderCreated = $j->pemesanan_created_at ? Carbon::parse($j->pemesanan_created_at) : null;
 
                 $isExpired =
                     in_array($paymentStatus, ['kadaluarsa', 'batal', 'gagal'], true) ||
                     ($paymentStatus === 'pending' && $paymentCreated && $paymentCreated->addMinutes(15)->lt($now)) ||
                     (!$paymentStatus && $orderCreated && $orderCreated->addMinutes(15)->lt($now));
-
-                $status = $isExpired ? 'tersedia' : 'menunggu';
-            } else {
-                $status = $j->tersedia ? 'tersedia' : 'tidak_tersedia';
-            }
+            
+                if ($isExpired) {
+                    // 🔥 UPDATE DATABASE
+                    DB::table('pemesanan')
+                        ->where('id', $j->pemesanan_id)
+                        ->update([
+                            'status' => 'kadaluarsa',
+                            'updated_at' => now()
+                        ]);
+            
+                    DB::table('pembayaran')
+                        ->where('pemesanan_id', $j->pemesanan_id)
+                        ->where('status', 'pending')
+                        ->update([
+                            'status' => 'kadaluarsa',
+                            'updated_at' => now()
+                        ]);
+            
+                    DB::table('jadwal_lapangan')
+                        ->where('id', $j->id)
+                        ->update([
+                            'tersedia' => true
+                        ]);
+            
+                    $status = 'tersedia';
+                } else {
+                    $status = 'menunggu';
+                }
+            }            
 
             // Mapping status_scan ke status tampil
             if ($statusScan === 'masuk_arena') {
