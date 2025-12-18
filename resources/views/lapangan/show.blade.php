@@ -377,7 +377,7 @@
                                                                         <small class="text-muted">Rp {{ number_format($jadwal->harga_sewa, 0, ',', '.') }} / jam</small>
                                                                     </td>
                                                                     @php
-                                                                        $pemesananAktif = $jadwal->pemesanan; // sudah difilter menunggu/dibayar
+                                                                        $pemesananAktif = $jadwal->first(); // sudah difilter menunggu/dibayar
                                                                         if ($pemesananAktif && $pemesananAktif->status === 'menunggu') {
                                                                             $statusLabel = 'Menunggu Pembayaran';
                                                                             $statusClass = 'bg-warning text-dark';
