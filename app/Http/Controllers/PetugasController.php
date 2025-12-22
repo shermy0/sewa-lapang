@@ -204,7 +204,8 @@ class PetugasController extends Controller
                 'lapangan_name' => $first->nama_lapangan,
                 'schedules' => $scheduleItems,
             ];
-        });
+        })->take(10); // Limit to 10 sections
+
 
         return $grouped->values();
     }
@@ -257,6 +258,8 @@ class PetugasController extends Controller
             ->orderBy('j.tanggal')
             ->orderBy('j.jam_mulai')
             ->get();
+
+            // dd($rows);
 
         return $rows
             ->groupBy('section_id')
@@ -1008,6 +1011,8 @@ class PetugasController extends Controller
 
         $sectionQueues = $this->buildSectionQueues($lapangan->pluck('id'));
 
+        // dd($sectionQueues);
+
         // Get all schedules for today (both booked and available)
         $today = Carbon::today()->toDateString();
         $allSchedulesToday = $this->buildAllSchedulesToday($lapangan->pluck('id'), $today);
@@ -1017,6 +1022,7 @@ class PetugasController extends Controller
             $sectionQueues = $sectionQueues->where('section_id', $sectionId)->values();
             $allSchedulesToday = collect($allSchedulesToday)->where('section_id', $sectionId)->values();
         }
+
 
         // Ambil nama lapangan pertama untuk judul display (fallback jika kosong)
         $displayTitle = $lapangan->first()->nama_lapangan ?? 'Layar Display';

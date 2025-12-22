@@ -652,7 +652,7 @@ if (! $hasActiveSchedule) {
                             'lapangan_name' => $section['lapangan_name'] ?? null,
                         ]);
                     });
-            })->sortBy('jam_mulai')->values();
+            })->take(16)->sortBy('jam_mulai')->values();
 
             // Exclude the active schedule from the grid (karena sudah tampil di panel utama)
             $activeScheduleId = $hasActiveSchedule ? ($activeSchedule['jadwal_id'] ?? null) : null;
@@ -916,8 +916,7 @@ if (! $hasActiveSchedule) {
         updateGridFromData(data.allSchedulesToday, isPlaying, activeSchedule);
     }
 
-    function updateGridFromData(allSchedules, isPlaying, activeSchedule) {
-        const gridContainer = document.querySelector('.queue-grid');
+    function updateGridFromData(allSchedules, isPlaying, activeSchedule) { const gridContainer = document.querySelector('.queue-grid');
         if (!gridContainer) return;
 
         // Show/hide the empty state container
