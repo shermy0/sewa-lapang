@@ -349,9 +349,18 @@ function loadJam(sectionId, tanggal, currentJadwalId = null) {
                         status = (pay === "menunggu" || pay === "pending") ? "menunggu" : "dibayar";
                     }
                 } else {
-                    if (j.booking_status === "dibayar") status = "dibayar";
-                    else if (j.booking_status === "menunggu") status = "menunggu";
-                    else status = j.tersedia ? "available" : "menunggu";
+if (j.booking_status === "dibayar") {
+    status = "dibayar";
+}
+else if (j.booking_status === "menunggu") {
+    status = "menunggu";
+}
+else if (j.booking_status === "keranjang") {
+    status = "keranjang";
+}
+else {
+    status = j.tersedia ? "available" : "menunggu";
+}
                 }
 
                 let bgColor = "";
@@ -367,7 +376,7 @@ function loadJam(sectionId, tanggal, currentJadwalId = null) {
 
                 const disabledStyle = (isUser && status !== "available")
                     ? `pointer-events:none; opacity:0.85; background:${bgColor || '#e8fff2'}; border:${borderStyle}; position:relative;`
-                    : (status === "dibayar" || status === "menunggu")
+                    : (status === "dibayar" || status === "menunggu"  || status === "keranjang")
                         ? `pointer-events:none; opacity:0.55; background:${bgColor || '#f8f9fa'}; border:${borderStyle}; position:relative;`
                         : `background:${bgColor || '#fff'}; border:${borderStyle}; position:relative;`;
 
@@ -377,8 +386,11 @@ function loadJam(sectionId, tanggal, currentJadwalId = null) {
                     if (pay === "menunggu" || pay === "pending") statusText = `<b style="color:#856404">Jadwalmu (Belum Dibayar)</b>`;
                     else if (pay === "berhasil") statusText = `<b style="color:#0F5132">Jadwalmu (Sudah Dibayar)</b>`;
                 } else {
-                    if (status === "menunggu") statusText = "Sedang dibooking (belum bayar)";
-                    else if (status === "dibayar") statusText = "Sedang dibooking (sudah dibayar)";
+                    if (status === "menunggu") statusText = "Sedang dibooking";
+                    else if (status === "dibayar") statusText = "Sedang dibooking";
+                    else if (status === "keranjang")
+    statusText = "Sedang dibooking";
+
                 }
 
                 container.innerHTML += `

@@ -1334,10 +1334,22 @@ class PetugasController extends Controller
 
     public function ambilKomunitas()
     {
+        $nama = session('cart.nama_komunitas');
+    
+        if (!$nama) {
+            $nama = \App\Models\Pemesanan::where('status', 'keranjang')
+                ->whereNotNull('nama_komunitas')
+                ->latest()
+                ->value('nama_komunitas');
+    
+            // 🔁 sync ke session lagi
+            session(['cart.nama_komunitas' => $nama]);
+        }
+    
         return response()->json([
-            'nama_komunitas' => session('cart.nama_komunitas')
+            'nama_komunitas' => $nama
         ]);
-    }  
+    }    
 
     public function tambahKeranjang(Request $request)
     {

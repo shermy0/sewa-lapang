@@ -1298,13 +1298,19 @@ function openJadwalModal(lapangan) {
 
   const restorePenyewaInput = () => {
     if(!penyewaInput) return;
+
     const stored = loadStoredPenyewa();
     if(stored && stored.name){
       penyewaInput.value = stored.name;
+
       if(stored.id){
         penyewaInput.dataset.id = stored.id;
-      } else {
-        penyewaInput.removeAttribute('data-id');
+
+        // 🔥 INI YANG PENTING
+        const hiddenId = document.getElementById('penyewa_id_input');
+        if(hiddenId){
+          hiddenId.value = stored.id;
+        }
       }
     }
   };
